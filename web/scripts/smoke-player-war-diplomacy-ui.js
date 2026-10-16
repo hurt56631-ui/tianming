@@ -6,12 +6,14 @@ const ui=fs.readFileSync(path.join(root,'tm-war-diplomacy-ui.js'),'utf8');
 const war=fs.readFileSync(path.join(root,'tm-political-actions.js'),'utf8');
 const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const game=fs.readFileSync(path.join(root,'tm-game-loop.js'),'utf8');
-assert(index.includes('tm-war-diplomacy-ui.js?v=20261016-war-diplomacy'));
+assert(index.includes('tm-war-diplomacy-ui.js?v=20261016-edict-diplomacy'));
 assert(index.includes('tm-political-actions.js?v=20261016-war-diplomacy'));
-assert(index.includes('tm-game-loop.js?v=20261016-war-diplomacy'));
-assert(index.includes('tm-game-loop-wentian-hardchange.js?v=20261016-war-diplomacy'),'split-game-loop family must be atomically cache-bumped');
+assert(index.includes('tm-game-loop.js?v=20261016-edict-diplomacy'));
+assert(index.includes('tm-game-loop-wentian-hardchange.js?v=20261016-edict-diplomacy'),'split-game-loop family must be atomically cache-bumped');
 assert(index.includes('tm-faction-diplomacy.js?v=20261016-war-diplomacy'),'diplomacy runtime cache key stale');
 assert(game.includes("action:'TM.WarDiplomacy.open()'"));
+assert(game.includes("action:'TM.WarDiplomacy.openEdictDiplomacy()'"),
+  'diplomacy entry should now go to edict diplomacy');
 assert(game.includes('传统遣使仅登记使臣行程'),'legacy envoy entry must not look like an effective treaty');
 const world={
   turn:3,chars:[{id:'pc',name:'玩家',isPlayer:true,alive:true,factionId:'us'}],

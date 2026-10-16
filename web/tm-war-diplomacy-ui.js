@@ -49,10 +49,10 @@
       return str(ref)===str(org.id)||str(ref)===str(org.name);
     });
   }
-  function resultMessage(result,good,bad){
+  function resultMessage(result,good,bad,statusId){
     var outcome=result&&result.outcome,ok=result&&(result.ok===true||/^(submitted|started|completed)$/.test(outcome||''));
     var message=(ok?good:bad)+(result&&result.reason?'（'+result.reason+'）':'');
-    var box=root.document&&root.document.getElementById('tm-war-flow-status');
+    var box=root.document&&root.document.getElementById(statusId||'tm-war-flow-status');
     if(box){box.textContent=message;box.setAttribute('data-ok',ok?'true':'false');}
     if(typeof root.toast==='function')root.toast(message);
     return !!ok;
@@ -72,6 +72,160 @@
         && (!supported||!!root.CasusBelliSystem.findCB(c.id));
     });
   }
+
+  // First-stage diplomacy uses only the existing proposal/treaty domain.
+  // A goodwill visit is a negotiated 'deal', NOT an instant increase in opinion
+  // nor a transfer of public money, gifts, provinces or troops.
+  var DIP_MODES=[
+    {id:'goodwill',type:'deal',name:'亲善互访（不直接增加好感）',
+      example:'互派使臣，保持友好往来，讨论边境通行事宜；本提案不涉及立即赠礼、银粮或领土转移。'},
+    {id:'alliance',type:'alliance',name:'缔结同盟',
+      example:'双方结成军事同盟，互通军情，盟约期限由双方协商确定。'},
+    {id:'nonaggression',type:'nonaggression',name:'互不侵犯',
+      example:'双方互不主动侵犯，约束边军，发生争端先遣使协商。'},
+    {id:'peace',type:'peace',name:'议和停战',
+      example:'双方停止当前敌对行动，互换俘虏，讨论停战期限与边界。'},
+    {id:'joint_action',type:'joint_action',name:'联手出兵（提案）',
+      example:'双方商议共同军事目标、各自行动范围与物资责任；未接受前不得擅自视为盟军参战。'},
+    {id:'deal',type:'deal',name:'通商交易（提案）',
+      example:'双方协商通商路线、商税和货品交割条件，具体资源转移另按正式财政流程办理。'},
+    {id:'ultimatum',type:'ultimatum',name:'外交最后通牒',
+      example:'要求对方就边界争端于约定期限内答复，否则我方将另行考虑军事措施；此信不等于正式宣战。'}
+  ];
+  var DIP_STATES={
+    draft:'本方内部草案',in_transit:'国书在途',pending:'待答复',
+    accepted:'双方已签署',rejected:'对方拒绝',cancelled:'已撤回',
+    lapsed:'失效',needs_replan:'旧文书待重拟'
+  };
+  function dipMode(id){return DIP_MODES.find(function(x){return x.id===id;})||null;}
+  function statusContent(){
+    var org=facs()[0],ch=player(),domain=TM.FactionDiplomacy;
+    if(!org||!ch||!domain||typeof domain.visible!=='function')return '<small>暂无可核实的外交文书。</small>';
+    var records=[];
+    try{records=domain.visible(ch,org);}catch(e){
+      if(root.console&&root.console.warn)root.console.warn('[edict-diplomacy] read-only receipt view',e);
+      return '<small>外交记录暂时无法读取，请查看鸿雁与问对。</small>';
+    }
+    if(!records.length)return '<small>当前人物尚无已知外交文书。</small>';
+    return records.slice(0,6).map(function(row){
+      var dest=factionById(row.toId),source=factionById(row.fromId);
+      var type=domain.TYPE_CN&&domain.TYPE_CN[row.type]||row.type||'外交';
+      var state=row.recipientId?'待你处理':DIP_STATES[row.status]||row.status||'处理中';
+      var terms=row.terms&&row.terms.text||'';
+      return '<div style="padding:5px 0;border-bottom:1px solid var(--color-border-subtle);font-size:12px">'
+        +'<b>'+esc(type)+'</b> · '+esc(source&&source.name||'未知势力')+' → '+esc(dest&&dest.name||'未知势力')
+        +' · <span>'+esc(state)+'</span>'
+        +(terms?'<div style="opacity:.75">'+esc(terms.slice(0,88))+'</div>':'')+'</div>';
+    }).join('')
+      +'<small style="display:block;opacity:.7">显示的只有当前角色真正获知的文书；回应、还价请在使节请见事项中办理。</small>';
+  }
+  function renderEdictDiplomacy(){
+    var g=world(),own=facs(),home=own[0],domain=TM.FactionDiplomacy;
+    var available=list(g&&g.facs).filter(function(f){
+      return f&&f.id&&f.name&&!f.hidden&&!f._hidden&&!own.some(function(x){return x.id===f.id;});
+    });
+    var base='<details id="tm-dip-edict-ops" aria-label="外交谈判正式操作" style="margin-top:10px;padding:10px;border:1px solid var(--color-border-subtle);background:var(--color-elevated);border-radius:4px">'
+      +'<summary style="font-size:13px;cursor:pointer;font-weight:bold">展开正式外交谈判与回执</summary>'
+      +'<p style="font-size:12px;opacity:.75;margin:6px 0">上面的文字栏是外交诏令草稿；下面的按钮才会提交真实外交文书。亲善互访不立即加好感，和亲、劝降、策反尚未接入。</p>';
+    if(!home||!available.length||!domain||typeof domain.recordPlayerProposal!=='function'){
+      return base+'<p style="font-size:12px">本存档暂无可核实的我方势力、其他势力或外交系统。</p></details>';
+    }
+    var types=DIP_MODES.map(function(mode){return '<option value="'+esc(mode.id)+'">'+esc(mode.name)+'</option>';}).join('');
+    base+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+      +'<label style="font-size:12px">我方：<b>'+esc(home.name)+'</b></label>'
+      +'<label style="font-size:12px">对象 <select id="tm-dip-target">'+options(available)+'</select></label>'
+      +'<label style="font-size:12px">方式 <select id="tm-dip-mode">'+types+'</select></label></div>'
+      +'<label style="display:block;font-size:12px;margin-top:6px">谈判条款（双方同意后才生效）'
+      +'<textarea id="tm-dip-terms" rows="3" style="display:block;width:100%;box-sizing:border-box;margin-top:4px" placeholder="写明期限、义务、底线、能否接受割地或赔款等。"></textarea></label>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin:7px 0">'
+      +'<button type="button" class="bt bsm" onclick="TM.WarDiplomacy.applyEdictExample()">填入示例条款</button>'
+      +'<button type="button" class="bt bsm" onclick="TM.WarDiplomacy.draftEdictDiplomacy()">仅起草诏令</button>'
+      +'<button type="button" class="bt bsm" onclick="TM.WarDiplomacy.proposeEdictDiplomacy()">正式递交外交提案</button></div>'
+      +'<p id="tm-dip-action-status" role="status" aria-live="polite" style="font-size:12px"></p>'
+      +'<details style="margin-top:5px"><summary style="font-size:12px;cursor:pointer">外交来往记录（仅当前人物已知）</summary>'
+      +'<div id="tm-dip-receipts">'+statusContent()+'</div></details></details>';
+    return base;
+  }
+  function edictDipInputs(){
+    var org=facs()[0],to=factionById(selected('tm-dip-target')),mode=dipMode(selected('tm-dip-mode'));
+    if(!org||!to||to.id===org.id||!mode)return null;
+    return {org:org,to:to,mode:mode,terms:selected('tm-dip-terms')};
+  }
+  function applyEdictExample(){
+    var x=edictDipInputs(),el=root.document&&root.document.getElementById('tm-dip-terms');
+    if(!x||!el)return false;
+    if(el.value.trim()&&typeof root.confirm==='function'
+       &&!root.confirm('条款中已有内容。确定要替换为这个示例吗？'))return false;
+    el.value=x.mode.example;
+    if(root.Event&&el.dispatchEvent)el.dispatchEvent(new root.Event('input',{bubbles:true}));
+    return true;
+  }
+  function dipCanSubmit(){
+    var g=world();
+    return !!g&&!g.busy&&!g._endTurnCommitPending;
+  }
+  function draftEdictDiplomacy(){
+    var x=edictDipInputs(),input=root.document&&root.document.getElementById('edict-dip');
+    if(!x||!input||!dipCanSubmit()||!x.terms.trim()||x.terms.length>12000){
+      return resultMessage(null,'','外交目标、条款或回合状态无效','tm-dip-action-status');
+    }
+    var text='遣使与'+x.to.name+'协商'+x.mode.name.replace(/（.*?）/g,'')+'。谈判条件：'+x.terms+'。须经过合法使节递送及双方有效签署，未签约不得视为生效。';
+    if(input.value.trim()&&typeof root.confirm==='function'
+       &&!root.confirm('已有外交诏令，是否把这份草稿追加在末尾？'))return false;
+    input.value=(input.value.trim()?input.value.replace(/\s*$/,'')+'\n\n':'')+text;
+    if(root.Event&&input.dispatchEvent)input.dispatchEvent(new root.Event('input',{bubbles:true}));
+    if(typeof root._edictLiveForecast==='function')root._edictLiveForecast('edict-dip');
+    if(typeof input.focus==='function')input.focus();
+    var status=root.document&&root.document.getElementById('tm-dip-action-status');
+    if(status)status.textContent='仅已填入外交诏令草稿，尚未派遣使臣、提交提案或签署条约。';
+    return true;
+  }
+  function reportProposal(r,statusId){
+    var ownAdvice=r&&r.outcome==='submitted'&&/私人建议|有权代表/.test(str(r.reason));
+    var msg=ownAdvice?'已交本方有权代表审批（尚未送往对方）':'国书已进入正式提案流程，仍待送达、答复和签署';
+    var success=resultMessage(r,msg,'外交提案未登记',statusId);
+    if(success&&r&&r.proposalId){
+      var box=root.document&&root.document.getElementById(statusId);
+      if(box)box.textContent+=(box.textContent?' · ':'')+'文书号：'+str(r.proposalId);
+    }
+    var receipts=root.document&&root.document.getElementById('tm-dip-receipts');
+    if(receipts)receipts.innerHTML=statusContent();
+    return success;
+  }
+  function proposeEdictDiplomacy(){
+    var x=edictDipInputs(),domain=TM.FactionDiplomacy;
+    if(!x||!dipCanSubmit()||!domain||typeof domain.recordPlayerProposal!=='function'
+       ||!x.terms.trim()||x.terms.length>12000)
+      return resultMessage(null,'','外交目标、条款、系统或回合状态无效','tm-dip-action-status');
+    if(!domain.TYPE_CN||!domain.TYPE_CN[x.mode.type])
+      return resultMessage(null,'','正式外交领域尚不支持该提案方式','tm-dip-action-status');
+    // The UI must not create a second identical pending proposal by double-click.
+    var actor=player(),existing=typeof domain.visible==='function'&&actor?domain.visible(actor,x.org):[];
+    var duplicate=list(existing).some(function(row){
+      var v=row.terms&&row.terms.text;
+      return row.toId===x.to.id&&row.type===x.mode.type&&v===x.terms
+        &&!(/^(accepted|rejected|cancelled|lapsed)$/.test(row.status||''));
+    });
+    if(duplicate)return resultMessage(null,'','已有相同条款的待处理提案，请等待回信或修改条款','tm-dip-action-status');
+    if(typeof root.confirm==='function'&&!root.confirm('将以「'+x.org.name+'」名义向「'+x.to.name+'」提出「'+x.mode.name+'」？提交只是递送/本方审批，不代表双方已经同意。'))return false;
+    var receipt=domain.recordPlayerProposal(x.org,{toFactionId:x.to.id,proposalType:x.mode.type,terms:x.terms},inputOrigin('edict-diplomacy'));
+    return reportProposal(receipt,'tm-dip-action-status');
+  }
+  function openEdictDiplomacy(){
+    if(!root.document||typeof root.switchGTab!=='function')return false;
+    if(typeof root.closeTurnResult==='function')root.closeTurnResult();
+    root.switchGTab(null,'gt-edict');
+    var el=root.document.getElementById('tm-dip-edict-ops');
+    if(!el){
+      var ta=root.document.getElementById('edict-dip');
+      if(ta&&ta.insertAdjacentHTML){ta.insertAdjacentHTML('afterend',renderEdictDiplomacy());el=root.document.getElementById('tm-dip-edict-ops');}
+    }
+    if(el&&'open' in el)el.open=true;
+    if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest'});
+    var target=root.document.getElementById('tm-dip-target');
+    if(target&&target.focus)target.focus();
+    return !!el;
+  }
   function open(){
     if(!root.document||!world()||typeof root.showTurnResult!=='function')return false;
     var mine=facs(),g=world(),publicF=list(g.facs).filter(function(f){return f&&f.id&&f.name&&!f.hidden&&!f._hidden;});
@@ -82,11 +236,7 @@
       +'<p style="opacity:.8">正式外交必须送达并获签署；宣战须有职权、理由且不在停战期。募兵需先走诏令，不能凭空给军队加人。</p>'
       +'<label>我方势力 <select id="tm-war-home">'+options(mine)+'</select></label> '
       +'<label>目标势力 <select id="tm-war-target">'+options(others)+'</select></label>'
-      +'<fieldset style="margin-top:10px"><legend>外交谈判</legend>'
-      +'<label>目标 <select id="tm-war-treaty"><option value="alliance">结盟</option><option value="nonaggression">互不侵犯</option><option value="joint_action">共同行动</option><option value="peace">议和</option><option value="deal">交易</option><option value="ultimatum">最后通牒</option></select></label>'
-      +'<textarea id="tm-war-terms" rows="2" style="display:block;width:100%;margin:8px 0" placeholder="写明谈判条款、期限及条件"></textarea>'
-      +'<button type="button" class="bt" onclick="TM.WarDiplomacy.propose()">递交外交提案</button>'
-      +'<small style="display:block;opacity:.7">提案送出不等于对方签约，后续须等待真实送达、答复和签署。</small></fieldset>'
+      +'<p style="margin:12px 0">外交谈判已统一移到「诏令 → 外交」。<button type="button" class="bt" onclick="TM.WarDiplomacy.openEdictDiplomacy()">前往正式外交谈判</button></p>'
       +'<fieldset style="margin-top:10px"><legend>宣战与战局</legend><div style="font-size:.85rem;opacity:.8;margin:5px 0">'+summary+'</div>'
       +'<label>宣战理由 <select id="tm-war-cb">'+options(casusChoices())+'</select></label> '
       +'<button type="button" class="bt" onclick="TM.WarDiplomacy.declare()">核准并正式宣战</button>'
@@ -115,8 +265,7 @@
     if(!p||!domain||typeof domain.recordPlayerProposal!=='function'||!terms||!domain.TYPE_CN||!domain.TYPE_CN[type])
       return resultMessage(null,'','外交目标、提案类型或条款无效');
     var r=domain.recordPlayerProposal(p.org,{toFactionId:p.target.id,proposalType:type,terms:terms},inputOrigin('diplomacy'));
-    var acceptedByOwnOffice=r&&r.outcome==='submitted'&&/私人建议|有权代表/.test(String(r.reason||''));
-    return resultMessage(r,acceptedByOwnOffice?'建议已交本方有权代表，尚未作为正式国家提案送往对方':'外交提案已按真实送达流程登记，等待对方回应','外交提案未登记');
+    return reportProposal(r,'tm-war-flow-status');
   }
   function declare(){
     var p=parties(),cb=selected('tm-war-cb'),api=TM.PoliticalActions;
@@ -173,7 +322,10 @@
     var feedback=ok?'移防命令已登记，请查看行军进度':r&&r.pending?'军令已传出，须等掌兵者回报':'行军命令被拒绝';
     return resultMessage({outcome:ok?'started':'blocked',reason:r&&r.reason||''},feedback,feedback);
   }
-  api={open:open,propose:propose,declare:declare,draftRecruit:draftRecruit,march:march,
+  api={open:open,openEdictDiplomacy:openEdictDiplomacy,renderEdictDiplomacy:renderEdictDiplomacy,
+    applyEdictExample:applyEdictExample,draftEdictDiplomacy:draftEdictDiplomacy,
+    proposeEdictDiplomacy:proposeEdictDiplomacy,
+    propose:propose,declare:declare,draftRecruit:draftRecruit,march:march,
     _playerFactions:facs,_ownedArmies:ownedArmies};
   TM.WarDiplomacy=api;
 })(typeof window!=='undefined'?window:globalThis);
