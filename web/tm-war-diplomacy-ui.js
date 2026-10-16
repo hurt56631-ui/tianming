@@ -15,15 +15,22 @@
   function facs(){
     var g=world(),ch=player();
     if(!g||!ch)return [];
-    var pi=(root.P&&root.P.playerInfo)||{},gi=g.playerInfo||{};
-    return list(g.facs).filter(function(f){
-      if(!f||!f.id||!f.name||f.hidden||f._hidden)return false;
-      return f.isPlayer||f.playerControlled||f.controlledBy==='player'||f.controller==='player'
-        ||ch.factionId===f.id||ch.faction===f.name
-        ||(pi.factionId&&pi.factionId===f.id)||(pi.factionName&&pi.factionName===f.name)
-        ||(gi.factionId&&gi.factionId===f.id)||(gi.factionName&&gi.factionName===f.name)
-        ||g.playerFactionId===f.id||g.playerFactionName===f.name;
+    var pi=(root.P&&root.P.playerInfo)||{},gi=g.playerInfo||{},sc=g.startContext||{};
+    var publicRows=list(g.facs).filter(function(f){return f&&f.id&&f.name&&!f.hidden&&!f._hidden;});
+    // Resolve one actual current player faction. A stale label or an allied
+    // faction must never become a second army/diplomacy command source.
+    var refs=[sc.playerFactionId,gi.factionId,g.playerFactionId,pi.factionId,ch.factionId,
+      sc.playerFactionName,gi.factionName,g.playerFactionName,pi.factionName,ch.faction];
+    for(var i=0;i<refs.length;i++){
+      var ref=str(refs[i]).trim();if(!ref)continue;
+      var hits=publicRows.filter(function(f){return str(f.id)===ref||str(f.name)===ref;});
+      if(hits.length===1)return hits;
+      if(hits.length>1)return [];
+    }
+    var flagged=publicRows.filter(function(f){
+      return f.isPlayer||f.playerControlled||f.controlledBy==='player'||f.controller==='player';
     });
+    return flagged.length===1?flagged:[];
   }
   function factionById(id){return list(world()&&world().facs).find(function(f){return f&&str(f.id)===str(id)&&!f.hidden&&!f._hidden;})||null;}
   function selected(id){var el=root.document&&root.document.getElementById(id);return el?str(el.value).trim():'';}
@@ -49,6 +56,16 @@
     return 'player-war-ui:'+prefix+':'+str(g&&g.turn||0)+':'+str(st&&st.sequence||0)+':'+(++seq);
   }
   function options(rows){return rows.map(function(r){return '<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>';}).join('');}
+  function casusChoices(){
+    var defaults=[{id:'rebellion',name:'平叛讨逆'},{id:'border',name:'边境争端'},
+      {id:'claim',name:'领土声索'},{id:'holy',name:'讨伐不臣'},{id:'subjugation',name:'征服'}];
+    var cfg=root.P&&root.P.warConfig&&root.P.warConfig.casusBelliTypes;
+    var supported=root.CasusBelliSystem&&root.CasusBelliSystem.findCB;
+    return defaults.filter(function(c){
+      return (!Array.isArray(cfg)||cfg.some(function(x){return x&&x.id===c.id;}))
+        && (!supported||!!root.CasusBelliSystem.findCB(c.id));
+    });
+  }
   function open(){
     if(!root.document||!world()||typeof root.showTurnResult!=='function')return false;
     var mine=facs(),g=world(),publicF=list(g.facs).filter(function(f){return f&&f.id&&f.name&&!f.hidden&&!f._hidden;});
@@ -65,7 +82,7 @@
       +'<button type="button" class="bt" onclick="TM.WarDiplomacy.propose()">递交外交提案</button>'
       +'<small style="display:block;opacity:.7">提案送出不等于对方签约，后续须等待真实送达、答复和签署。</small></fieldset>'
       +'<fieldset style="margin-top:10px"><legend>宣战与战局</legend><div style="font-size:.85rem;opacity:.8;margin:5px 0">'+summary+'</div>'
-      +'<label>宣战理由 <select id="tm-war-cb"><option value="rebellion">平叛讨逆</option><option value="border">边境争端</option><option value="claim">领土声索</option><option value="holy">讨伐不臣</option><option value="subjugation">征服</option></select></label> '
+      +'<label>宣战理由 <select id="tm-war-cb">'+options(casusChoices())+'</select></label> '
       +'<button type="button" class="bt" onclick="TM.WarDiplomacy.declare()">核准并正式宣战</button>'
       +'<small style="display:block;opacity:.7">没有宣战权限、停战尚在或目标不合法时必须拒绝，不改战争名册。</small></fieldset>'
       +'<fieldset style="margin-top:10px"><legend>募兵与移防</legend>'
@@ -99,6 +116,8 @@
     var p=parties(),cb=selected('tm-war-cb'),api=TM.PoliticalActions;
     if(!p||!api||typeof api.recordPlayerWarDeclaration!=='function')
       return resultMessage(null,'','宣战双方或领域尚未就绪');
+    if(!casusChoices().some(function(row){return row.id===cb;}))
+      return resultMessage(null,'','当前剧本没有配置所选宣战理由，不能按其他理由代替');
     if(typeof root.confirm==='function'&&!root.confirm('确定以「'+cb+'」为由向「'+p.target.name+'」正式宣战？宣战会改变战争状态。'))return false;
     var r=api.recordPlayerWarDeclaration({id:p.org.id},{id:p.target.id},cb,inputOrigin('declare'));
     var started=r&&r.outcome==='started'&&list(world()&&world().activeWars).some(function(w){
@@ -123,7 +142,12 @@
     var el=root.document.getElementById('edict-mil');
     if(!el)return resultMessage(null,'','军令输入框尚未生成');
     var loc=str(c.army.garrison||c.army.location||'本军驻地');
-    el.value='命有司核查'+loc+'兵源、军饷与军械，拟募兵'+count+'人补充'+c.army.name+'。核定实际可募人数，先登记兵源与开销，再依军令办理入营和整编；未完成不得虚报此军兵力增加。';
+    var draft='命有司核查'+loc+'兵源、军饷与军械，拟募兵'+count+'人补充'+c.army.name+'。核定实际可募人数，先登记兵源与开销，再依军令办理入营和整编；未完成不得虚报此军兵力增加。';
+    var previous=str(el.value||'');
+    if(previous.trim()&&typeof root.confirm==='function'&&
+       !root.confirm('军令栏已有内容，是否将这条募兵建议追加到末尾？原稿不会删除。'))return false;
+    el.value=(previous.trim()?previous.replace(/\s*$/,'')+'\n\n':'')+draft;
+    if(root.Event&&typeof el.dispatchEvent==='function')el.dispatchEvent(new root.Event('input',{bubbles:true}));
     if(typeof el.focus==='function')el.focus();
     if(typeof root.toast==='function')root.toast('募兵诏令已填入军令栏，请审核后按原流程执行；当前未直接增加兵力');
     return true;
@@ -132,7 +156,13 @@
     var c=armyContext(),destination=selected('tm-war-destination'),domain=root.MarchSystem;
     if(!c||!destination||!domain||typeof domain.orderMarch!=='function')
       return resultMessage(null,'','我军、目的地或行军系统未就绪');
-    var r=domain.orderMarch(c.army.id||c.army.name,destination);
+    var key=c.army.id||c.army.name;
+    var matches=list(world()&&world().armies).filter(function(a){
+      return a&&(a.id===key||a.name===key);
+    });
+    if(matches.length!==1||matches[0]!==c.army)
+      return resultMessage(null,'','军队名称或 ID 有歧义，请先为该军设置唯一身份，不能猜测下令对象');
+    var r=domain.orderMarch(key,destination);
     var ok=r&&r.ok===true;
     var feedback=ok?'移防命令已登记，请查看行军进度':r&&r.pending?'军令已传出，须等掌兵者回报':'行军命令被拒绝';
     return resultMessage({outcome:ok?'started':'blocked',reason:r&&r.reason||''},feedback,feedback);

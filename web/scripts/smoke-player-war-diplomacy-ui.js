@@ -59,13 +59,41 @@ assert.equal(calls.diplomacy,1);assert.equal(calls.war,1);
 assert.equal(calls.march,1);assert.equal(calls.edicts,1);
 put('tm-war-army','enemy-army');assert.equal(demo.TM.WarDiplomacy.march(),false);
 assert.equal(calls.march,1,'foreign army cannot be ordered');
+put('tm-war-army','旧制军');
+world.armies.push({name:'旧制军',factionId:'them',location:'境外',soldiers:100});
+assert.equal(demo.TM.WarDiplomacy.march(),false,'duplicated ID-less army name must be denied');
+assert.equal(calls.march,1,'duplicated army name must not reach real march system');
+put('tm-war-army','a1');
+const originalDraft='已有军令：守卫京师';
+inputs['edict-mil'].value=originalDraft;
+demo.confirm=()=>false;
+assert.equal(demo.TM.WarDiplomacy.draftRecruit(),false,'cancelling append should preserve draft');
+assert.equal(inputs['edict-mil'].value,originalDraft);
+demo.confirm=()=>true;
+assert.equal(demo.TM.WarDiplomacy.draftRecruit(),true);
+assert(inputs['edict-mil'].value.startsWith(originalDraft+'\n\n'),'new draft must append, not overwrite');
+assert(inputs['edict-mil'].value.includes('拟募兵1000人'));
+demo.P.playerInfo.factionName='敌国'; // stale label cannot authorize another faction
+assert.equal(demo.TM.WarDiplomacy._playerFactions().length,1);
+assert.equal(demo.TM.WarDiplomacy._playerFactions()[0].id,'us');
+demo.P.warConfig={casusBelliTypes:[{id:'claim',name:'宣称领土'}]};
+demo.CasusBelliSystem={findCB:(id)=>id==='claim'?{id:id}:null};
+demo.TM.WarDiplomacy.open();
+assert(demo.lastPanel.includes('value="claim"'),'scenario-legal casus belli should be available');
+assert(!demo.lastPanel.includes('<option value="border">'),'unconfigured border CB must not be displayed');
+put('tm-war-cb','border');
+assert.equal(demo.TM.WarDiplomacy.declare(),false,'unsupported scenario CB must block before authorization');
+assert.equal(calls.war,1,'unsupported CB must not reach war engine');
+put('tm-war-cb','claim');
 assert(war.includes('recordPlayerWarDeclaration:recordPlayerWarDeclaration'));
 assert(war.includes("ledger().executeHuman(actor,d,null,function(ch,to,x){return performWar(ch,x,'declare_war');});"));
 
 const actor={id:'pc',name:'玩家',isPlayer:true,alive:true},fac={id:'us',name:'我朝'},opponent={id:'them',name:'邻国'};
 let allowed=true,issued=false,started=0,executed=0;
 const ag={turn:7,chars:[actor],facs:[fac,opponent],activeWars:[]},ls={sequence:0};
+let scenarioCBEnabled=true;
 const guard={GM:ag,P:{playerInfo:{characterId:'pc',factionName:'我朝'}},
+  CasusBelliSystem:{findCB:id=>scenarioCBEnabled?{id:id}:null},
   TM:{
     NPC:{ActionLedger:{
       result:(outcome,reason,refs,extra)=>Object.assign({outcome,reason,operationRefs:refs||[]},extra||{}),
@@ -102,5 +130,11 @@ assert.equal(PA.recordPlayerWarDeclaration({id:'us'},{id:'them'},'nonsense','bad
 ag.busy=true;
 assert.equal(PA.recordPlayerWarDeclaration({id:'us'},{id:'them'},'border','during-turn').outcome,'blocked');
 assert.equal(started,1,'busy game must not create a war');
+ag.busy=false;
+scenarioCBEnabled=false;
+assert.equal(PA.recordPlayerWarDeclaration({id:'us'},{id:'them'},'border','unconfigured-reason').outcome,'blocked',
+  'unconfigured CB should never silently fall back to none');
+assert.equal(started,1,'missing CB must not create a war');
+assert.equal(executed,1,'missing CB must not reach the action ledger');
 
 console.log('[smoke-player-war-diplomacy-ui] PASS · player authorization/treaty/war receipt/recruit no mint/march ownership');

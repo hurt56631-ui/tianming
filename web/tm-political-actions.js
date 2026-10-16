@@ -174,6 +174,12 @@
       return result('blocked','player_declare_war_authority_required');
     var allowed=['rebellion','border','claim','holy','subjugation','none'];
     if(allowed.indexOf(String(cbId))<0)return result('blocked','invalid_casus_belli');
+    // Scenario-specific CB catalogs override the default list. Never let the
+    // underlying engine quietly replace an unconfigured reason with "none".
+    if(!global.CasusBelliSystem||typeof global.CasusBelliSystem.findCB!=='function')
+      return result('blocked','casus_belli_domain_unavailable');
+    if(!global.CasusBelliSystem.findCB(String(cbId)))
+      return result('blocked','scenario_casus_belli_not_configured');
     var st=ledger().state(g);
     if(!st.playerWarSources)st.playerWarSources={};
     var key=JSON.stringify([actor.id,org.id,enemy.id,String(cbId),String(origin)]);
