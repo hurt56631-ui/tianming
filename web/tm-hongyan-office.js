@@ -1589,7 +1589,7 @@ function _generateLetterReply(letter) {
     }
     prompt += '\n\n收到来自京城天子的' + typeLabel + '('+cipherLabel+')：\n「' + letter.content + '」';
     prompt += '\n\n【回信要求】';
-    prompt += '\n1. 以该角色口吻/身份/性格·100-200 字古典中文';
+    prompt += '\n1. 用符合该角色身份与性格的现代白话写回信，100-200字，清楚自然但保留本朝称谓';
     prompt += '\n2. 称谓恰当(臣/末将/罪臣/妾身/草民等)';
     prompt += '\n3. 必须针对来信具体内容回应·不得套话空泛';
     prompt += '\n4. 若来信问及某事·直接给答复或说明缘由';
