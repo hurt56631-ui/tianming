@@ -36,11 +36,17 @@
   function selected(id){var el=root.document&&root.document.getElementById(id);return el?str(el.value).trim():'';}
   function ownedArmies(org){
     if(!org)return [];
+    var factions=list(world()&&world().facs);
     return list(world()&&world().armies).filter(function(a){
-      return a&&(a.factionId&&str(a.factionId)===str(org.id)
-        ||a.faction&&str(a.faction)===str(org.name)
-        ||a.owner&&str(a.owner)===str(org.name)
-        ||a.ownerFaction&&str(a.ownerFaction)===str(org.name));
+      if(!a)return false;
+      // Same ownership priority as MarchSystem.orderMarch: factionId wins
+      // over stale display names, and owner-only annotations grant no control.
+      var ref=a.factionId||a.faction;
+      if(!ref)return false;
+      var matches=factions.filter(function(f){return f&&(str(f.id)===str(ref)||str(f.name)===str(ref));});
+      if(matches.length===1)return matches[0].id===org.id;
+      if(matches.length>1)return false;
+      return str(ref)===str(org.id)||str(ref)===str(org.name);
     });
   }
   function resultMessage(result,good,bad){

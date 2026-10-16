@@ -99,6 +99,9 @@
     var target=fac({id:d.toFactionId||d.targetOrganizationId||d.targetId,name:d.toFaction||d.targetFaction||d.target}),t=terms(d),type=d.proposalType||d.treatyType||(TYPES[d.type]?d.type:d.relationType);
     if(!target||target===org||!TYPES[type]||!t)return result('blocked','specific_parties_type_and_terms_required');
     d.treatyType=type;var negotiating=role(ch,org,d,false),receiver=representative(negotiating?target:org,d.recipientId,!negotiating);
+    // No legal recipient means the letter cannot be delivered: fail before
+    // creating a misleading "submitted" proposal with toId="".
+    if(!receiver)return result('blocked','eligible_diplomatic_representative_required');
     var p={schemaVersion:2,id:'dp:'+ (++L().state(G()).sequence),from:org.name,fromId:org.id,to:target.name,toId:target.id,type:type,terms:t.text,
       version:1,versions:[{version:1,fromId:org.id,toId:target.id,terms:t,createdTurn:G().turn}],turn:G().turn,status:negotiating?'in_transit':'draft',
       initiatorId:ch.id,recipientOrganizationId:negotiating?target.id:org.id,decisions:[],messages:[],history:[],knowledge:{}};

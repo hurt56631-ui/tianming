@@ -10,6 +10,7 @@ assert(index.includes('tm-war-diplomacy-ui.js?v=20261016-war-diplomacy'));
 assert(index.includes('tm-political-actions.js?v=20261016-war-diplomacy'));
 assert(index.includes('tm-game-loop.js?v=20261016-war-diplomacy'));
 assert(index.includes('tm-game-loop-wentian-hardchange.js?v=20261016-war-diplomacy'),'split-game-loop family must be atomically cache-bumped');
+assert(index.includes('tm-faction-diplomacy.js?v=20261016-war-diplomacy'),'diplomacy runtime cache key stale');
 assert(game.includes("action:'TM.WarDiplomacy.open()'"));
 assert(game.includes('传统遣使仅登记使臣行程'),'legacy envoy entry must not look like an effective treaty');
 const world={
@@ -77,6 +78,9 @@ assert(inputs['edict-mil'].value.includes('拟募兵1000人'));
 demo.P.playerInfo.factionName='敌国'; // stale label cannot authorize another faction
 assert.equal(demo.TM.WarDiplomacy._playerFactions().length,1);
 assert.equal(demo.TM.WarDiplomacy._playerFactions()[0].id,'us');
+world.armies.push({id:'misowned',name:'敌方部队误标我方',factionId:'them',faction:'我朝',soldiers:300});
+assert(!demo.TM.WarDiplomacy._ownedArmies(world.facs[0]).some(a=>a.id==='misowned'),
+  'authoritative foreign factionId overrides stale friendly display label');
 demo.P.warConfig={casusBelliTypes:[{id:'claim',name:'宣称领土'}]};
 demo.CasusBelliSystem={findCB:(id)=>id==='claim'?{id:id}:null};
 demo.TM.WarDiplomacy.open();
@@ -138,4 +142,38 @@ assert.equal(PA.recordPlayerWarDeclaration({id:'us'},{id:'them'},'border','uncon
 assert.equal(started,1,'missing CB must not create a war');
 assert.equal(executed,1,'missing CB must not reach the action ledger');
 
-console.log('[smoke-player-war-diplomacy-ui] PASS · player authorization/treaty/war receipt/recruit no mint/march ownership');
+
+// Real diplomacy domain must not turn a missing recipient into a phantom message.
+// In the old implementation this produced a "submitted" receipt with toId:''.
+const diplomacy=fs.readFileSync(path.join(root,'tm-faction-diplomacy.js'),'utf8');
+const visitor={id:'pc',name:'玩家',isPlayer:true,alive:true},home={id:'us',name:'我朝'},foreign={id:'them',name:'邻国'};
+const noRecipientWorld={turn:1,chars:[visitor],facs:[home,foreign]},dipState={sequence:0};
+let canSign=false;
+const dipHost={GM:noRecipientWorld,P:{playerInfo:{characterId:'pc'}},TM:{
+  PoliticalActions:{
+    controlled:c=>!!c?.isPlayer,live:c=>!!c&&c.alive!==false,
+    resolve:(kind,ref)=>kind==='organization'
+      ?noRecipientWorld.facs.find(f=>f.id===ref?.id||f.name===ref?.name)
+      :kind==='character'?noRecipientWorld.chars.find(c=>c.id===ref?.id):null,
+    authority:(ch,scope,power)=>canSign&&ch.id==='rep'&&scope.organizationId==='us'&&power==='treatySign'?{actorId:'rep'}:null,
+    signature:v=>JSON.stringify(v)
+  },
+  OfficeHolderState:{activeAssignments:()=>[]},
+  NPC:{ActionLedger:{
+    state:()=>dipState,
+    result:(outcome,reason,refs,extra)=>Object.assign({outcome,reason,operationRefs:refs||[]},extra||{}),
+    executeHuman:(ch,d,scope,handler)=>handler(ch,null,d)
+  }}
+}};
+dipHost.window=dipHost;
+vm.runInNewContext(diplomacy,dipHost);
+let dp=dipHost.TM.FactionDiplomacy.recordPlayerProposal(home,{toFactionId:'them',proposalType:'alliance',terms:'双方互保'},'no-rep');
+assert.equal(dp.outcome,'blocked','unroutable proposals must be blocked');
+assert.equal((foreign._incomingProposals||[]).length,0,'no undeliverable queued proposals');
+canSign=true;
+noRecipientWorld.chars.push({id:'rep',name:'本朝外交代表',alive:true});
+dp=dipHost.TM.FactionDiplomacy.recordPlayerProposal(home,{toFactionId:'them',proposalType:'alliance',terms:'双方互保'},'with-rep');
+assert.equal(dp.outcome,'submitted','real representative should still receive private suggestion');
+assert.equal(foreign._incomingProposals[0].recipientId,'rep');
+
+console.log('[smoke-player-war-diplomacy-ui] PASS · authority/recipient/diplomacy/war/recruit/march contracts');
