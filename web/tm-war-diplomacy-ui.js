@@ -69,7 +69,7 @@
       +'<button type="button" class="bt" onclick="TM.WarDiplomacy.declare()">核准并正式宣战</button>'
       +'<small style="display:block;opacity:.7">没有宣战权限、停战尚在或目标不合法时必须拒绝，不改战争名册。</small></fieldset>'
       +'<fieldset style="margin-top:10px"><legend>募兵与移防</legend>'
-      +'<label>我方军队 <select id="tm-war-army">'+options(troops)+'</select></label> '
+      +'<label>我方军队 <select id="tm-war-army">'+troops.map(function(a){return '<option value="'+esc(a.id||a.name)+'">'+esc(a.name||a.id)+'</option>';}).join('')+'</select></label> '
       +'<label>募兵人数 <input id="tm-war-recruits" type="number" min="1" max="50000" step="100" value="1000" style="width:100px"></label> '
       +'<button type="button" class="bt" onclick="TM.WarDiplomacy.draftRecruit()">拟募兵诏令</button>'
       +'<small style="display:block;opacity:.7">仅草拟诏令；是否增加兵源池、能否补入此军，以正式诏令和实际军队账为准。</small>'
@@ -109,7 +109,7 @@
   function armyContext(){
     var org=factionById(selected('tm-war-home')),armyId=selected('tm-war-army');
     if(!org||!facs().some(function(f){return f.id===org.id;}))return null;
-    var matches=ownedArmies(org).filter(function(a){return str(a.id)===armyId;});
+    var matches=ownedArmies(org).filter(function(a){return str(a.id||a.name)===armyId;});
     return matches.length===1?{org:org,army:matches[0]}:null;
   }
   function draftRecruit(){

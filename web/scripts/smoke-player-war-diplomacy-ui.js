@@ -10,10 +10,11 @@ assert(index.includes('tm-war-diplomacy-ui.js?v=20261016-war-diplomacy'));
 assert(index.includes('tm-political-actions.js?v=20261016-war-diplomacy'));
 assert(index.includes('tm-game-loop.js?v=20261016-war-diplomacy'));
 assert(game.includes("action:'TM.WarDiplomacy.open()'"));
+assert(game.includes('传统遣使仅登记使臣行程'),'legacy envoy entry must not look like an effective treaty');
 const world={
   turn:3,chars:[{id:'pc',name:'玩家',isPlayer:true,alive:true,factionId:'us'}],
   facs:[{id:'us',name:'我朝',isPlayer:true},{id:'them',name:'敌国'}],
-  armies:[{id:'a1',name:'京营',factionId:'us',location:'京师',soldiers:2000}],
+  armies:[{id:'a1',name:'京营',factionId:'us',location:'京师',soldiers:2000},{name:'旧制军',factionId:'us',location:'京师',soldiers:100}],
   activeWars:[]
 };
 const inputs={};
@@ -44,6 +45,7 @@ const calls={diplomacy:0,war:0,march:0,edicts:0},demo={
 demo.window=demo;vm.runInNewContext(ui,demo);
 assert.equal(demo.TM.WarDiplomacy.open(),true);
 assert(demo.lastPanel.includes('外交与军政行动'));
+assert(demo.lastPanel.includes('value="旧制军"'),'older armies without IDs must remain selectable by unique name');
 assert.equal(demo.TM.WarDiplomacy.propose(),true);
 assert.equal(world.activeWars.length,0,'proposal cannot secretly create a war');
 assert.equal(demo.TM.WarDiplomacy.declare(),true);

@@ -645,6 +645,7 @@ function openDiplomacyPanel() {
 
   var html = '<div style="padding:1rem;">';
   html += '<div style="font-size:1rem;font-weight:700;color:var(--color-primary);margin-bottom:0.8rem;">\u9063\u4F7F\u51FA\u4F7F</div>';
+  html += '<p style="font-size:.8rem;opacity:.8;">传统遣使仅登记使臣行程，并不代表对方已经签约；需要正式结盟或议和，请用朝政中心的「外交与军政行动」。</p>';
   html += '<div class="form-group"><label>\u76EE\u6807\u52BF\u529B</label><select id="diplo-target">'+factionOptions+'</select></div>';
   html += '<div class="form-group"><label>\u6307\u5B9A\u4F7F\u81E3</label><select id="diplo-envoy">'+envoyOptions+'</select></div>';
   html += '<div class="form-group"><label>\u8C08\u5224\u8981\u6C42</label><textarea id="diplo-terms" rows="3" style="width:100%;" placeholder="\u5982\uFF1A\u5272\u8BA9\u6CB3\u5317\u4E09\u9547\u3001\u6BCF\u5E74\u8FDB\u8D21\u5E1B\u4E09\u4E07\u5339\u3001\u548C\u4EB2\u516C\u4E3B..."></textarea></div>';
