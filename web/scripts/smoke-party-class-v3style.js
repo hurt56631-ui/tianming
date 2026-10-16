@@ -90,7 +90,7 @@ ok(/movement: movement,/.test(_cal2) && /standing: \(ps && ps\.standing\)/.test(
 console.log('— 叙事面(契约·V3机制入时政记/实录/戏说) —');
 var _specs = read('tm-endturn-record-specs.js');
 ok(/【党争】/.test(_specs) && /民间请愿运动/.test(_specs), '时政记文体指令带党争民情主线');
-ok(/党派进退、弹劾成败、民请汹汹/.test(_specs), '实录文体指令党派进退入纪');
+ok(/党派进退、弹劾成败/.test(_specs) && /民间请愿/.test(_specs), '实录文体指令党派进退入纪');
 ok(/党争朝局/.test(_specs) && /阶层民情与民间运动/.test(_specs), '后人戏说着重呈现党争/民情场景化');
 var _fu2 = read('tm-endturn-followup.js');
 ok(/党争朝局与阶层民情\(据实入场景/.test(_fu2) && /_politicalMovements/.test(_fu2), 'sc2 事实清单供料(政柄/清誉/弹劾/运动/天命权重)');

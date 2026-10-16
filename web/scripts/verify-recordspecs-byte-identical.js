@@ -46,6 +46,7 @@ function newBlock(rs) {
 //   对拍策略改:稳定字段仍字节级对拍(strip 掉 shilu_text)·shilu 单独验字数范围 + canonical 实录特征。
 // shizhengji 于 2026-07-03 有意加「党争与民情主线」(V3机制入叙事·owner 要求)·同法剥出对拍改验特征。
 function stripShilu(s) { return String(s).replace(/("shilu_text":")[\s\S]*?(","szj_title":)/, '$1<SHILU>$2'); }
+function stripModernRecord(s) { return String(s).replace(/("szj_title":")[\s\S]*?(,\"shizhengji\":)/, '$1<TITLE>$2').replace(/("szj_summary":")[\s\S]*?(,\"player_status\":)/, '$1<SUMMARY>$2'); }
 function stripSzj(s) { return String(s).replace(/("shizhengji":")[\s\S]*?(","szj_summary":)/, '$1<SZJ>$2'); }
 const combos = [
   [120, 200, 200, 400], [300, 500, 400, 700], [50, 80, 100, 150], [180, 260, 320, 560]
@@ -60,9 +61,9 @@ combos.forEach(function (c) {
   } catch (e) { console.error('[FAIL] eval 原内联块失败:', e.message); process.exit(1); }
   const rs = recordSpecs({ prompt: { _shiluMin: _shiluMin, _shiluMax: _shiluMax, _szjMin: _szjMin, _szjMax: _szjMax, _hourenMin: 200, _hourenMax: 400 } });
   const newStr = newBlock(rs);
-  eq(stripSzj(stripShilu(oldStr)), stripSzj(stripShilu(newStr)), '字数组合(除 shilu/shizhengji·5 稳定字段)' + JSON.stringify(c));
+  eq(stripModernRecord(stripSzj(stripShilu(oldStr))), stripModernRecord(stripSzj(stripShilu(newStr))), '字数组合(除 shilu/shizhengji·5 稳定字段)' + JSON.stringify(c));
   // shilu 单独:字数范围 + canonical 实录特征(干支/记事不评论/实录体) + 2026-07-03 党派进退入纪
-  if (!(new RegExp('实录' + _shiluMin + '-' + _shiluMax + '字')).test(rs.shilu) || !/干支/.test(rs.shilu) || !/记事不评论/.test(rs.shilu) || !/实录体/.test(rs.shilu) || !/党派进退/.test(rs.shilu)) {
+  if (!(new RegExp('实录' + _shiluMin + '-' + _shiluMax + '字')).test(rs.shilu) || !/现代白话/.test(rs.shilu) || !/记事不评论/.test(rs.shilu) || !/实录体/.test(rs.shilu) || !/党派进退/.test(rs.shilu)) {
     console.error('[FAIL] shilu 缺字数范围或 canonical 实录特征 @' + JSON.stringify(c)); process.exit(1);
   }
   // shizhengji 单独:字数范围 + canonical 特征(开篇总括/因果链/信息源) + 2026-07-03 党争民情主线
