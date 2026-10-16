@@ -77,8 +77,12 @@
   // A goodwill visit is a negotiated 'deal', NOT an instant increase in opinion
   // nor a transfer of public money, gifts, provinces or troops.
   var DIP_MODES=[
-    {id:'goodwill',type:'deal',name:'亲善互访（不直接增加好感）',
-      example:'互派使臣，保持友好往来，讨论边境通行事宜；本提案不涉及立即赠礼、银粮或领土转移。'},
+    {id:'goodwill',type:'deal',purpose:'goodwill',name:'亲善互访（签约后改善关系）',
+      example:'互派使臣，改善双方关系，约束边军；只有双方签署亲善协议后才改善关系，不涉及银粮交割。'},
+    {id:'gift',type:'deal',purpose:'gift',name:'赠礼修好（履约才生效）',
+      example:'向对方提出外交赠礼，协定签订后由有权官员从本方公库向对方公库划转指定银两。财款到账后才改善关系。'},
+    {id:'submission',type:'deal',purpose:'submission_talks',name:'劝降与臣属谈判（不直接归附）',
+      example:'请对方讨论归附与藩属条件、朝贡义务及保留本地官职、军权的范围；本次仅商议条件，不等于已移交主权、城池或军队。'},
     {id:'alliance',type:'alliance',name:'缔结同盟',
       example:'双方结成军事同盟，互通军情，盟约期限由双方协商确定。'},
     {id:'nonaggression',type:'nonaggression',name:'互不侵犯',
@@ -98,6 +102,41 @@
     lapsed:'失效',needs_replan:'旧文书待重拟'
   };
   function dipMode(id){return DIP_MODES.find(function(x){return x.id===id;})||null;}
+  function giftPledge(x){
+    var treasury=TM.PublicTreasury,g=world(),amount=Number(selected('tm-dip-gift-money'));
+    if(!Number.isSafeInteger(amount)||amount<1||amount>100000)
+      return {error:'赠礼银两须为 1 至 100000 的整数'};
+    if(!treasury||typeof treasury.getFactionAccountRef!=='function'||typeof treasury.getAccountView!=='function')
+      return {error:'本局尚无可核实的公库结算模块，不能保证真实赠礼'};
+    var from=treasury.getFactionAccountRef({game:g,factionId:x.org.id,kind:'central'}),
+        to=treasury.getFactionAccountRef({game:g,factionId:x.to.id,kind:'central'});
+    if(!from||!to||from===to)return {error:'双方缺少独立的实体公库账户，本局暂不能真实赠礼'};
+    var src=treasury.getAccountView({game:g,ref:from}),dest=treasury.getAccountView({game:g,ref:to});
+    if(!src||!dest||!src.exists||!dest.exists||!src.resources||
+      !src.resources.money||!src.resources.money.known||
+      !dest.resources||!dest.resources.money||!dest.resources.money.known)
+      return {error:'公库余额或对方收款账户不明确，不能虚报赠礼'};
+    if(src.resources.money.available==null||src.resources.money.available<amount)
+      return {error:'本方可用国库银两不足；赠礼不能透支或虚增余额'};
+    return {obligation:{kind:'public_transfer',fromAccount:from,toAccount:to,amounts:{money:amount}}};
+  }
+  function proposalPayload(x){
+    var payload={toFactionId:x.to.id,proposalType:x.mode.type,terms:x.terms};
+    if(x.mode.purpose)payload.diplomacyPurpose=x.mode.purpose;
+    if(x.mode.id==='gift'){
+      var prepared=giftPledge(x);
+      if(prepared.error)return prepared;
+      payload.obligations=[prepared.obligation];
+      payload.terms=x.terms+'\n【国库赠礼义务】我方承诺正式签约后，自公库向'+x.to.name+'公库交割银'
+        +prepared.obligation.amounts.money+'两。仅在付款回执核实后才视为已付并改善关系。';
+    }
+    return {payload:payload};
+  }
+  function relationLabel(from,to){
+    var g=world(),rows=list(g&&g.factionRelations);
+    var record=rows.find(function(row){return row&&(row.from===from&&row.to===to||row.from===to&&row.to===from);});
+    return record&&Number.isFinite(Number(record.value))?'关系 '+Number(record.value):'关系尚无正式记录';
+  }
   function statusContent(){
     var org=facs()[0],ch=player(),domain=TM.FactionDiplomacy;
     if(!org||!ch||!domain||typeof domain.visible!=='function')return '<small>暂无可核实的外交文书。</small>';
@@ -109,13 +148,25 @@
     if(!records.length)return '<small>当前人物尚无已知外交文书。</small>';
     return records.slice(0,6).map(function(row){
       var dest=factionById(row.toId),source=factionById(row.fromId);
-      var type=domain.TYPE_CN&&domain.TYPE_CN[row.type]||row.type||'外交';
+      var type=(row.terms&&row.terms.purpose==='goodwill'?'亲善互访':
+        row.terms&&row.terms.purpose==='gift'?'赠礼修好':
+        row.terms&&row.terms.purpose==='submission_talks'?'劝降/臣属条件协商':
+        domain.TYPE_CN&&domain.TYPE_CN[row.type]||row.type||'外交');
       var state=row.recipientId?'待你处理':DIP_STATES[row.status]||row.status||'处理中';
       var terms=row.terms&&row.terms.text||'';
+      var gift=row.terms&&row.terms.purpose==='gift',payments=list(row.obligations);
+      var unpaid=gift&&row.status==='accepted'&&row.fromId===org.id
+        ?payments.find(function(o){return o&&o.kind==='public_transfer'&&o.status==='unfulfilled';}):null;
+      var giftLabel=gift&&row.status==='accepted'
+        ?(unpaid?' · 已签约待付款':payments.length&&payments.every(function(o){return o.status==='fulfilled';})?' · 已实际付清':' · 尚待履约'):'';
+      var subNote=row.terms&&row.terms.purpose==='submission_talks'?' · 尚未改变主权及城军归属':'';
       return '<div style="padding:5px 0;border-bottom:1px solid var(--color-border-subtle);font-size:12px">'
         +'<b>'+esc(type)+'</b> · '+esc(source&&source.name||'未知势力')+' → '+esc(dest&&dest.name||'未知势力')
-        +' · <span>'+esc(state)+'</span>'
-        +(terms?'<div style="opacity:.75">'+esc(terms.slice(0,88))+'</div>':'')+'</div>';
+        +' · <span>'+esc(state+giftLabel+subNote)+'</span>'
+        +(terms?'<div style="opacity:.75">'+esc(terms.slice(0,88))+'</div>':'')
+        +'<small style="opacity:.7">'+esc(relationLabel(source&&source.name,dest&&dest.name))+'</small>'
+        +(unpaid?'<div><button type="button" class="bt bsm" data-gift-proposal="'+esc(row.id)+'" data-gift-obligation="'+esc(unpaid.id)+'" onclick="TM.WarDiplomacy.paySignedGift(this)">核验权限并从真实公库支付赠礼</button></div>':'')
+        +'</div>';
     }).join('')
       +'<small style="display:block;opacity:.7">显示的只有当前角色真正获知的文书；回应、还价请在使节请见事项中办理。</small>';
   }
@@ -126,7 +177,7 @@
     });
     var base='<details id="tm-dip-edict-ops" aria-label="外交谈判正式操作" style="margin-top:10px;padding:10px;border:1px solid var(--color-border-subtle);background:var(--color-elevated);border-radius:4px">'
       +'<summary style="font-size:13px;cursor:pointer;font-weight:bold">展开正式外交谈判与回执</summary>'
-      +'<p style="font-size:12px;opacity:.75;margin:6px 0">上面的文字栏是外交诏令草稿；下面的按钮才会提交真实外交文书。亲善互访不立即加好感，和亲、劝降、策反尚未接入。</p>';
+      +'<p style="font-size:12px;opacity:.75;margin:6px 0">原文字栏为外交诏令草稿，正式递交才会创建外交文书。亲善须双方签约才改善关系；赠礼须先签约、后真实付款。劝降／臣属先协商条件，不会直接转移城池军队；策反与和亲尚未实现。</p>';
     if(!home||!available.length||!domain||typeof domain.recordPlayerProposal!=='function'){
       return base+'<p style="font-size:12px">本存档暂无可核实的我方势力、其他势力或外交系统。</p></details>';
     }
@@ -135,6 +186,7 @@
       +'<label style="font-size:12px">我方：<b>'+esc(home.name)+'</b></label>'
       +'<label style="font-size:12px">对象 <select id="tm-dip-target">'+options(available)+'</select></label>'
       +'<label style="font-size:12px">方式 <select id="tm-dip-mode">'+types+'</select></label></div>'
+      +'<label style="display:block;font-size:12px;margin-top:6px">赠礼银两（仅选择赠礼时使用） <input id="tm-dip-gift-money" type="number" min="1" max="100000" step="100" value="1000" style="width:110px" title="必须有双方真实公库账户，签约后才能付款"></label>'
       +'<label style="display:block;font-size:12px;margin-top:6px">谈判条款（双方同意后才生效）'
       +'<textarea id="tm-dip-terms" rows="3" style="display:block;width:100%;box-sizing:border-box;margin-top:4px" placeholder="写明期限、义务、底线、能否接受割地或赔款等。"></textarea></label>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin:7px 0">'
@@ -169,7 +221,8 @@
     if(!x||!input||!dipCanSubmit()||!x.terms.trim()||x.terms.length>12000){
       return resultMessage(null,'','外交目标、条款或回合状态无效','tm-dip-action-status');
     }
-    var text='遣使与'+x.to.name+'协商'+x.mode.name.replace(/（.*?）/g,'')+'。谈判条件：'+x.terms+'。须经过合法使节递送及双方有效签署，未签约不得视为生效。';
+    var sum=x.mode.id==='gift'?'拟赠银'+selected('tm-dip-gift-money')+'两，待财政权限与实际可付库银核准；':'';
+    var text='遣使与'+x.to.name+'协商'+x.mode.name.replace(/（.*?）/g,'')+'。'+sum+'谈判条件：'+x.terms+'。须经过合法使节递送及双方有效签署，未签约不得视为生效。';
     if(input.value.trim()&&typeof root.confirm==='function'
        &&!root.confirm('已有外交诏令，是否把这份草稿追加在末尾？'))return false;
     input.value=(input.value.trim()?input.value.replace(/\s*$/,'')+'\n\n':'')+text;
@@ -199,17 +252,34 @@
       return resultMessage(null,'','外交目标、条款、系统或回合状态无效','tm-dip-action-status');
     if(!domain.TYPE_CN||!domain.TYPE_CN[x.mode.type])
       return resultMessage(null,'','正式外交领域尚不支持该提案方式','tm-dip-action-status');
-    // The UI must not create a second identical pending proposal by double-click.
+    var prepared=proposalPayload(x);
+    if(prepared.error)return resultMessage(null,'',prepared.error,'tm-dip-action-status');
+    var payload=prepared.payload;
+    // Existing known proposals are the only ones safe to compare; the domain
+    // remains the authority on national signatures and delivery.
     var actor=player(),existing=typeof domain.visible==='function'&&actor?domain.visible(actor,x.org):[];
     var duplicate=list(existing).some(function(row){
       var v=row.terms&&row.terms.text;
-      return row.toId===x.to.id&&row.type===x.mode.type&&v===x.terms
+      return row.toId===x.to.id&&row.type===x.mode.type&&v===payload.terms
+        &&String(row.terms&&row.terms.purpose||'')===String(payload.diplomacyPurpose||'')
         &&!(/^(accepted|rejected|cancelled|lapsed)$/.test(row.status||''));
     });
     if(duplicate)return resultMessage(null,'','已有相同条款的待处理提案，请等待回信或修改条款','tm-dip-action-status');
     if(typeof root.confirm==='function'&&!root.confirm('将以「'+x.org.name+'」名义向「'+x.to.name+'」提出「'+x.mode.name+'」？提交只是递送/本方审批，不代表双方已经同意。'))return false;
-    var receipt=domain.recordPlayerProposal(x.org,{toFactionId:x.to.id,proposalType:x.mode.type,terms:x.terms},inputOrigin('edict-diplomacy'));
+    var receipt=domain.recordPlayerProposal(x.org,payload,inputOrigin('edict-diplomacy'));
     return reportProposal(receipt,'tm-dip-action-status');
+  }
+  function paySignedGift(btn){
+    if(!btn||!btn.dataset||!dipCanSubmit())return false;
+    var org=facs()[0],domain=TM.FactionDiplomacy;
+    if(!org||!domain||typeof domain.fulfillPlayerGift!=='function')
+      return resultMessage(null,'','公库赠礼结算尚不可用','tm-dip-action-status');
+    if(typeof root.confirm==='function'&&!root.confirm('确认从本方真实公库支付这份已签署赠礼？将即时扣除库银并记入对方国库，不可撤回。'))return false;
+    var receipt=domain.fulfillPlayerGift({id:org.id},btn.dataset.giftProposal,btn.dataset.giftObligation);
+    var success=resultMessage(receipt,'赠礼已真实交割并核对外交关系','赠礼尚未成功交割','tm-dip-action-status');
+    var el=root.document&&root.document.getElementById('tm-dip-receipts');
+    if(el)el.innerHTML=statusContent();
+    return success;
   }
   function openEdictDiplomacy(){
     if(!root.document||typeof root.switchGTab!=='function')return false;
@@ -324,7 +394,7 @@
   }
   api={open:open,openEdictDiplomacy:openEdictDiplomacy,renderEdictDiplomacy:renderEdictDiplomacy,
     applyEdictExample:applyEdictExample,draftEdictDiplomacy:draftEdictDiplomacy,
-    proposeEdictDiplomacy:proposeEdictDiplomacy,
+    proposeEdictDiplomacy:proposeEdictDiplomacy,paySignedGift:paySignedGift,
     propose:propose,declare:declare,draftRecruit:draftRecruit,march:march,
     _playerFactions:facs,_ownedArmies:ownedArmies};
   TM.WarDiplomacy=api;
