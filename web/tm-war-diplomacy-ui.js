@@ -92,7 +92,8 @@
     if(!p||!domain||typeof domain.recordPlayerProposal!=='function'||!terms||!domain.TYPE_CN||!domain.TYPE_CN[type])
       return resultMessage(null,'','外交目标、提案类型或条款无效');
     var r=domain.recordPlayerProposal(p.org,{toFactionId:p.target.id,proposalType:type,terms:terms},inputOrigin('diplomacy'));
-    return resultMessage(r,'外交提案已按真实送达流程登记，等待对方回应','外交提案未登记');
+    var acceptedByOwnOffice=r&&r.outcome==='submitted'&&/私人建议|有权代表/.test(String(r.reason||''));
+    return resultMessage(r,acceptedByOwnOffice?'建议已交本方有权代表，尚未作为正式国家提案送往对方':'外交提案已按真实送达流程登记，等待对方回应','外交提案未登记');
   }
   function declare(){
     var p=parties(),cb=selected('tm-war-cb'),api=TM.PoliticalActions;
