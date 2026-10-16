@@ -151,7 +151,7 @@ function renderGameState(options){
   var _edictCats = [
     {id:'edict-pol', label:'政 令', badge:'政', cls:'ed-c-pol', hint:'改革官制·任免官员·降旨安抚',  placeholder:'诏谕天下，如：改革官制、降旨安抚、任免官员……'},
     {id:'edict-mil', label:'军 令', badge:'军', cls:'ed-c-mil', hint:'调兵遣将·加强边防·讨伐叛贼',  placeholder:'调兵遣将，如：调动军队、加强边防、讨伐叛贼……'},
-    {id:'edict-dip', label:'外 交', badge:'外', cls:'ed-c-dip', hint:'遣使和亲·结盟讨伐·册封藩属',  placeholder:'纵横捭阖，如：遣使和亲、结盟讨伐、册封藩属……'},
+    {id:'edict-dip', label:'外 交', badge:'外', cls:'ed-c-dip', hint:'亲善谈判·结盟互保·议和停战',  placeholder:'自由外交诏令，如：遣使议和、声明互不侵犯……'},
     {id:'edict-eco', label:'经 济', badge:'经', cls:'ed-c-eco', hint:'减税轻赋·开仓放粮·兴修水利',  placeholder:'经纶民生，如：减税轻赋、开仓放粮、兴修水利……'},
     {id:'edict-oth', label:'其 他', badge:'他', cls:'ed-c-oth', hint:'大赦·科举·建造·礼仪',          placeholder:'其他旨意，如：大赦天下、科举取士、建造宫殿……'}
   ];
@@ -187,6 +187,13 @@ function renderGameState(options){
     edictHTML += '</div>';
     edictHTML += '<textarea id="'+cat.id+'" rows="2" class="edict-input paper-texture" placeholder="'+cat.placeholder+'" oninput="_edictLiveForecast(\''+cat.id+'\')"></textarea>';
     edictHTML += '<div id="'+cat.id+'-forecast" class="ed-forecast" style="display:none;"></div>';
+    if(cat.id==='edict-dip'){
+      // The existing diplomacy domain owns receipts; the edict card only renders its player-facing controls.
+      var diplomaticUI=window.TM&&TM.WarDiplomacy;
+      edictHTML += diplomaticUI&&typeof diplomaticUI.renderEdictDiplomacy==='function'
+        ? diplomaticUI.renderEdictDiplomacy()
+        : '<p style="font-size:12px">外交谈判模块就绪后可在此签发国书；自由诏令文字不会自动建立条约。</p>';
+    }
     edictHTML += '</div>';
   });
   edictHTML += '</div>';

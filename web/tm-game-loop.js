@@ -645,6 +645,7 @@ function openDiplomacyPanel() {
 
   var html = '<div style="padding:1rem;">';
   html += '<div style="font-size:1rem;font-weight:700;color:var(--color-primary);margin-bottom:0.8rem;">\u9063\u4F7F\u51FA\u4F7F</div>';
+  html += '<p style="font-size:.8rem;opacity:.8;">传统遣使仅登记使臣行程，并不代表对方已经签约；要正式结盟、亲善互访或议和，请打开「诏令 → 外交」中的正式谈判区域。</p>';
   html += '<div class="form-group"><label>\u76EE\u6807\u52BF\u529B</label><select id="diplo-target">'+factionOptions+'</select></div>';
   html += '<div class="form-group"><label>\u6307\u5B9A\u4F7F\u81E3</label><select id="diplo-envoy">'+envoyOptions+'</select></div>';
   html += '<div class="form-group"><label>\u8C08\u5224\u8981\u6C42</label><textarea id="diplo-terms" rows="3" style="width:100%;" placeholder="\u5982\uFF1A\u5272\u8BA9\u6CB3\u5317\u4E09\u9547\u3001\u6BCF\u5E74\u8FDB\u8D21\u5E1B\u4E09\u4E07\u5339\u3001\u548C\u4EB2\u516C\u4E3B..."></textarea></div>';
@@ -722,6 +723,7 @@ function _renderZhaozhengCenter() {
     ]},
     { label: '\u519B\u4E8B', icon: 'troops', color: 'var(--vermillion-400)', items: [
       {label:'\u519B\u4E8B\u8BCF\u4EE4', sub:'\u8C03\u5175\u9063\u5C06', action:'switchGTab(null,"gt-edict");var el=document.getElementById("edict-mil");if(el)el.focus()', icon:'troops', ok:true},
+      {label:'战争与军务',sub:'宣战／募兵诏令／移防',action:'TM.WarDiplomacy.open()',icon:'troops',ok:true},
       {label:'\u5236\u5EA6\u6539\u9769', sub:'\u901A\u8FC7\u8BCF\u4EE4\u53D1\u8D77', action:'switchGTab(null,"gt-edict");var el=document.getElementById("edict-pol");if(el){el.focus();el.placeholder="\u5982\uFF1A\u63A8\u884C\u52DF\u5175\u5236/\u6539\u9769\u7A0E\u5236/\u5B9E\u884C\u79D1\u4E3E...";}', icon:'scroll', ok:true},
       {label:'\u5730\u56FE\u603B\u89C8', sub:'\u52BF\u529B\u5206\u5E03', action:'TM.Map.open("regions")', icon:'map', ok:_canMap().ok, reason:_canMap().reason}
     ]},
@@ -731,7 +733,7 @@ function _renderZhaozhengCenter() {
       {label:'\u95EE\u5BF9\u81E3\u5B50', sub:'\u4E0E\u89D2\u8272\u5BF9\u8BDD', action:'switchGTab(null,"gt-wendui")', icon:'dialogue', ok:true}
     ]},
     { label: '\u5916\u4EA4', icon: 'faction', color: 'var(--celadon-400)', items: [
-      {label:'\u5916\u4EA4\u8BCF\u4EE4', sub:'\u9063\u4F7F/\u548C\u4EB2/\u7ED3\u76DF', action:'switchGTab(null,"gt-edict");var el=document.getElementById("edict-dip");if(el)el.focus()', icon:'scroll', ok:true},
+      {label:'外交诏令与谈判',sub:'亲善／同盟／议和／真实回执',action:'TM.WarDiplomacy.openEdictDiplomacy()',icon:'scroll',ok:true},
       {label:'\u9063\u4F7F\u51FA\u4F7F', sub:'\u6D3E\u9063\u4F7F\u81E3\u8C08\u5224', action:'openDiplomacyPanel()', icon:'faction', ok:true},
       {label:'\u9E3F\u96C1\u4F20\u4E66', sub:'\u53D1\u9001\u5BC6\u4FE1', action:'switchGTab(null,"gt-letter")', icon:'scroll', ok:true}
     ]},
