@@ -433,7 +433,7 @@ function _wdBuildPrompt(ch, name) {
       ? '\u2022 夫妻对话，可亲昵、抱怨、撒娇、冷淡\n'
       : (_isPrivateMode
         ? '\u2022 \u8BED\u6C14\u81EA\u7136\u4EB2\u5207\uFF0C\u53EF\u804A\u79C1\u4E8B\u3001\u8BF4\u671D\u5802\u4E0A\u4E0D\u65B9\u4FBF\u8BF4\u7684\u8BDD\n'
-        : '\u2022 \u6587\u8A00\u4E3A\u4E3B\u4F46\u4E0D\u5FC5\u523B\u677F\uFF0C\u6C47\u62A5\u653F\u52A1\u6761\u7406\u6E05\u6670\n');
+        : '\u2022 \u73B0\u4EE3\u767D\u8BDD\uFF0C\u4FDD\u7559\u6B63\u5F0F\u573A\u5408\u793C\u8282\uFF0C\u6C47\u62A5\u653F\u52A1\u6761\u7406\u6E05\u6670\n');
     p += '\u2022 \u52A8\u4F5C\u548C\u795E\u6001\u7528\u62EC\u53F7\u6807\u6CE8\n\u2022 ' + _charRangeText('wd') + '\n';
     p += '\u2022 \u89D2\u8272\u4FE1\u606F\u53D7\u7ACB\u573A\u548C\u80FD\u529B\u9650\u5236\uFF0C\u4E0D\u4E00\u5B9A\u51C6\u786E\n';
     p += '\u2022 【层叠差异化——按5层依次叠加生成此人的回答】\n';
@@ -587,6 +587,9 @@ function _wdBuildPrompt(ch, name) {
       var _recBlock = TM.PromptComposer.buildRecognitionState(ch);
       if (_recBlock) p += _recBlock;
     } catch(_){}
+  }
+  if (typeof TM !== 'undefined' && TM.PromptComposer && typeof TM.PromptComposer.buildLanguageGuide === 'function') {
+    p += TM.PromptComposer.buildLanguageGuide();
   }
   return p;
 }
