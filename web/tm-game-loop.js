@@ -731,6 +731,7 @@ function _renderZhaozhengCenter() {
       {label:'\u95EE\u5BF9\u81E3\u5B50', sub:'\u4E0E\u89D2\u8272\u5BF9\u8BDD', action:'switchGTab(null,"gt-wendui")', icon:'dialogue', ok:true}
     ]},
     { label: '\u5916\u4EA4', icon: 'faction', color: 'var(--celadon-400)', items: [
+      {label:'外交与军政行动',sub:'谈判／宣战／募兵／移防',action:'TM.WarDiplomacy.open()',icon:'troops',ok:true},
       {label:'\u5916\u4EA4\u8BCF\u4EE4', sub:'\u9063\u4F7F/\u548C\u4EB2/\u7ED3\u76DF', action:'switchGTab(null,"gt-edict");var el=document.getElementById("edict-dip");if(el)el.focus()', icon:'scroll', ok:true},
       {label:'\u9063\u4F7F\u51FA\u4F7F', sub:'\u6D3E\u9063\u4F7F\u81E3\u8C08\u5224', action:'openDiplomacyPanel()', icon:'faction', ok:true},
       {label:'\u9E3F\u96C1\u4F20\u4E66', sub:'\u53D1\u9001\u5BC6\u4FE1', action:'switchGTab(null,"gt-letter")', icon:'scroll', ok:true}

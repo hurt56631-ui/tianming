@@ -156,6 +156,33 @@
     if(type==='declare_war'||type==='join_war')return execute(ctx,Object.assign({},p,{behaviorType:type,targetType:'organization'}),function(ch,target,d){return performWar(ch,d,type);},opts.index);
     return result('blocked','political_operation_not_adapted');
   }
+
+  // 玩家宣战必须走受信任玩家入口、现任宣战职权及行动账本。
+  // 不经本入口的文案叙述不可创造 activeWars。
+  function recordPlayerWarDeclaration(orgRef, enemyRef, cbId, origin) {
+    var g=G();
+    if(!g||g.busy||g._endTurnCommitPending)return result('blocked','world_busy_or_unavailable');
+    var org=resolve('organization',orgRef,g),enemy=resolve('organization',enemyRef,g);
+    var players=A(g&&g.chars).filter(function(ch){return controlled(ch,g)&&live(ch);});
+    if(!org||!enemy||org===enemy||players.length!==1||!origin)
+      return result('blocked','player_war_identity_or_parties_required');
+    if(A(g.facs).filter(function(f){return f&&f.name===org.name;}).length!==1||
+       A(g.facs).filter(function(f){return f&&f.name===enemy.name;}).length!==1)
+      return result('blocked','ambiguous_faction_names');
+    var actor=players[0],target={organizationId:org.id,targetOrganizationId:enemy.id};
+    if(!authority(actor,target,'declareWar'))
+      return result('blocked','player_declare_war_authority_required');
+    var allowed=['rebellion','border','claim','holy','subjugation','none'];
+    if(allowed.indexOf(String(cbId))<0)return result('blocked','invalid_casus_belli');
+    var st=ledger().state(g);
+    if(!st.playerWarSources)st.playerWarSources={};
+    var key=JSON.stringify([actor.id,org.id,enemy.id,String(cbId),String(origin)]);
+    if(!st.playerWarSources[key])st.playerWarSources[key]='human-war:'+(++st.sequence);
+    var d={actionId:st.playerWarSources[key],phase:'execute',actorId:actor.id,
+      organizationId:org.id,targetType:'organization',targetId:enemy.id,
+      targetOrganizationId:enemy.id,targetFaction:enemy.name,casusBelli:cbId,behaviorType:'declare_war'};
+    return ledger().executeHuman(actor,d,null,function(ch,to,x){return performWar(ch,x,'declare_war');});
+  }
   function performWar(actor,d,type){
     var org=d.organizationId&&resolve('organization',{id:d.organizationId}),enemy=resolve('organization',{id:d.targetOrganizationId||d.targetId,name:d.targetFaction||d.target||d.against||d.enemy});
     if(!org){var eligible=A(G().facs).filter(function(f){return authority(actor,Object.assign({},d,{organizationId:f.id}),'declareWar');});if(eligible.length===1)org=eligible[0];}
@@ -343,5 +370,5 @@
       if(!selected)return;var p=offer(org,selected.actor,{type:'diplomacy',targetOrganizationId:r.targetId,intent:S(r.action||r.strategic_intent),factStatus:'suggestion'},sourceId+':'+i);if(p)out.push(p.id);
     });return out;
   }
-  TM.PoliticalActions={resolve:resolve,controlled:controlled,live:live,authority:authority,principals:principals,choose:choose,bind:bind,valid:valid,action:action,execute:execute,submit:submit,view:view,signature:signature,defer:defer,flush:flush,applyPacket:applyPacket,prompt:prompt,tools:tools,offer:offer,localCandidates:localCandidates,onReceipt:onReceipt,verifyEvidence:verifyEvidence,migrate:migrate,strategicPrompt:strategicPrompt,strategicCandidates:strategicCandidates,performWar:performWar,verifyReview:verifyReview,verifyIssued:function(a){return issuedDomainActions.has(a);}};
+  TM.PoliticalActions={resolve:resolve,controlled:controlled,live:live,authority:authority,principals:principals,choose:choose,bind:bind,valid:valid,action:action,execute:execute,submit:submit,view:view,signature:signature,defer:defer,flush:flush,applyPacket:applyPacket,prompt:prompt,tools:tools,offer:offer,localCandidates:localCandidates,onReceipt:onReceipt,verifyEvidence:verifyEvidence,migrate:migrate,strategicPrompt:strategicPrompt,strategicCandidates:strategicCandidates,performWar:performWar,recordPlayerWarDeclaration:recordPlayerWarDeclaration,verifyReview:verifyReview,verifyIssued:function(a){return issuedDomainActions.has(a);}};
 })(typeof window!=='undefined'?window:globalThis);
