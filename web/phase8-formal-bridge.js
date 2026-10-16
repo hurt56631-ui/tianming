@@ -2200,16 +2200,24 @@
     return rr.pendingAudiences().count;
   }
 
+  function railDailyCount(){
+    var npc = window.TM && TM.NPC && TM.NPC.DailyUI;
+    return npc && typeof npc.pendingForPlayer === 'function' ? npc.pendingForPlayer().length : 0;
+  }
   function updateRailBadges(){
     var badges = document.querySelectorAll('#tm-right-rail .tm-rc-count, #tm-phase8-formal-rail .tmf-rail-count');
     if (!badges.length) return;
-    var count = railAudienceCount();
+    var audience = railAudienceCount(), daily = railDailyCount();
     badges.forEach(function(el){
-      if (el.getAttribute('data-phase8-badge') !== 'audience') { el.remove(); return; }
+      var kind = el.getAttribute('data-phase8-badge');
+      if (kind !== 'audience' && kind !== 'daily') { el.remove(); return; }
+      var count = kind === 'daily' ? daily : audience;
       el.textContent = count ? String(count) : '';
       el.style.display = count ? '' : 'none';
       var button = el.parentNode;
-      var label = '问对与朝议' + (count ? ' · ' + count + ' 人请见待办' : '');
+      var label = kind === 'daily'
+        ? '鸿雁传书' + (count ? ' · ' + count + ' 项日常来往待处理' : '')
+        : '问对与朝议' + (count ? ' · ' + count + ' 人请见待办' : '');
       button.setAttribute('title', label);
       button.setAttribute('aria-label', label);
       button.setAttribute('data-tip', label);
@@ -2217,6 +2225,10 @@
   }
 
   function openRailPanel(slot){
+    if (slot === 'letter') {
+      var daily = window.TM && TM.NPC && TM.NPC.DailyUI;
+      return daily && typeof daily.openPending === 'function' ? daily.openPending() : openHongyanPreviewPanel();
+    }
     var panel = document.getElementById('rpanel');
     if (state.activeSlot === slot) {
       if (slot === 'archive' && document.body.classList.contains('tm-phase8-office-single')) { showHome(); return; }
@@ -2269,6 +2281,7 @@
     var buttons = [
       ['ol','纲','阶层与党派','hot'],
       ['issue','政','问对与朝议','hot'],
+      ['letter','函','鸿雁传书',''],
       ['policy','文','文事与科举',''],
       ['office','臣','钉选臣僚',''],
       ['army','军','军务边防','hot'],
@@ -2278,7 +2291,7 @@
       ['archive','制','官制衙门','']
     ];
     rail.innerHTML = '<div class="tmf-rail-cap">国事</div>' + buttons.map(function(b){
-      return '<button type="button" class="tmf-rail-btn ' + esc(b[3] || '') + '" data-slot="' + esc(b[0]) + '" title="' + esc(b[2]) + '" onclick="TMPhase8FormalBridge.openRailPanel(\'' + esc(b[0]) + '\')"><span>' + esc(b[1]) + '</span>' + (b[0] === 'issue' ? '<span class="tmf-rail-count" data-phase8-badge="audience" style="display:none"></span>' : '') + '</button>';
+      return '<button type="button" class="tmf-rail-btn ' + esc(b[3] || '') + '" data-slot="' + esc(b[0]) + '" title="' + esc(b[2]) + '" onclick="TMPhase8FormalBridge.openRailPanel(\'' + esc(b[0]) + '\')"><span>' + esc(b[1]) + '</span>' + (b[0] === 'issue' ? '<span class="tmf-rail-count" data-phase8-badge="audience" style="display:none"></span>' : b[0] === 'letter' ? '<span class="tmf-rail-count" data-phase8-badge="daily" style="display:none"></span>' : '') + '</button>';
     }).join('');
     updateRailBadges();
     updateRailActive();
@@ -2298,7 +2311,7 @@
       rail.setAttribute('aria-label', '国事侧栏');
       root.appendChild(rail);
     }
-    if (rail.dataset.formalRailBuilt === '1' && rail.querySelector('[data-slot="archive"]')) {
+    if (rail.dataset.formalRailBuilt === '1' && rail.querySelector('[data-slot="archive"]') && rail.querySelector('[data-slot="letter"]')) {
       updateRailBadges(); updateRailActive(); return;
     }
     // 2026-05-27·右侧栏图标 SVG 化·参见 web/preview/right-rail-icons-preview.html v4
@@ -2318,6 +2331,7 @@
     var buttons = [
       ['ol',SVG_OL,'阶层与党派','hot'],
       ['issue',SVG_ISSUE,'问对与朝议','hot'],
+      ['letter','<svg class="tm-rc-svg" viewBox="0 0 48 48"><rect x="5" y="12" width="38" height="27" rx="2" fill="#d4be7a" stroke="#6b5010" stroke-width="1.5"/><path d="M6 15 L24 28 L42 15" stroke="#6b5010" stroke-width="2" fill="none"/></svg>','鸿雁传书',''],
       ['policy',SVG_POLICY,'文事艺府',''],
       ['office',SVG_OFFICE,'钉选臣僚',''],
       ['army',SVG_ARMY,'军务边防','hot'],
@@ -2329,7 +2343,7 @@
     rail.innerHTML = '<div class="tm-rc-cap" aria-hidden="true">国事</div>' + buttons.map(function(b, i){
       var divider = (i === 0 || i === 3 || i === 6) ? '<div class="tm-rc-divider" aria-hidden="true"></div>' : '';
       // b[1] 是 raw SVG·不转义
-      return '<button type="button" class="tm-rc-icon ' + esc(b[3] || '') + '" aria-label="' + esc(b[2]) + '" data-slot="' + esc(b[0]) + '" data-tip="' + esc(b[2]) + '" onclick="TMPhase8FormalBridge.openRailPanel(\'' + esc(b[0]) + '\')">' + b[1] + (b[0] === 'issue' ? '<span class="tm-rc-count" data-phase8-badge="audience" style="display:none"></span>' : '') + '</button>' + divider;
+      return '<button type="button" class="tm-rc-icon ' + esc(b[3] || '') + '" aria-label="' + esc(b[2]) + '" data-slot="' + esc(b[0]) + '" data-tip="' + esc(b[2]) + '" onclick="TMPhase8FormalBridge.openRailPanel(\'' + esc(b[0]) + '\')">' + b[1] + (b[0] === 'issue' ? '<span class="tm-rc-count" data-phase8-badge="audience" style="display:none"></span>' : b[0] === 'letter' ? '<span class="tm-rc-count" data-phase8-badge="daily" style="display:none"></span>' : '') + '</button>' + divider;
     }).join('') + '<div class="tm-rc-spacer"></div>';
     rail.dataset.formalRailBuilt = '1';
     updateRailBadges();
