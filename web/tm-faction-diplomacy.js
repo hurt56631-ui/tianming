@@ -108,6 +108,19 @@
   function create(org,ch,d){
     var target=fac({id:d.toFactionId||d.targetOrganizationId||d.targetId,name:d.toFaction||d.targetFaction||d.target}),t=terms(d),type=d.proposalType||d.treatyType||(TYPES[d.type]?d.type:d.relationType);
     if(!target||target===org||!TYPES[type]||!t||t.purpose&&type!=='deal')return result('blocked','specific_parties_type_and_terms_required');
+    if(t.purpose==='gift'){
+      var treasury=TM.PublicTreasury,o=t.obligations[0];
+      var payer=treasury&&treasury.getFactionAccountRef&&treasury.getFactionAccountRef({game:G(),factionId:org.id,kind:'central'});
+      var payee=treasury&&treasury.getFactionAccountRef&&treasury.getFactionAccountRef({game:G(),factionId:target.id,kind:'central'});
+      if(!payer||!payee||payer===payee||o.fromAccount!==payer||o.toAccount!==payee)
+        return result('blocked','gift_public_account_parties_mismatch');
+      var source=treasury.getAccountView&&treasury.getAccountView({game:G(),ref:payer});
+      var destination=treasury.getAccountView&&treasury.getAccountView({game:G(),ref:payee});
+      if(!source||!destination||!source.exists||!destination.exists||!source.resources||
+        !source.resources.money||!source.resources.money.known||!destination.resources||
+        !destination.resources.money||!destination.resources.money.known)
+        return result('blocked','gift_public_account_balance_unknown');
+    }
     d.treatyType=type;var negotiating=role(ch,org,d,false),receiver=representative(negotiating?target:org,d.recipientId,!negotiating);
     // No legal recipient means the letter cannot be delivered: fail before
     // creating a misleading "submitted" proposal with toId="".

@@ -132,6 +132,19 @@ assert.equal(before().relation,beforePoor.relation);
 const bad=D.recordPlayerProposal(ours,{toFactionId:'them',proposalType:'deal',diplomacyPurpose:'gift',terms:'无效礼金',
   obligations:[{kind:'public_transfer',...accounts,amounts:{money:-100}}]},'invalid-gift');
 assert.equal(bad.outcome,'blocked');
+const malicious=D.recordPlayerProposal(ours,{toFactionId:'them',proposalType:'deal',diplomacyPurpose:'gift',
+  terms:'伪造收付账户的错误建议',
+  obligations:[{kind:'public_transfer',fromAccount:'them-public',toAccount:'us-public',amounts:{money:100}}]},
+  'wrong-account-parties');
+assert.equal(malicious.outcome,'blocked','swapped treasury accounts cannot become signed gift');
+assert.equal(malicious.reason,'gift_public_account_parties_mismatch');
+const oldAccounts=GM.publicTreasuryConfig.accounts;
+GM.publicTreasuryConfig.accounts=oldAccounts.filter(a=>a.id!=='them-public');
+const noRecipientTreasury=D.recordPlayerProposal(ours,{toFactionId:'them',proposalType:'deal',
+  diplomacyPurpose:'gift',terms:'对方没有实账',
+  obligations:[{kind:'public_transfer',...accounts,amounts:{money:100}}]},'missing-bank');
+assert.equal(noRecipientTreasury.outcome,'blocked','unconfigured foreign treasury must block fake gift');
+GM.publicTreasuryConfig.accounts=oldAccounts;
 const sovereigntySnapshot=JSON.stringify(GM.facs.map(x=>({id:x.id,name:x.name})));
 const sub=accept(submit('submission_talks','讨论称臣、岁贡、城防条款'));
 assert.equal(sub.type,'deal');
