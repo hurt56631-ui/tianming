@@ -28,6 +28,23 @@ assert.equal(rows[0].incoming,true);
 assert.equal(rows[0].kind,'greeting');
 assert(!JSON.stringify(rows).includes('官员乙'),'other NPC private details must stay hidden');
 assert.equal(c.apiAttempts.length,0,'inbox is zero API');
+// Exercise the actual overlay navigation and the visible actionable summary with a
+// minimal DOM host; this must not dispatch a simulated game action by itself.
+let visible=false,openCalls=0,scrollCalls=0,badgeCalls=0;
+const detail={open:true,addEventListener(){}};
+const row={dataset:{dailyPlan:request.planId},scrollIntoView(){scrollCalls++;}};
+const panel={innerHTML:'',contains(){return true;},
+  querySelector(selector){return selector==='details'?detail:null;},
+  querySelectorAll(selector){return selector==='[data-daily-plan]'?[row]:[];}};
+c.document.querySelector=(selector)=>visible&&selector.indexOf('[data-npc-daily-panel]')>=0?panel:null;
+c.TMPhase8FormalBridge={openHongyan(){visible=true;openCalls++;},_updateRailBadges(){badgeCalls++;}};
+assert.equal(ui.openPending(),true,'pending entry should open a real daily overlay');
+assert.equal(openCalls,1,'only one overlay opening');
+assert.equal(scrollCalls,1,'selected item should be visible');
+assert(badgeCalls>0,'render should refresh the independent pending badge');
+assert(panel.innerHTML.includes('待你处理 1 项'),'summarized pending count must be visible even when details were folded');
+assert(panel.innerHTML.includes('将军甲 · 通问'),'actual incoming NPC must be named');
+assert.equal(c.apiAttempts.length,0,'opening a notification must not call AI');
 const ticket=D.ticket(D.person('player'),{planId:request.planId,phase:'respond'});
 assert(ticket,'real player choice should have ticket');
 const receipt=D.submitHuman(ticket,{response:'warm'});
