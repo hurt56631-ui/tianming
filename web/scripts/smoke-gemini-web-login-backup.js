@@ -54,10 +54,12 @@ async function main(){
   const stillAnon=await send();
   assert.strictEqual((await stillAnon.json()).choices[0].message.content,'匿名正常');
   assert.strictEqual(outbound.length,0,'anonymous success never uses gateway');
+  assert.strictEqual(backup.summary().lastRoute,'anonymous','anonymous success should identify its real route');
   setAnon('denied');
   const result=await send();
   assert.strictEqual((await result.json()).choices[0].message.content,'已登录网关回答');
   assert.strictEqual(outbound.length,1,'only one fallback request');
+  assert.strictEqual(backup.summary().lastRoute,'login-gateway','fallback response should identify its real route');
   assert.strictEqual(outbound[0].url,'https://my-private-relay.example/v1/chat/completions');
   assert.strictEqual(outbound[0].options.headers.Authorization,'Bearer SCOPED_GATEWAY_KEY');
   assert(!outbound[0].options.headers.Cookie && !outbound[0].options.headers['X-Goog-AuthUser'],
@@ -83,6 +85,13 @@ async function main(){
   const noBackup=await send();
   assert.strictEqual(noBackup.status,403);
   assert.strictEqual(outbound.length,countAfterDenied,'no post-clear relay traffic');
+  // On older Electron (or a web browser), the optional HTTPS gateway still works
+  // even if the unofficial anonymous native bridge has not been installed yet.
+  const old={...ctx.tianming};
+  ctx.tianming={isDesktop:false};
+  const missingBridge=(await send());
+  assert.strictEqual(missingBridge.status,503,'no gateway configured must fail closed on unsupported platform');
+  ctx.tianming=old;
   assert.strictEqual(ctx.P.ai.key,'PAID_PRIMARY_KEY');
   const index=read('index.html');
   assert(index.indexOf('tm-gemini-login-backup.js')<index.indexOf('tm-gemini-web-adapter.js'),

@@ -147,6 +147,7 @@
   g.TM.GeminiLoginBackup = {
     summary:summary, configured:configured, save:save, clear:clear,
     tryReply:tryReply, test:test,
+    markAnonymous:function(){lastRoute='anonymous';},
     canFallback:function(status) {
       return [401,403,405,429,500,502,503,504].includes(Number(status));
     }

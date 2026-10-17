@@ -71,3 +71,11 @@ Google 官方阻止普通 Android WebView 的 OAuth 登录，外部 Chrome 的�
 **不要误会：** 在浏览器里点击“使用 Google 账号登录”，不会使手机 App、电脑游戏
 或第三方服务立即获得已登录的 Gemini Web 请求权限；必须是你自行控制的网关已经真实认证成功。
 游戏的“备用网关测试成功”只验证文本 API 可达，仍需到网关后台确认 Google 登录有效。
+
+
+### 旧安装包与普通网页的备用方式
+
+登录态备用使用普通 HTTPS OpenAI-compatible API，故无需 Electron 的匿名 IPC 主进程。
+如果旧电脑安装包暂未更新匿名桥，只要 renderer 已更新并且用户已明确启用备用网关，
+在该设备上仍可进行备用对话。普通浏览器只能在网关正确配置 CORS 时使用。
+匿名 Gemini Web 本身仍受 Electron 新主进程／Capacitor 原生插件限制。

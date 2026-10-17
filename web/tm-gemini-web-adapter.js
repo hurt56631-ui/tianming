@@ -19,7 +19,6 @@ global._tmAIFetch=async function(url,options){
   if(options.signal&&options.signal.aborted){var abort=new Error('已取消');abort.name='AbortError';throw abort;}
   var desktop=!!(global.tianming&&global.tianming.isDesktop&&typeof global.tianming.geminiWebChat==='function');
   var mobile=!!(global.TM&&global.TM.GeminiWebMobile&&global.TM.GeminiWebMobile.available());
-  if(!desktop&&!mobile)return failure(503,'免费 Gemini Web 仅支持新版 Electron 和安卓 Capacitor App');
   var input;
   try{input=JSON.parse(String(options.body||'{}'));}catch(_){return failure(400,'JSON 输入无效');}
   if(!Array.isArray(input.messages))return failure(400,'缺少 messages');
@@ -27,7 +26,8 @@ global._tmAIFetch=async function(url,options){
   var result;
   try{
     if(desktop)result=await global.tianming.geminiWebChat({messages:input.messages});
-    else{var value=await global.TM.GeminiWebMobile.generate({messages:input.messages,signal:options.signal});result={ok:true,text:value.text,model:value.model};}
+    else if(mobile){var value=await global.TM.GeminiWebMobile.generate({messages:input.messages,signal:options.signal});result={ok:true,text:value.text,model:value.model};}
+    else result={ok:false,status:503,message:'当前平台没有匿名网页桥接；若已配置登录态网关，将尝试备用'};
   }
   catch(e){
     if((options.signal&&options.signal.aborted)||(e&&(e.code==='AI_ABORTED'||e.name==='AbortError'))){
@@ -56,6 +56,8 @@ global._tmAIFetch=async function(url,options){
       return failure(status,result&&result.message||'匿名 Gemini 没有可读回复',result&&result.retryAfterMs);
     }
   }
+  if(result.route !== 'login-gateway' && global.TM && global.TM.GeminiLoginBackup &&
+     typeof global.TM.GeminiLoginBackup.markAnonymous === 'function')global.TM.GeminiLoginBackup.markAnonymous();
   var id='chatcmpl-gemini-web-local';
   if(input.stream===true){
     var pieces=[

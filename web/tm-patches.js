@@ -1797,7 +1797,14 @@ async function sTestGeminiWebNpc(){
   var st=_$('s-free-npc-status');if(st)st.textContent='正在测试免费 Gemini 3.5…';
   try {
     var result=await callAIMessages([{role:'user',content:'请用现代汉语只回答：你好，陛下。'}],64,null,'geminiweb',{maxRetries:0});
-    if(st)st.textContent='成功：'+String(result||'').slice(0,80);
+    if(st){
+      var via='';
+      try{
+        var meta=TM.GeminiLoginBackup&&TM.GeminiLoginBackup.summary();
+        via=meta&&meta.lastRoute==='login-gateway'?'（Google 登录态备用网关）':'（匿名 Gemini）';
+      }catch(_){}
+      st.textContent='成功'+via+'：'+String(result||'').slice(0,80);
+    }
   } catch(e) {if(st)st.textContent='失败：'+String(e&&e.message||e).slice(0,140);}
 }
 async function sTestConn(){
