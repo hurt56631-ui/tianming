@@ -31,6 +31,18 @@ async function main(){
   for(const name of ['tm-wendui.js','tm-chaoyi-yuqian.js','tm-chaoyi-tinyi.js','tm-chaoyi-changchao-adapter.js']) {
     assert(read(name).includes('_tmNpcDialogueAITier()'),name+' does not use NPC route');
   }
+  const court=read('tm-chaoyi-changchao-adapter.js');
+  const start=court.indexOf('async function _cc3_aiGenReact(');
+  const end=court.indexOf('// 解析 JSON（截断/畸形',start);
+  assert(start>=0&&end>start,'NPC court reply function exists');
+  const react=court.slice(start,end);
+  assert(react.includes("const npcTier = _tmNpcDialogueAITier();"),'normal court NPC speech must route through the free tier');
+  assert(!react.includes("'secondary'"),'no hardcoded secondary API for NPC court speech');
+  assert(react.includes("npcTier === 'geminiweb'"),'free failure should not silently resend');
+  assert(court.includes("if (tier === 'geminiweb') return"),'plain system prompt must skip Anthropic cache format');
+  assert(read('tm-ai-infra.js').includes("tier !== 'geminiweb' && _provider === 'anthropic'"),'non-stream native Anthropic cache isolation');
+  assert(read('tm-ai-infra-retry.js').includes("opts.tier !== 'geminiweb' && _providerS === 'anthropic'"),'stream native Anthropic cache isolation');
+  assert(!read('tm-hongyan-office.js').includes('100-200 字古典中文'),'letters must not demand archaic Chinese');
   const core=read('tm-endturn-core.js');
   assert(core.includes("gemini-web\\.tianming\\.invalid"),'formal endTurn must reject old virtual primary');
   assert(!core.includes("_tmNpcDialogueAITier()"),'formal endTurn must not use free NPC route');

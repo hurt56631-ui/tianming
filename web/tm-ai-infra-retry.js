@@ -416,7 +416,7 @@ async function _callAIMessagesStreamDirect(messages, maxTok, opts) {
     try {
       var _providerS = (typeof _detectAIProvider === 'function') ? _detectAIProvider() : '';
       var _isNativeS = (P.ai && P.ai.url && /api\.anthropic\.com/i.test(P.ai.url));
-      if (!_finalizedBody && _providerS === 'anthropic' && _isNativeS && messages && messages.length > 0) {
+      if (!_finalizedBody && opts.tier !== 'geminiweb' && _providerS === 'anthropic' && _isNativeS && messages && messages.length > 0) {
         var _firstS = messages[0];
         if (_firstS && _firstS.role === 'system' && typeof _firstS.content === 'string' && _firstS.content.length > 1500) {
           _msgsStream = messages.slice();

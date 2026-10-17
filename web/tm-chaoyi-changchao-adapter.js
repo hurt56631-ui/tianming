@@ -817,9 +817,11 @@ function _cc3_getCachedSysStable() {
 }
 
 /** 把 prompt(string) 拼成带 system 的 messages 数组·提供给所有 v3 AI 调用复用 */
-function _cc3_makeMessagesWithSystem(userPrompt) {
+function _cc3_makeMessagesWithSystem(userPrompt, tier) {
   const sysStable = _cc3_getCachedSysStable();
   const sysVariable = _cc3_buildSystemPromptVariable();
+  // Anonymous Gemini Web expects plain text; Anthropic cache_control arrays belong only on its official API.
+  if (tier === 'geminiweb') return [{ role:'system', content:sysStable + (sysVariable ? '\n\n' + sysVariable : '') }, { role:'user', content:userPrompt }];
   if (typeof buildCachedMessages === 'function') {
     return buildCachedMessages(sysStable, sysVariable, userPrompt);
   }
@@ -1044,7 +1046,7 @@ async function _cc3_aiGenReact(name, item, role, onChunk) {
   }
   p += '· 若议题涉及你或你的派系利益·立场须强烈\n';
   p += '· 若议题与你的记忆相关·态度应有连贯性\n';
-  p += '· line 字数' + wordHint + '·半文言·朝堂奏对体·"臣……"开头·体现你的性格与身份\n';
+  p += '· line 字数' + wordHint + '·自然现代白话，不写文言文；符合朝堂礼仪，可用“臣……”开头，体现你的性格与身份\n';
   p += '· 紧扣议题具体内容·有具体观点·不可空泛附和\n';
   p += '· 与已表态他臣有所区别·不重复其话\n';
   p += '· 直接 JSON·不要解释·不要 ```json 包裹';
@@ -1076,7 +1078,8 @@ async function _cc3_aiGenReact(name, item, role, onChunk) {
   }
 
   // 带 system prompt（朝代/规制/风格/时令/朝威/国势）·走 prompt cache
-  const messages = _cc3_makeMessagesWithSystem(p);
+  const npcTier = _tmNpcDialogueAITier();
+  const messages = _cc3_makeMessagesWithSystem(p, npcTier);
   if (typeof callAIMessagesStream === 'function') {
     try {
       raw = await callAIMessagesStream(
@@ -1084,7 +1087,7 @@ async function _cc3_aiGenReact(name, item, role, onChunk) {
         tok,
         {
           signal: signal,
-          tier: 'secondary',
+          tier: npcTier,
           onChunk: (partial) => {
             if (partial) streamed = true;
             if (typeof onChunk === 'function') {
@@ -1095,19 +1098,19 @@ async function _cc3_aiGenReact(name, item, role, onChunk) {
         }
       );
     } catch (e) {
-      if (streamed || (signal && signal.aborted) || (e && (e._aiRetryExhausted || e._tmNativeTransport || e.name === 'AbortError' || e.code === 'AI_ABORTED')) ||
+      if (streamed || npcTier === 'geminiweb' || (signal && signal.aborted) || (e && (e._aiRetryExhausted || e._tmNativeTransport || e.name === 'AbortError' || e.code === 'AI_ABORTED')) ||
           (typeof _aiErrorIsTerminal === 'function' && _aiErrorIsTerminal(e))) return null;
       console.warn('[cc3·react] 流式失败·退非流式·', e && e.message);
       try {
         raw = (typeof callAIMessages === 'function')
-          ? await callAIMessages(messages, tok, signal, 'secondary')
-          : await callAI(p, tok, signal, 'secondary');
+          ? await callAIMessages(messages, tok, signal, npcTier)
+          : await callAI(p, tok, signal, npcTier);
       } catch (e2) { return null; }
     }
   } else if (typeof callAIMessages === 'function') {
-    try { raw = await callAIMessages(messages, tok, signal, 'secondary'); } catch (e) { return null; }
+    try { raw = await callAIMessages(messages, tok, signal, npcTier); } catch (e) { return null; }
   } else {
-    try { raw = await callAI(p, tok, signal, 'secondary'); } catch (e) { return null; }
+    try { raw = await callAI(p, tok, signal, npcTier); } catch (e) { return null; }
   }
 
   // 解析 JSON（截断/畸形→抢救已流式吐出的 line·避免"完整陈述塌缩成 mock 一句"·2026-07-03）
@@ -1204,25 +1207,26 @@ async function _cc3_callAI(prompt, onChunk) {
   if (typeof callAI !== "function") throw new Error("callAI 未加载");
   const tok = (typeof _aiDialogueTok === "function") ? _aiDialogueTok("cy", 1) : 500;
   const signal = (typeof CY !== "undefined" && CY.abortCtrl) ? CY.abortCtrl.signal : null;
-  const messages = _cc3_makeMessagesWithSystem(prompt);
+  const npcTier = _tmNpcDialogueAITier();
+  const messages = _cc3_makeMessagesWithSystem(prompt, npcTier);
   let streamed = false;
   // 流式优先（有 onChunk 且 callAIMessagesStream 可用）
   if (typeof onChunk === 'function' && typeof callAIMessagesStream === 'function') {
     try {
-      return await callAIMessagesStream(messages, tok, { signal: signal, onChunk: function(partial) { if (partial) streamed = true; onChunk(partial); }, tier: _tmNpcDialogueAITier() });
+      return await callAIMessagesStream(messages, tok, { signal: signal, onChunk: function(partial) { if (partial) streamed = true; onChunk(partial); }, tier: npcTier });
     } catch (e) {
-      if (streamed || (signal && signal.aborted) || _tmNpcDialogueAITier() === 'geminiweb' || (e && (e._aiRetryExhausted || e._tmNativeTransport || e.name === 'AbortError' || e.code === 'AI_ABORTED')) ||
+      if (streamed || (signal && signal.aborted) || npcTier === 'geminiweb' || (e && (e._aiRetryExhausted || e._tmNativeTransport || e.name === 'AbortError' || e.code === 'AI_ABORTED')) ||
           (typeof _aiErrorIsTerminal === 'function' && _aiErrorIsTerminal(e))) throw e;
       console.warn('[cc3·stream] 流式失败·退非流式·', e && e.message);
     }
   }
   // 非流式·callAIMessages 优先（保持 system prompt）
   if (typeof callAIMessages === 'function') {
-    return await callAIMessages(messages, tok, signal, _tmNpcDialogueAITier());
+    return await callAIMessages(messages, tok, signal, npcTier);
   }
   // 兜底：拼成单 prompt 走老 callAI
   const flat = messages.map(m => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content))).join('\n\n');
-  return await callAI(flat, tok, signal, _tmNpcDialogueAITier());
+  return await callAI(flat, tok, signal, npcTier);
 }
 
 // 兼容 preview 的全局名（preview JS 仍引用 callAIPreview / aiEnabled）

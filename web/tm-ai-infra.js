@@ -1232,7 +1232,7 @@ async function callAIMessages(messages,maxTok,signal,tier,opts){
   var _provider = (typeof _detectAIProvider === 'function') ? _detectAIProvider() : 'openai_compat';
   var _isNativeAnthropic = (P.ai && P.ai.url && /api\.anthropic\.com/i.test(P.ai.url));
   var _msgs = messages;
-  if (_provider === 'anthropic' && _isNativeAnthropic && messages && messages.length > 0) {
+  if (tier !== 'geminiweb' && _provider === 'anthropic' && _isNativeAnthropic && messages && messages.length > 0) {
     var firstSys = messages[0];
     if (firstSys && firstSys.role === 'system' && typeof firstSys.content === 'string' && firstSys.content.length > 1500) {
       _msgs = messages.slice();

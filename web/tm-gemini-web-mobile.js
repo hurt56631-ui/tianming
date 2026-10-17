@@ -4,7 +4,7 @@
 'use strict';
 var ORIGIN='https://gemini.google.com';
 var RPC=ORIGIN+'/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate';
-var BL=/boq_(?:gemini-web-uiserver|assistant-bard-web-server)_\d{8}\.\d{2}_p\d+/;
+var BL=/boq_[a-z0-9-]+_\d{8}\.\d{2}_p\d+/;
 var FALLBACK='boq_gemini-web-uiserver_20261007.01_p0';
 var HEX='cf41b0e0dd7d53e5', LIMIT=95000;
 function err(text,status){var e=new Error(text);e.status=status||503;return e;}

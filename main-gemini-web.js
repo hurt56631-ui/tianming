@@ -5,7 +5,7 @@ const { randomUUID } = require('crypto');
 const ORIGIN = 'https://gemini.google.com';
 const GENERATE = ORIGIN + '/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate';
 const FALLBACK_BL = 'boq_gemini-web-uiserver_20261007.01_p0';
-const BL_RE = /boq_(?:gemini-web-uiserver|assistant-bard-web-server)_\d{8}\.\d{2}_p\d+/;
+const BL_RE = /boq_[a-z0-9-]+_\d{8}\.\d{2}_p\d+/;
 const MAX_INPUT = 95000;
 const MAX_OUTPUT = 4*1024*1024;
 function error(message, status=503, code='GEMINI_WEB_ERROR') {
