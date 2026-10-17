@@ -45,6 +45,8 @@ async function main(){
   assert(!read('tm-hongyan-office.js').includes('100-200 字古典中文'),'letters must not demand archaic Chinese');
   const settings=read('tm-patches.js');
   assert(!settings.includes('网页/APK 请使用 Gemini 正式 API'),'settings must not advertise Android as unsupported');
+  const pkg=JSON.parse(fs.readFileSync(path.join(WEB,'../package.json'),'utf8'));
+  assert(pkg.build && Array.isArray(pkg.build.files) && pkg.build.files.includes('main-gemini-web.js'),'Electron installer must include the required Gemini Web main process module');
   const core=read('tm-endturn-core.js');
   assert(core.includes("gemini-web\\.tianming\\.invalid"),'formal endTurn must reject old virtual primary');
   assert(!core.includes("_tmNpcDialogueAITier()"),'formal endTurn must not use free NPC route');
