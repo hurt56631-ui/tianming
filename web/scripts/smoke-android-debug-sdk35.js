@@ -15,12 +15,13 @@ function main(){
   const good=fixture();
   try{
     let res=patch(good.dir);
-    assert.strictEqual(res.changed.length,3);
+    assert.strictEqual(res.changed.length,3); // one write per generated Gradle file
     assert(good.read('build.gradle').includes("com.android.tools.build:gradle:8.6.1"));
     assert(good.read('gradle/wrapper/gradle-wrapper.properties').includes('gradle-8.7-all.zip'));
     assert(good.read('variables.gradle').includes('compileSdkVersion = 35'));
     assert(good.read('variables.gradle').includes('targetSdkVersion = 34'));
-    assert(good.read('variables.gradle').includes('minSdkVersion = 22'));
+    assert(good.read('variables.gradle').includes('minSdkVersion = 23'));
+    assert.strictEqual((good.read('variables.gradle').match(/minSdkVersion = 23/g)||[]).length,1);
     res=patch(good.dir);
     assert.strictEqual(res.changed.length,0,'idempotence');
   }finally{good.cleanup();}
@@ -32,7 +33,7 @@ function main(){
   }finally{bad.cleanup();}
   const conflict=fixture();
   try{
-    conflict.write('variables.gradle',"ext { compileSdkVersion = 34\n targetSdkVersion = 35\n }\n");
+    conflict.write('variables.gradle',"ext { minSdkVersion = 22\n compileSdkVersion = 34\n targetSdkVersion = 35\n }\n");
     assert.throws(()=>patch(conflict.dir),/Unexpected targetSdkVersion/);
     assert(conflict.read('build.gradle').includes('gradle:8.2.1'));
   }finally{conflict.cleanup();}
