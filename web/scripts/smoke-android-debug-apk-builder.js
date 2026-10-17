@@ -35,7 +35,8 @@ function runMock({first=false,missingArt=false,missingCap=false,stageExit=0,part
   const module={exports:{}};
   const requireFn=name=>name==='fs'?fakeFs:name==='path'?path:name==='child_process'?{spawnSync:fakeSpawn}:(()=>{throw new Error('unrecognized mock require '+name);})();
   vm.runInNewContext(SOURCE,{require:requireFn,module,__dirname:path.join(mobile,'scripts'),
-    process:{platform:process.platform},console:{log(){},error(){}}},{filename:HELPER});
+    process:{platform:process.platform,env:{INIT_CWD:mobile},cwd:()=>mobile},
+    console:{log(){},error(){}}},{filename:HELPER});
   let error=null;
   try{module.exports.main();}catch(e){error=e;}
   return{error,commands,apk};

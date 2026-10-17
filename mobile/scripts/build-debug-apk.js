@@ -3,8 +3,30 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const MOBILE = path.resolve(__dirname, '..');
-const ROOT = path.resolve(MOBILE, '..');
+// Some Windows users have mobile/ as a junction on a different volume.
+// Resolve the *repository* by stable markers, not by assuming __dirname/../.. .
+function findRepoRoot() {
+  const candidates = [
+    process.env && process.env.TIANMING_REPO_ROOT,
+    process.env && process.env.INIT_CWD,
+    typeof process.cwd === 'function' && process.cwd(),
+    __dirname
+  ];
+  for (const start of candidates) {
+    if (!start) continue;
+    let dir = path.resolve(start);
+    for (let depth = 0; depth < 24; depth++) {
+      if (fs.existsSync(path.join(dir, 'scripts', 'stage-web-release.js')) &&
+          fs.existsSync(path.join(dir, 'web', 'index.html'))) return dir;
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  }
+  throw new Error('Could not find Tianming repo root. Run from the repository mobile/ folder, or set TIANMING_REPO_ROOT.');
+}
+const ROOT = findRepoRoot();
+const MOBILE = path.join(ROOT, 'mobile');
 const NATIVE = path.join(MOBILE, 'android');
 const GRADLE = path.join(NATIVE, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew');
 const OUTPUT = path.join(NATIVE, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');

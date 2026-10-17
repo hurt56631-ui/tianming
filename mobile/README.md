@@ -75,3 +75,5 @@ Debug APK 构建增加了**只读素材存在性检查**：按 `web/.hot-update-
 人物立绘、图片、音频和场景模型核对本机 `web/assets`。GitHub 下载源码经常缺少 Git 未跟踪的资源。
 如果提示 `Missing ... essential artwork/audio files`，请从你保存的完整版《天命》原始素材文件夹
 恢复同名目录和文件；不要禁用检查，否则可能打出缺图的 APK。
+
+Windows `mobile/` 若使用跨磁盘 junction，测试打包工具会先从 npm 的 `INIT_CWD` 和当前工作目录向上寻找仓根标记，不会盲目以 `mobile/scripts` 物理路径当仓根。必要时可设置 `TIANMING_REPO_ROOT` 指向仓库根目录。
