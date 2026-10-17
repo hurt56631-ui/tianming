@@ -46,13 +46,15 @@ function run(){
   assert(!SOURCE.includes('release.js --publish'),'builder must never publish');
   let r=runMock({first:true});
   assert.ifError(r.error);
-  assert.strictEqual(r.commands.length,2);
+  assert.strictEqual(r.commands.length,3);
   assert(r.commands[0].includes('run add:android'));
-  assert(r.commands[1].includes('assembleDebug'));
+  assert(r.commands[1].includes('ensure-debug-sdk35.js'));
+  assert(r.commands[2].includes('assembleDebug'));
   r=runMock({});
   assert.ifError(r.error);
   assert(r.commands[0].includes('run sync'));
-  assert(r.commands[1].includes('assembleDebug'));
+  assert(r.commands[1].includes('ensure-debug-sdk35.js'));
+  assert(r.commands[2].includes('assembleDebug'));
   r=runMock({missingCap:true});
   assert(r.error && /npm install/.test(r.error.message));
   assert.strictEqual(r.commands.length,0);

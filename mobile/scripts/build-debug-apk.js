@@ -81,6 +81,9 @@ function main() {
     run('npm', ['run', 'sync'], MOBILE);
   }
   if (!fs.existsSync(GRADLE)) throw new Error('Android Gradle wrapper was not generated.');
+  // SDK35 is needed for androidx.work 2.10.5 (Capgo); keep targetSdk34.
+  // Apply only to ignored generated native Gradle files AFTER staging verification.
+  run('node', ['scripts/ensure-debug-sdk35.js'], MOBILE);
   run(process.platform === 'win32' ? 'gradlew.bat' : './gradlew',
       [':app:assembleDebug', '--no-daemon'], NATIVE);
   if (!fs.existsSync(OUTPUT)) throw new Error('Gradle finished, but app-debug.apk is missing.');

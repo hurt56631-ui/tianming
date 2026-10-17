@@ -77,3 +77,8 @@ Debug APK 构建增加了**只读素材存在性检查**：按 `web/.hot-update-
 恢复同名目录和文件；不要禁用检查，否则可能打出缺图的 APK。
 
 Windows `mobile/` 若使用跨磁盘 junction，测试打包工具会先从 npm 的 `INIT_CWD` 和当前工作目录向上寻找仓根标记，不会盲目以 `mobile/scripts` 物理路径当仓根。必要时可设置 `TIANMING_REPO_ROOT` 指向仓库根目录。
+
+### Gradle/Android API 35 测试兼容性
+
+当前 Capacitor 6 原生模板默认为 compileSdk 34、AGP 8.2.1、Gradle 8.2.1；项目依赖的 androidx.work:work-runtime:2.10.5 要求 compileSdk >=35。
+`npm run build:apk:debug` 在 **stage + native 哈希校验通过后**，只对 ignored 的 `mobile/android` 原生构建配置做受控升级：compileSdk 35、AGP 8.6.1、Gradle 8.7；保留原 targetSdk 34、minSdk 22、versionCode 和正式版签名不变。此步骤仅为测试包打包用途，正式发行仍需审查完整安卓构建工具链。见 `web/scripts/smoke-android-debug-sdk35.js`。

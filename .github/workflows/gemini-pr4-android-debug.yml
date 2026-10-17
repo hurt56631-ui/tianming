@@ -50,9 +50,21 @@ jobs:
       - name: Android SDK
         uses: android-actions/setup-android@v4
 
+      - name: Install Android API 35 required by androidx.work runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sdk = Get-ChildItem -Path (Join-Path $env:ANDROID_HOME 'cmdline-tools') -Filter sdkmanager.bat -Recurse |
+            Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+          if (!$sdk) { throw 'sdkmanager.bat not found in Android SDK' }
+          & $sdk 'platforms;android-35' 'build-tools;35.0.0'
+          if ($LASTEXITCODE -ne 0) { throw 'Installing Android SDK 35 failed' }
+
       - name: Exercise offline asset safety tests
         shell: pwsh
         run: |
+          node web/scripts/smoke-android-debug-sdk35.js
+          if ($LASTEXITCODE -ne 0) { throw 'Android SDK35 Gradle compatibility fixture failed' }
           python scripts/test-restore-official-apk-assets.py
           if ($LASTEXITCODE -ne 0) { throw "Asset restore safety tests failed" }
 
