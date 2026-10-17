@@ -709,6 +709,11 @@ openSettings=function(){
     "<div style=\"font-size:0.7rem;color:var(--txt-d);margin:-0.2rem 0 0.3rem;\">\u4E0A\u4E0B\u6587\u7A97\u53E3\u5F71\u54CD\u8BB0\u5FC6\u538B\u7F29\u7B56\u7565\uFF1A128K+\u5BBD\u677E\u4FDD\u7559\u3001<32K\u6FC0\u8FDB\u538B\u7F29\u3001\u7559\u7A7A\u81EA\u52A8\u8BC6\u522B\u6A21\u578B</div>"+
     "<div style=\"display:flex;gap:0.3rem;margin-top:0.4rem;\"><button class=\"bt bs bsm\" onclick=\"sTestConn()\">\u6D4B\u8BD5\u8FDE\u63A5</button><button class=\"bt bs bsm\" onclick=\"sReDetectCtx()\">\u91CD\u65B0\u63A2\u6D4B\u7A97\u53E3</button><button class=\"bt bp bsm\" onclick=\"sSaveAPI()\">\u4FDD\u5B58</button></div>"+
     "<div id=\"s-status\" style=\"font-size:0.78rem;color:var(--txt-d);margin-top:0.3rem;\"></div>"+
+    '<div style="border:1px solid var(--bdr);padding:0.65rem;margin:0.6rem 0;border-radius:6px;">'+
+    '<label style="display:flex;align-items:center;gap:0.4rem;"><input id="s-free-npc" type="checkbox" '+((P.conf&&P.conf.geminiWebNpcEnabled)?'checked':'')+'><b>人物对话使用免费 Gemini 3.5 Flash-Lite（实验）</b></label>'+
+    '<div style="font-size:0.74rem;color:var(--txt-d);margin:0.35rem 0;">人物发言走匿名网页；抽取承诺、判定政治后果、结束回合以及所有军政结算仍使用主/次 API。支持新版 Electron 和安卓 Capacitor；普通网页不支持。Google 网页通道可能限流或变更，不会自动偷用付费 API 重试。</div>'+
+    '<button type="button" class="bt bs bsm" onclick="sTestGeminiWebNpc()">测试免费人物对话</button><span id="s-free-npc-status" style="font-size:0.73rem;color:var(--txt-d);margin-left:0.4rem;"></span>'+
+    '</div>'+
     "<div id=\"s-ctx-info\" style=\"font-size:0.72rem;color:var(--txt-d);margin-top:0.2rem;\"></div>"+
     "<div style=\"margin-top:0.6rem;padding-top:0.5rem;border-top:1px solid var(--bdr);\"><div style=\"font-size:0.75rem;color:var(--gold-d);margin-bottom:0.3rem;\">\u667A\u80FD\u751F\u56FE API\uFF08\u72EC\u7ACB\u914D\u7F6E\uFF0C\u7528\u4E8E\u7ACB\u7ED8\u7B49\u56FE\u7247\u751F\u6210\uFF09</div>"+
     // 2026-07-10 \u65B0\u624B\u6307\u5F15 + \u6392\u7248\u653E\u5BBD\uFF1AURL/\u6A21\u578B\u5404\u5360\u6574\u884C\uFF08\u539F\u300CURL+80px \u6A21\u578B\u6846\u300D\u6324\u4E00\u884C\u00B7\u751F\u56FE\u6A21\u578B\u540D\u666E\u904D\u5F88\u957F\uFF09
@@ -1740,6 +1745,13 @@ async function sTestSecondaryConn(){
   // \u6062\u590D\u539F\u59CB\u503C\uFF08\u907F\u514D\u672A\u4FDD\u5B58\u65F6\u6C61\u67D3\uFF09
   if(_had){P.ai.secondary.key=_orig.key;P.ai.secondary.url=_orig.url;P.ai.secondary.model=_orig.model;} // arch-ok 体检收尾恢复原值
   else{try{delete P.ai.secondary;}catch(_){}} // arch-ok 体检收尾·本无次API则拆除临时对象
+}
+async function sTestGeminiWebNpc(){
+  var st=_$('s-free-npc-status');if(st)st.textContent='正在测试免费 Gemini 3.5…';
+  try {
+    var result=await callAIMessages([{role:'user',content:'请用现代汉语只回答：你好，陛下。'}],64,null,'geminiweb',{maxRetries:0});
+    if(st)st.textContent='成功：'+String(result||'').slice(0,80);
+  } catch(e) {if(st)st.textContent='失败：'+String(e&&e.message||e).slice(0,140);}
 }
 async function sTestConn(){
   if (_$('s-url') && _$('s-url').value.trim() === 'https://gemini-web.tianming.invalid/v1') {
