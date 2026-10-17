@@ -27,9 +27,12 @@ global._tmAIFetch=async function(url,options){
   var result;
   try{
     if(desktop)result=await global.tianming.geminiWebChat({messages:input.messages});
-    else{var value=await global.TM.GeminiWebMobile.generate({messages:input.messages});result={ok:true,text:value.text,model:value.model};}
+    else{var value=await global.TM.GeminiWebMobile.generate({messages:input.messages,signal:options.signal});result={ok:true,text:value.text,model:value.model};}
   }
   catch(e){
+    if((options.signal&&options.signal.aborted)||(e&&(e.code==='AI_ABORTED'||e.name==='AbortError'))){
+      var aborted=new Error('Gemini 人物对话已取消');aborted.name='AbortError';aborted.code='AI_ABORTED';throw aborted;
+    }
     var code=Number(e&&e.status)||503;
     if([400,403,405,413,422,429].indexOf(code)<0)code=503;
     return failure(code,'Gemini 网页通道失败：'+String(e&&e.message||e).slice(0,120),e&&e.retryAfterMs);

@@ -5,6 +5,7 @@
 var ORIGIN='https://gemini.google.com';
 var RPC=ORIGIN+'/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate';
 var BL=/boq_[a-z0-9-]+_\d{8}\.\d{2}_p\d+/;
+var BL_FIELD=/"cfb2h"\s*:\s*"(boq_[a-z0-9-]+_\d{8}\.\d{2}_p\d+)"/;
 var FALLBACK='boq_gemini-web-uiserver_20261007.01_p0';
 var HEX='cf41b0e0dd7d53e5', LIMIT=95000;
 function err(text,status){var e=new Error(text);e.status=status||503;return e;}
@@ -65,56 +66,65 @@ function extract(raw) {
 function createTransport(opts) {
   opts=opts||{};var sendNative=opts.request,now=opts.now||Date.now,id=opts.uuid||getId;
   var delay=opts.delay||function(t){return new Promise(function(done){setTimeout(done,t);});};
-  var bl='',blTime=0,cooldownAt=0,lastPost=0,queued=0,tail=Promise.resolve();
+  var bl='',blTime=0,blCheckedAt=0,cooldownAt=0,lastPost=0,queued=0,tail=Promise.resolve();
   if(typeof sendNative!=='function')throw Error('Capacitor HTTP bridge missing');
   function limit(){var left=cooldownAt-now();if(left>0){var e=err('Gemini Web 限流，约 '+Math.ceil(left/60000)+' 分钟后重试',429);e.retryAfterMs=left;throw e;}}
   function block(r){var n=parseInt(r&&r.headers&&r.headers.get('retry-after')||'0',10);cooldownAt=Math.max(cooldownAt,now()+Math.min(3600000,Math.max(60000,n>0?n*1000:60000)));}
+  function checkAbort(signal){if(signal&&signal.aborted){var e=err('Gemini 人物对话已取消',499);e.name='AbortError';e.code='AI_ABORTED';throw e;}}
   async function request(url,params){
+    checkAbort(params&&params.signal);
     try{
       var response=await sendNative(url,params);
-      if(response.status===429||response.status===403){block(response);limit();}
+      checkAbort(params&&params.signal);
+      if(response.status===429||response.status===403||response.status===401){block(response);limit();}
+      if(response.status>=300&&response.status<400){block(response);throw err('Gemini 网页需要登录或网络验证',403);}
       return response;
     }catch(e){
-      // A native 3xx from Google often means traffic verification; never follow/rotate.
-      if(e&&e.code==='AI_MOBILE_REDIRECT'){block();limit();}
+      if(e&&e.code==='AI_MOBILE_REDIRECT'){block();throw err('Gemini 网页发生验证跳转',403);}
       throw e;
     }
   }
   async function read(r,max){var s=await r.text();if(s.length>max)throw err('Gemini Web 回复过大',413);return s;}
-  async function refresh(){
-    var r=await request(ORIGIN+'/app',{method:'GET',headers:{Accept:'text/html'},
+  async function refresh(signal){
+    blCheckedAt=now();
+    var r=await request(ORIGIN+'/app',{method:'GET',headers:{Accept:'text/html'},signal:signal,
       timeoutMs:12000,waitForCompleteResponse:true,totalResponseTimeoutMs:12000});
     if(!r.ok)return '';
-    var m=BL.exec(await read(r,2097152));
-    if(m){bl=m[0];blTime=now();return bl;}
+    var html=await read(r,2097152), tagged=BL_FIELD.exec(html);
+    var label=tagged?tagged[1]:((BL.exec(html)||[])[0]);
+    if(label){bl=label;blTime=now();return bl;}
     return '';
   }
-  async function post(prompt,label){
+  async function post(prompt,label,signal){
+    checkAbort(signal);
     var w=wire(prompt,label,now(),id);
-    var r=await request(w.url,{method:'POST',headers:w.headers,body:w.body,
+    var r=await request(w.url,{method:'POST',headers:w.headers,body:w.body,signal:signal,
       timeoutMs:75000,waitForCompleteResponse:true,totalResponseTimeoutMs:75000});
     if(r.status===405)return {refresh:true};
     if(!r.ok)throw err('Gemini 网页返回 HTTP '+r.status,r.status);
-    if(/text\/html/i.test(r.headers.get('content-type')||''))throw err('Gemini 返回了登录或验证网页');
+    if(/text\/html/i.test(r.headers.get('content-type')||'')){block(r);throw err('Gemini 返回了登录或验证网页',403);}
     var txt=extract(await read(r,4194304));
     if(!txt)throw err('Gemini 网页没有返回可读文本，可能限流或协议变化');
     return {text:txt,model:'gemini-3.5-flash-lite'};
   }
   async function run(input){
+    checkAbort(input&&input.signal);
     limit();
     if(input&&input.tools&&input.tools.length)throw err('匿名通道不支持 Agent 工具',422);
     var prompt=flatten(input&&input.messages);
     if(new TextEncoder().encode(prompt).length>LIMIT)throw err('Gemini Web 输入超过 95KB；请改用正式 API',413);
     var wait=Math.max(0,1300-(now()-lastPost));if(wait)await delay(wait);
-    limit();
-    if(!bl||now()-blTime>900000){try{await refresh();}catch(e){if(e&&e.status===429)throw e;}}
-    limit();lastPost=now();
-    var result=await post(prompt,bl||FALLBACK);
+    checkAbort(input&&input.signal);limit();
+    if((!bl||now()-blTime>900000)&&(!blCheckedAt||now()-blCheckedAt>900000)){
+      try{await refresh(input&&input.signal);}catch(e){if(e&&(e.status===429||e.status===403||e.code==='AI_ABORTED'))throw e;}
+    }
+    checkAbort(input&&input.signal);limit();lastPost=now();
+    var result=await post(prompt,bl||FALLBACK,input&&input.signal);
     if(result.refresh){
       bl='';blTime=0;
-      var newer=await refresh();
+      var newer=await refresh(input&&input.signal);
       if(!newer)throw err('Gemini 网页协议已变化，无法刷新版本标识');
-      lastPost=now();result=await post(prompt,newer);
+      lastPost=now();result=await post(prompt,newer,input&&input.signal);
       if(result.refresh)throw err('Gemini 网页协议仍不可用');
     }
     return result;

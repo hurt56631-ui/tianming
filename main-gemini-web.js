@@ -6,6 +6,7 @@ const ORIGIN = 'https://gemini.google.com';
 const GENERATE = ORIGIN + '/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate';
 const FALLBACK_BL = 'boq_gemini-web-uiserver_20261007.01_p0';
 const BL_RE = /boq_[a-z0-9-]+_\d{8}\.\d{2}_p\d+/;
+const BL_FIELD_RE = /"cfb2h"\s*:\s*"(boq_[a-z0-9-]+_\d{8}\.\d{2}_p\d+)"/;
 const MAX_INPUT = 95000;
 const MAX_OUTPUT = 4*1024*1024;
 function error(message, status=503, code='GEMINI_WEB_ERROR') {
@@ -84,7 +85,7 @@ function createGeminiWebTransport(options={}) {
   const clock=options.now||Date.now;
   const uuid=options.uuid||randomUUID;
   if (typeof fetcher!=='function') throw Error('Node fetch unavailable');
-  let bl='', blAt=0, blockUntil=0, tail=Promise.resolve(), queued=0, lastPostAt=0;
+  let bl='', blAt=0, blCheckedAt=0, blockUntil=0, tail=Promise.resolve(), queued=0, lastPostAt=0;
   function checkLimit() {
     const remain=blockUntil-clock();
     if (remain>0) throw Object.assign(error('Gemini Web 限流，请约 '+Math.ceil(remain/60000)+' 分钟后重试',429),{retryAfterMs:remain});
@@ -94,21 +95,28 @@ function createGeminiWebTransport(options={}) {
     blockUntil=Math.max(blockUntil,clock()+Math.min(3600000,Math.max(60000,secs>0?secs*1000:60000)));
   }
   async function getBl() {
+    blCheckedAt=clock(); // Cache failed lookups too; avoid GET /app for every NPC reply.
     const r=await fetcher(ORIGIN+'/app',{method:'GET',redirect:'manual',
       headers:{Accept:'text/html,application/xhtml+xml'},signal:AbortSignal.timeout(12000)});
-    if (r.status===429||r.status===403) {markLimited(r);checkLimit();}
+    if (r.status===429||r.status===403||r.status===401) {markLimited(r);checkLimit();}
+    if (r.status>=300&&r.status<400) {markLimited(r);throw error('Gemini 网页发生登录验证跳转',403);}
     if (!r.ok) return '';
-    const found=BL_RE.exec(await boundedText(r,2*1024*1024));
+    const html=await boundedText(r,2*1024*1024);
+    const tagged=BL_FIELD_RE.exec(html);
+    const found=tagged ? tagged[1] : (BL_RE.exec(html)||[])[0];
     if (!found) return '';
-    bl=found[0];blAt=clock();return bl;
+    bl=found;blAt=clock();return bl;
   }
   async function post(prompt, label) {
     const request=wire(prompt,label,clock(),uuid);
     const r=await fetcher(request.url,Object.assign({},request.options,{signal:AbortSignal.timeout(options.timeoutMs||75000)}));
-    if (r.status===429||r.status===403) {markLimited(r);checkLimit();}
+    if (r.status===429||r.status===403||r.status===401) {markLimited(r);checkLimit();}
+    if (r.status>=300&&r.status<400) {markLimited(r);throw error('Gemini 网页要求登录验证，匿名通道不可用',403);}
     if (r.status===405) return {refresh:true};
     if (!r.ok) throw error('Gemini Web HTTP '+r.status,r.status);
-    if (/text\/html/i.test(String(r.headers.get('content-type')||''))) throw error('返回登录或验证网页，内部协议可能已变化');
+    if (/text\/html/i.test(String(r.headers.get('content-type')||''))) {
+      markLimited(r);throw error('返回登录或验证网页，匿名通道不可用',403);
+    }
     const text=frameText(await boundedText(r,MAX_OUTPUT));
     if (!text) throw error('网页请求没有可读文本，可能限流或协议已变化');
     return {text,model:'gemini-3.5-flash-lite'};
@@ -121,8 +129,8 @@ function createGeminiWebTransport(options={}) {
     const spacing=Math.max(0,1300-(clock()-lastPostAt));
     if (spacing) await new Promise(resolve=>setTimeout(resolve,spacing));
     checkLimit();
-    if (!bl||clock()-blAt>900000) {
-      try {await getBl();} catch(e) {if (e.status===429) throw e;}
+    if ((!bl||clock()-blAt>900000)&&(!blCheckedAt||clock()-blCheckedAt>900000)) {
+      try {await getBl();} catch(e) {if (e.status===429||e.status===403) throw e;}
     }
     checkLimit();lastPostAt=clock();
     let result=await post(prompt,bl||FALLBACK_BL);
