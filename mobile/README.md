@@ -42,3 +42,29 @@ Android 存档和剧本导出通过本仓的 `@tianming/capacitor-file-export` �
 原生 API：`Capacitor.Plugins.TianmingFileExport.saveFile({ fileName, data, mimeType: 'application/json' })`。`data` 是 UTF-8 文本，成功返回 `{ saved: true, cancelled: false, fileName, uri }`，取消返回 `{ saved: false, cancelled: true }`，其他失败 reject。`uri` 是系统文档 URI，不能当作普通文件路径显示。文件名以系统文档提供方最终返回的名称为准。
 
 大存档在工作线程先写私有临时文件，再流式写到玩家选择的目标。等待选择期间从 Capacitor 调用状态移除大文本，避免 Android 保存 Activity 状态时超过 Bundle 大小限制；同一时刻只允许一个导出窗口。正常完成或取消会清理临时文件。
+
+## Windows：一条命令生成测试 APK（不发布）
+
+只为本地测试生成 debug APK：不会修改版本号、正式签名、Capgo 更新或 GitHub Release。
+准备 Node.js 18+、Android Studio、Android SDK 和 Android Studio 自带的 JDK；首次安装完成 SDK 与许可证。
+运行之前确认代码来自要测试的 Git 分支。Git 下载可能不包含原游戏中未跟踪的 `web/assets/` 大量美术文件，需要从你原有游戏素材备份补齐。不要修改 staging 闸绕过缺图。
+
+```powershell
+cd mobile
+npm install
+npm run build:apk:debug
+```
+
+第一次执行会运行 `npm run add:android`；以后执行完整 `npm run sync`。
+所有运行均遵循 web → staging → Capacitor → native 文件哈希校验，再执行 `:app:assembleDebug`。
+生成的文件：`mobile/android/app/build/outputs/apk/debug/app-debug.apk`。
+
+在 mobile 目录直接打开输出文件夹：
+```powershell
+explorer .\android\app\build\outputs\apk\debug\
+```
+
+debug APK 使用测试签名，仅用于手机测试；不可以直接发布应用市场，也不能保证覆盖安装签名不同的旧正式版。
+遇到签名冲突必须先导出备份游戏存档，再考虑卸载旧版。正式发行继续使用仓库 `AGENTS.md` 的两阶段发版与签名门禁。
+
+喜欢 Android Studio 图形界面：先 `npm run sync`，然后执行 `npm run open` 打开工程，在 Build 菜单选择 Build APK(s)。

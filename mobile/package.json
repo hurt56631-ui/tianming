@@ -13,7 +13,8 @@
     "open": "npm run sync && cap open android",
     "run": "npm run sync && cap run android",
     "add:android": "npm run stage && cap add android && cap sync android && npm run verify:native",
-    "doctor": "cap doctor"
+    "doctor": "cap doctor",
+    "build:apk:debug": "node scripts/build-debug-apk.js"
   },
   "dependencies": {
     "@capacitor/android": "^6.1.2",
