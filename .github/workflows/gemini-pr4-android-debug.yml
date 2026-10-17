@@ -1,0 +1,115 @@
+name: Tianming Gemini PR4 Android debug APK
+
+# Build test APK only; never publish a release or alter the application signing key.
+on:
+  push:
+    branches:
+      - codex/gemini-web-free-desktop-20261017
+    paths:
+      - .github/workflows/gemini-pr4-android-debug.yml
+      - mobile/**
+      - web/**
+      - scripts/**
+      - package.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gemini-pr4-debug-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  debug-apk:
+    if: github.ref == 'refs/heads/codex/gemini-web-free-desktop-20261017'
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - name: Checkout latest experimental Gemini branch
+        uses: actions/checkout@v4
+
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Python 3.12 for safe ZIP asset restoration
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Java 17 for Android Gradle
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Exercise offline asset safety tests
+        shell: pwsh
+        run: |
+          python scripts/test-restore-official-apk-assets.py
+          if ($LASTEXITCODE -ne 0) { throw "Asset restore safety tests failed" }
+
+      - name: Download original official full APK with pinned SHA256
+        shell: pwsh
+        env:
+          ORIGINAL_APK: https://github.com/misfit-user/tianming/releases/download/full-1.3.5.3/-1.3.5.3-.apk
+          ORIGINAL_SHA256: 47e1ca188abdb2915d57ce900f8f6dba9f5b69c5ea6b61d2091c5991aaec34f7
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'tianming-full-1.3.5.3.apk'
+          curl.exe --fail --location --retry 3 --retry-delay 5 --connect-timeout 40 --max-time 3600 --output "$archive" "$env:ORIGINAL_APK"
+          if ($LASTEXITCODE -ne 0) { throw "Official APK download failed" }
+          $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:ORIGINAL_SHA256) { throw "Original APK SHA256 is wrong; refusing to extract" }
+          "OFFICIAL_APK_ARCHIVE=$archive" >> $env:GITHUB_ENV
+          Write-Host "Official Android 1.3.5.3 asset archive verified"
+
+      - name: Restore only missing full-game media and verify every file hash
+        shell: pwsh
+        run: |
+          python scripts/restore-official-apk-assets.py --apk "$env:OFFICIAL_APK_ARCHIVE" --manifest "web/.hot-update-manifest.json" --web-root "web"
+          if ($LASTEXITCODE -ne 0) { throw "Full-game asset verification failed: no APK should be built" }
+          Remove-Item -LiteralPath "$env:OFFICIAL_APK_ARCHIVE" -Force
+
+      - name: Install locked Capacitor Android dependencies
+        shell: pwsh
+        run: |
+          npm ci --prefix mobile
+          if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
+
+      - name: Verify staged web files, sync Capacitor, assemble debug APK
+        shell: pwsh
+        run: |
+          npm --prefix mobile run build:apk:debug
+          if ($LASTEXITCODE -ne 0) { throw "Android APK build failed" }
+
+      - name: Check completed full APK size and record SHA256
+        shell: pwsh
+        run: |
+          $apk = 'mobile/android/app/build/outputs/apk/debug/app-debug.apk'
+          if (!(Test-Path -LiteralPath $apk)) { throw "Android app-debug.apk was not created" }
+          $bytes = (Get-Item -LiteralPath $apk).Length
+          if ($bytes -lt 1000000000) { throw "Full game test APK unexpectedly small ($bytes bytes)" }
+          $sum = (Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host "APK debug size=$bytes sha256=$sum"
+          "### Experimental Tianming PR4 Android APK (NOT a release)" >> $env:GITHUB_STEP_SUMMARY
+          "Commit: $env:GITHUB_SHA" >> $env:GITHUB_STEP_SUMMARY
+          "APK bytes: $bytes" >> $env:GITHUB_STEP_SUMMARY
+          "APK SHA256: $sum" >> $env:GITHUB_STEP_SUMMARY
+          "Open this workflow run's Artifacts section to download APK." >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload APK for manual testing (never a published release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: tianming-pr4-debug-apk-${{ github.sha }}
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 2
