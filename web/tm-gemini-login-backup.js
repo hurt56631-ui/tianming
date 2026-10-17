@@ -39,10 +39,13 @@
     }
     // The gateway is controlled by the user. Google login pages and the anonymous virtual
     // endpoint are not OpenAI API gateways. Never POST game prompts/keys to them.
-    var host = parsed.hostname.toLowerCase();
-    if (host === 'gemini.google.com' || host === 'accounts.google.com' ||
-        host.endsWith('.google.com') || host.endsWith('.googleusercontent.com') ||
-        host.endsWith('.invalid')) throw fail('这里要填自己部署的 API 网关，不是 Google 登录页面', 400);
+    var host = parsed.hostname.toLowerCase().replace(/\.+$/, '');
+    if (host === 'google.com' || host.endsWith('.google.com') ||
+        host === 'googleapis.com' || host.endsWith('.googleapis.com') ||
+        host === 'googleusercontent.com' || host.endsWith('.googleusercontent.com') ||
+        host === 'gstatic.com' || host.endsWith('.gstatic.com') ||
+        host === 'invalid' || host.endsWith('.invalid'))
+      throw fail('这里要填自己部署的 API 网关，不是 Google 登录页面', 400);
     var pathname = parsed.pathname.replace(/\/+$/, '');
     if (pathname === '') pathname = '/v1';
     if (pathname === '/v1/chat/completions') pathname = '/v1';

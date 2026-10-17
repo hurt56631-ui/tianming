@@ -42,7 +42,9 @@ async function main(){
   assert.strictEqual(without.status,403);
   assert.strictEqual(outbound.length,0,'without opt-in must not contact gateway');
   for(const bad of ['http://public.example/v1','https://gemini.google.com/app',
-    'https://accounts.google.com/v1','https://example.com/v1?key=secret']) {
+    'https://accounts.google.com/v1','https://google.com/v1',
+    'https://gemini.google.com./v1','https://generativelanguage.googleapis.com/v1',
+    'https://example.com/v1?key=secret']) {
     assert.throws(()=>backup.save({enabled:true,url:bad,apiKey:'KEY'}),/HTTPS|不是 Google|无查询参数/);
   }
   backup.save({enabled:true,url:'https://my-private-relay.example/v1',apiKey:'SCOPED_GATEWAY_KEY',

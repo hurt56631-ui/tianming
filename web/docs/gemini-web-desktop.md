@@ -79,3 +79,8 @@ Google 官方阻止普通 Android WebView 的 OAuth 登录，外部 Chrome 的�
 如果旧电脑安装包暂未更新匿名桥，只要 renderer 已更新并且用户已明确启用备用网关，
 在该设备上仍可进行备用对话。普通浏览器只能在网关正确配置 CORS 时使用。
 匿名 Gemini Web 本身仍受 Electron 新主进程／Capacitor 原生插件限制。
+
+
+安全细节：网关地址拒绝 Google 官方域名、无效域名与非 HTTPS 地址，
+以防把独立网关 API Key 错发到 Google 登录页或陌生重定向终点；
+网络请求明确禁止自动跨站跳转，不会复制或缓存 Google Cookie。
