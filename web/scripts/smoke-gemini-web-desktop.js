@@ -9,6 +9,10 @@ async function run(){
   const w=wire('你好','boq_assistant-bard-web-server_20261017.01_p0',1000000000,()=> '00000000-0000-4000-8000-000000000001');
   assert(w.url.startsWith('https://gemini.google.com/'));
   assert(!('Cookie' in w.options.headers)&&!('Authorization' in w.options.headers));
+  assert.strictEqual(JSON.parse(w.options.headers['x-goog-ext-525001261-jspb'])[4], 'cf41b0e0dd7d53e5');
+  assert.strictEqual(JSON.parse(w.options.headers['x-goog-ext-525001261-jspb'])[14], 6);
+  const inPayload=JSON.parse(JSON.parse(new URLSearchParams(w.options.body).get('f.req'))[1]);
+  assert.strictEqual(inPayload[79],6);
   assert.strictEqual(frameText(frame('天命已收到。')),'天命已收到。');
   let calls=[];
   const bl='boq_assistant-bard-web-server_20261017.01_p0';
