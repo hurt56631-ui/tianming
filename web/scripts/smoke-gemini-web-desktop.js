@@ -23,6 +23,34 @@ async function run(){
   const res=await bridge.generate({messages:[{role:'system',content:'你是史官'},{role:'user',content:'议和'}]});
   assert.strictEqual(res.text,'臣愿意议和。');
   assert.strictEqual(calls.length,2);
+  // Prefer explicit cfb2h field when an older build marker also appears in HTML.
+  const tagged='boq_gemini-web-uiserver_20261017.02_p0';
+  const buildCalls=[];
+  const taggedBridge=createGeminiWebTransport({fetchImpl:async(url,opts)=>{
+    buildCalls.push({url,opts});
+    return url.endsWith('/app')
+      ? new Response('"'+bl+'" data-old; {"cfb2h":"'+tagged+'"}',{status:200})
+      : new Response(frame('版本选择正确。'),{status:200});
+  },now:()=>1792250000000});
+  assert.strictEqual((await taggedBridge.generate({messages:[{role:'user',content:'hi'}]})).text,'版本选择正确。');
+  assert(buildCalls[1].url.includes('bl='+encodeURIComponent(tagged)),'cfb2h must take priority');
+  // A failed HTML lookup is cached so two NPC messages do not create two extra GETs.
+  let missingBuildGets=0;
+  const fallback=createGeminiWebTransport({now:()=>1792250000000,fetchImpl:async url=>
+    url.endsWith('/app')
+      ? (missingBuildGets++,new Response('no build marker',{status:200}))
+      : new Response(frame('备用版本可用。'),{status:200})
+  });
+  await fallback.generate({messages:[{role:'user',content:'甲'}]});
+  await fallback.generate({messages:[{role:'user',content:'乙'}]});
+  assert.strictEqual(missingBuildGets,1,'failed HTML lookups should be throttled');
+  let redirectedCalls=0;
+  const redirected=createGeminiWebTransport({now:()=>1792250000000,fetchImpl:async()=>{
+    redirectedCalls++;return new Response(null,{status:302,headers:{Location:'https://accounts.google.com/'}});
+  }});
+  await assert.rejects(redirected.generate({messages:[{role:'user',content:'甲'}]}),/登录验证/);
+  await assert.rejects(redirected.generate({messages:[{role:'user',content:'乙'}]}),/限流/);
+  assert.strictEqual(redirectedCalls,1,'redirects must cool down before next request');
   assert(JSON.parse(new URLSearchParams(calls[1].opts.body).get('f.req'))[1].includes('议和'));
   let limitedCalls=0;
   const limited=createGeminiWebTransport({now:()=>1792250000000,fetchImpl:async(url)=>{

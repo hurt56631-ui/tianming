@@ -35,6 +35,43 @@ async function main(){
   assert.strictEqual(r.model,'gemini-3.5-flash-lite');
   assert.strictEqual(r.text,'你好，陛下。');
   assert.strictEqual(calls.length,2);
+  // Explicit current build marker must win over stale markers elsewhere in /app.
+  const tagged='boq_gemini-web-uiserver_20261017.02_p0';
+  const taggedUrls=[];
+  const taggedTransport=m.createTransport({now:()=>1792250000000,delay:async()=>{},uuid:()=>ctx.crypto.randomUUID(),request:async url=>{
+    taggedUrls.push(url);
+    return url.endsWith('/app')
+      ?new Response('"'+bl+'" {"cfb2h":"'+tagged+'"}',{status:200})
+      :new Response(sample('安卓取到了最新版本。'),{status:200});
+  }});
+  assert.strictEqual((await taggedTransport.generate({messages:[{role:'user',content:'1'}]})).text,'安卓取到了最新版本。');
+  assert(taggedUrls[1].includes('bl='+encodeURIComponent(tagged)));
+  let failedBuildGets=0;
+  const fallback=m.createTransport({now:()=>1792250000000,delay:async()=>{},uuid:()=>ctx.crypto.randomUUID(),request:async url=>
+    url.endsWith('/app')
+      ?(failedBuildGets++,new Response('no version',{status:200}))
+      :new Response(sample('备用版本可用。'),{status:200})
+  });
+  await fallback.generate({messages:[{role:'user',content:'甲'}]});
+  await fallback.generate({messages:[{role:'user',content:'乙'}]});
+  assert.strictEqual(failedBuildGets,1,'failed Android HTML lookup should be throttled');
+  let redirectCalls=0;
+  const redirected=m.createTransport({now:()=>1792250000000,delay:async()=>{},request:async()=>{
+    redirectCalls++;
+    const e=new Error('redirect');e.code='AI_MOBILE_REDIRECT';throw e;
+  }});
+  await assert.rejects(redirected.generate({messages:[{role:'user',content:'甲'}]}),/验证跳转/);
+  await assert.rejects(redirected.generate({messages:[{role:'user',content:'乙'}]}),/限流/);
+  assert.strictEqual(redirectCalls,1,'Android redirects must cool down');
+  const abortController=new AbortController();
+  let cancelledPosts=0;
+  const abortTransport=m.createTransport({now:()=>1792250000000,delay:async()=>{},request:async url=>{
+    if(url.endsWith('/app'))return new Response('"'+bl+'"',{status:200});
+    cancelledPosts++;abortController.abort();
+    return new Response(sample('不应写入存档。'),{status:200});
+  }});
+  await assert.rejects(abortTransport.generate({messages:[{role:'user',content:'cancel'}],signal:abortController.signal}),/取消/);
+  assert.strictEqual(cancelledPosts,1,'in-flight abort should cancel the result');
   assert(JSON.parse(new URLSearchParams(calls[1].options.body).get('f.req'))[1].includes('现代白话'));
   let deniedCount=0;
   const limited=m.createTransport({now:()=>1792250000000,delay:async()=>{},request:async url=>{
@@ -62,6 +99,12 @@ async function main(){
   assert.strictEqual(response.status,200,'mobile virtual endpoint should return ChatCompletion JSON');
   assert.strictEqual((await response.json()).choices[0].message.content,'安卓已连通。');
   assert.strictEqual(nativeCalls,2,'native upstream should see 1 GET + 1 POST without recursive loops');
+  // Aborted virtual calls must not dispatch an additional native request.
+  const ctl=new AbortController();ctl.abort();
+  const beforeAbort=nativeCalls;
+  await assert.rejects(ctx._tmAIFetch('https://gemini-web.tianming.invalid/v1/chat/completions',
+    {signal:ctl.signal,body:JSON.stringify({messages:[{role:'user',content:'不可发送'}]})}),/取消|aborted/i);
+  assert.strictEqual(nativeCalls,beforeAbort);
   ctx.Capacitor={isNativePlatform:()=>false};
   assert.strictEqual(m.available(),false);
   await assert.rejects(m.generate({messages:[{role:'user',content:'x'}]}),/安卓/);
