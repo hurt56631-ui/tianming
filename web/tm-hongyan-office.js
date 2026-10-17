@@ -1598,7 +1598,7 @@ function _generateLetterReply(letter) {
     prompt += '\n7. 语气与当前境/情绪/好感一致·不割裂';
     prompt += '\n8. 不要提及未在当前游戏时间之前发生的未来史实';
     prompt += '\n\n直接输出回信正文·无前言无解释。';
-    callAI(prompt, 600, null, (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined).then(function(reply) {  // 【降本2026-06-19】回信生成(机械对话)走次 API
+    callAI(prompt, 600, null, _tmNpcDialogueAITier()).then(function(reply) {  // 【降本2026-06-19】回信生成(机械对话)走次 API
       letter.reply = (reply || '').trim() || '臣叩首拜读·容臣三思后详禀。';
       // 不在此置 returned——回信须待 _ltReplyArrivalDay 到期由结算分支(status==='replying')落地：
       // 核实揭伪(_forgedRevealed 唯一写点)/军令无虎符拒从/回信到达邸报都在那。即时 returned 曾令

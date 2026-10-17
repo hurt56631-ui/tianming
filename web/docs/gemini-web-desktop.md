@@ -1,25 +1,41 @@
-# 《天命》Gemini Web 匿名桌面通道（实验性）
+# 《天命》Gemini Web 人物免费对话：电脑 / 安卓实验版
 
-本方案移植了账号私有安卓项目 GeminiWebManager 的匿名请求机制。它是 Google 未公开的 Gemini 网页内部协议，不是正式 API、不保证长期可用，不提供无限免费额度。
+## 角色划分
 
-## 开启
+- 设置中继续用有效的官方或 OpenAI 兼容 **主 API** 作为回合引擎，填入真实 Key、Base URL、Model ID。
+- 在「典章 → API 连接」勾选「人物对话使用免费 Gemini 3.5 Flash-Lite（实验）」，再保存。
+- 问对、人物开场白、御前发言、廷议发言、部分常朝人物即时答复，使用免 API Key 的 Gemini Web 匿名请求。
+- 承诺抽取、立场变化、政治后果、诏令与军政结算、结束回合的 AI/后台后续调用仍走现有主/次 API。
+- 游戏正在结束回合时触发的附带人物对话仍用现有 API；不会为节省调用而改写账目。
 
-在安装了新主进程的开发版 Electron「典章 → API 连接」里，选择「Gemini Web·免密钥实验（仅桌面）」，虚拟 Base URL、模型 ID 和非敏感本地 Key 标识自动填好。此标识不是 Google API Key，也不会发给 Google。保存后可点击「测试连接」发出一次匿名测试。
+## 平台
 
-此选项目前不支持 GitHub Pages、普通网页、Capacitor APK 或未升级的旧 Electron 主程序。旧客户端只收到网页文件热更，不会获得主进程桥接能力。
+- Electron：通过主进程 main-gemini-web.js 的匿名网页请求；需要新版完整桌面安装包，旧主进程只下载 Web 热更不会生效。
+- 安卓 Capacitor：通过既有 CapacitorHttp 原生网络插件和 web/tm-gemini-web-mobile.js；不新增安卓原生插件。但 Android 真机网络仍需验收。
+- GitHub Pages / 普通浏览器：不支持匿名网页协议，选用时显示错误，不会偷偷使用付费 API 回退。
 
-## 约束和降级
+默认 Gemini Web 模型是 **gemini-3.5-flash-lite**，网页模型 hash cf41b0e0dd7d53e5，mode 6。
+此型号和参数参考 zexadev/gemini-web2api-go 与 yeahhe365/Gemini-Nexus 的最新资料。
+**gemini-3.5-flash** 不是当前可用别名，不能把 3.5 Flash-Lite 当成 3.8 Flash。
 
-- 只发送到固定 gemini.google.com 匿名网页路径；不读取登录 Cookie、Google 账户或会话令牌。
-- 429 / 403 进入至少一分钟本地冷却，不换账号、代理或 IP 绕限流。
-- 内部版本号失效（405）仅刷新一次后再试；不无限循环。
-- 每次输入最多 95KB UTF-8，单次响应最多 4MB。
-- 回合中多个并发调用按顺序提交，最多排 32 项；重试仍受游戏自己的总预算制约。
-- 仅兼容普通聊天、JSON 及模拟的 SSE；SSE 在完整结果到达后才输出，并非逐字流式。
-- 由于匿名接口没有原生 function calling，Agent 工具请求明确失败（422），不伪造执行成功。
-- 失败不会自动偷用付费密钥。要稳定推进大量回合，请切换官方 Gemini API（可使用其免费层）或其他服务商。
-- 由于未获得官方 Token 用量，成本统计不可据此推断实际额度。
-- 使用前检查 Google 当前服务条款。该接口有变更、封禁或地区限制风险。
+## 自建 Go 代理（可选）
 
-测试：node web/scripts/smoke-gemini-web-desktop.js
-上线前还需完整 CI、Windows Electron 实机测试及官方接口可用性核实。
+zexadev/gemini-web2api-go 可以独立运行，暴露 OpenAI-compatible /v1/chat/completions。
+在《天命》已有自定义 API 设置中可手动使用该代理的 Base URL、密钥与模型
+gemini-3.5-flash-lite；不要求修改 APK。手机的 localhost 是手机自己，不能直接指向
+电脑的 127.0.0.1:8083。远端需要可靠 HTTPS 与鉴权，不能暴露无密钥公网管理入口。
+此 Go 代理不是 APK 内置服务，也不是电脑匿名桥的依赖。
+
+## 警告
+
+本实验功能使用未公开 Google 网页接口，Google 服务条款可能禁止；不保证持续可用
+或无限免费。不要轮换账号或 IP 规避 Google 限流，也不读取登录 Cookie。
+403/429/验证重定向时进入本地冷却。单次提示词最多 95KB UTF-8。
+网页版 ChatCompletion 兼容层只支持文本，不实现真正 function calling；
+兼容 SSE 是等网页返回完整文本再生成的，不是逐字流式。
+已写入代码不代表已经在 Google 联网、Electron 或 Android 实机成功，需要完成
+API 计数、退出读档、NPC 问对、结算一致性和拒绝访问时的恢复测试。
+
+开发验证：node web/scripts/smoke-gemini-web-desktop.js；
+node web/scripts/smoke-gemini-web-mobile.js。
+合并发布前仍需全仓库测试门禁和实机验收。

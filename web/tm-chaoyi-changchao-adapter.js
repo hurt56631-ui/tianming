@@ -1209,7 +1209,7 @@ async function _cc3_callAI(prompt, onChunk) {
   // 流式优先（有 onChunk 且 callAIMessagesStream 可用）
   if (typeof onChunk === 'function' && typeof callAIMessagesStream === 'function') {
     try {
-      return await callAIMessagesStream(messages, tok, { signal: signal, onChunk: function(partial) { if (partial) streamed = true; onChunk(partial); }, tier: 'secondary' });
+      return await callAIMessagesStream(messages, tok, { signal: signal, onChunk: function(partial) { if (partial) streamed = true; onChunk(partial); }, tier: _tmNpcDialogueAITier() });
     } catch (e) {
       if (streamed || (signal && signal.aborted) || (e && (e._aiRetryExhausted || e._tmNativeTransport || e.name === 'AbortError' || e.code === 'AI_ABORTED')) ||
           (typeof _aiErrorIsTerminal === 'function' && _aiErrorIsTerminal(e))) throw e;
@@ -1218,11 +1218,11 @@ async function _cc3_callAI(prompt, onChunk) {
   }
   // 非流式·callAIMessages 优先（保持 system prompt）
   if (typeof callAIMessages === 'function') {
-    return await callAIMessages(messages, tok, signal, 'secondary');
+    return await callAIMessages(messages, tok, signal, _tmNpcDialogueAITier());
   }
   // 兜底：拼成单 prompt 走老 callAI
   const flat = messages.map(m => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content))).join('\n\n');
-  return await callAI(flat, tok, signal, 'secondary');
+  return await callAI(flat, tok, signal, _tmNpcDialogueAITier());
 }
 
 // 兼容 preview 的全局名（preview JS 仍引用 callAIPreview / aiEnabled）

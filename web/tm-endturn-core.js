@@ -365,11 +365,11 @@ async function endTurn(){
   // ★[无密钥前置守卫·2026-06-14] 天命以 AI 为引擎，未配 API 密钥则过回合纯空转——
   //   旧行为：深层 if(P.ai.key) 无 else，回合数照变而世界毫无反应，新玩家误判为「游戏坏了」。
   //   此处在入口处一次性拦下：明确告知非故障 + 一键前往配置，绝不静默空转。
-  if (!P.ai || !P.ai.key || !String(P.ai.key).trim()) {
+  if (!P.ai || !P.ai.key || !String(P.ai.key).trim() || /gemini-web\.tianming\.invalid/.test(String(P.ai.url||''))) {
     try {
       if (typeof notifyUrgent === 'function') {
         notifyUrgent(
-          '尚未配置 AI 密钥 · 无法推演',
+          '尚未配置正式 AI API · 无法推演',
           '天命以 AI 为引擎推演世界，没有 API 密钥便无从落子——这不是卡顿或故障。确认后将为你打开「设置」，在「API 连接」处填入 服务商 / Key / 地址 / 模型 即可开始。需要获取密钥的指引，可在主页「帮助」查看「如何配置 AI 密钥」。',
           function(){ try { if (typeof openSettings === 'function') openSettings(); } catch(_){} }
         );

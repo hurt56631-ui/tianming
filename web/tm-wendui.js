@@ -1425,7 +1425,7 @@ async function _wdNpcInitiateSpeak(name) {
       if (bubble) _wdPaintStreamBubble(chatEl, bubble, _wdVisibleReplyPreview(txt), false);
     };
     var reply = await callAIMessagesStream(msgs, (typeof _aiDialogueTok==='function'?_aiDialogueTok("wd", 1):800), {
-      tier: (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined,  // M3·问对走次 API
+      tier: _tmNpcDialogueAITier(),  // M3·问对走次 API
       onChunk: function(txt) {
         _wdInitPending = txt;
         if (_wdInitRaf) return;
@@ -2481,7 +2481,7 @@ async function sendWendui(){
         if (streamBubble && streamBubble.isConnected !== false) _wdPaintStreamBubble(chat, streamBubble, _wdVisibleReplyPreview(txt), true);
       };
       var rawReply = await callAIMessagesStream(messages, (typeof _aiDialogueTok==='function'?_aiDialogueTok("wd", 1):800), {
-        tier: (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined,  // M3·问对走次 API
+        tier: _tmNpcDialogueAITier(),  // M3·问对走次 API
         onChunk: function(txt) {
           _wdStreamPending = txt;
           if (_wdStreamRaf) return;

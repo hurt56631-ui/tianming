@@ -304,7 +304,7 @@ async function _yq2_oneAdvisorSpeak(name, roundNum) {
       [{role:'user', content: prompt}],
       (typeof _aiDialogueTok==='function'?_aiDialogueTok("cy", 1):700),
       { signal: CY.abortCtrl.signal,
-        tier: (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined,  // M3·御前走次 API
+        tier: _tmNpcDialogueAITier(),  // M3·御前走次 API
         onChunk: function(txt) {
           if (!_yqBubble || _yqRaf) return;
           _yqRaf = true;
@@ -393,7 +393,7 @@ async function _yq2_doAskAdvisor(name, question) {
       [{role:'user', content: prompt}],
       (typeof _aiDialogueTok==='function'?_aiDialogueTok("cy", 1):500),
       { signal: _dqCtrl ? _dqCtrl.signal : undefined,
-        tier: (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined,  // M3·御前走次 API
+        tier: _tmNpcDialogueAITier(),  // M3·御前走次 API
         onChunk: function(txt) {
           if (!_dqBubble || _dqRaf) return;
           _dqRaf = true;

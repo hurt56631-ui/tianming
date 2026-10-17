@@ -821,7 +821,7 @@ async function _ty2_genOneSpeech(name, roundNum, prevSpeeches) {
       [{role:'user', content: prompt}],
       (typeof _aiDialogueTok==='function'?_aiDialogueTok("cy", 1):600),
       { signal: CY.abortCtrl.signal,
-        tier: (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined,  // M3·廷议走次 API
+        tier: _tmNpcDialogueAITier(),  // M3·廷议走次 API
         onChunk: function(txt) {
           if (!_tyBubble || _tyRaf) return;
           _tyRaf = true;
