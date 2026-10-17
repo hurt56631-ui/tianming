@@ -4,8 +4,8 @@
 const { randomUUID } = require('crypto');
 const ORIGIN = 'https://gemini.google.com';
 const GENERATE = ORIGIN + '/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate';
-const FALLBACK_BL = 'boq_assistant-bard-web-server_20260716.08_p0';
-const BL_RE = /boq_assistant-bard-web-server_\d{8}\.\d{2}_p\d+/;
+const FALLBACK_BL = 'boq_gemini-web-uiserver_20261007.01_p0';
+const BL_RE = /boq_(?:gemini-web-uiserver|assistant-bard-web-server)_\d{8}\.\d{2}_p\d+/;
 const MAX_INPUT = 95000;
 const MAX_OUTPUT = 4*1024*1024;
 function error(message, status=503, code='GEMINI_WEB_ERROR') {
@@ -34,9 +34,9 @@ function wire(prompt, bl, now, uuid) {
   p[0]=[prompt,0,null,null,null,null,0]; p[1]=['en'];
   p[2]=['','','',null,null,null,null,null,null,''];
   p[6]=[0];p[7]=1;p[10]=1;p[11]=0;p[17]=[[0]];p[18]=0;p[27]=1;p[30]=[4];
-  p[41]=[1];p[53]=0;p[59]=bodyId;p[61]=[];p[68]=1;p[79]=1;p[80]=1;p[91]=0;p[96]=0;
-  h[0]=1;h[4]='fbb127bbb056c959';h[7]=0;h[8]=[4,5,6,8];
-  h[11]=1;h[14]=1;h[15]=1;h[16]=modelId;
+  p[41]=[1];p[53]=0;p[59]=bodyId;p[61]=[];p[68]=1;p[79]=6;p[80]=1;p[91]=0;p[96]=0;
+  h[0]=1;h[4]='cf41b0e0dd7d53e5';h[7]=0;h[8]=[4,5,6,8];
+  h[11]=1;h[14]=6;h[15]=1;h[16]=modelId;
   const reqid=Math.floor(now/1000)%1000000;
   return {
     url:GENERATE+'?bl='+encodeURIComponent(bl)+'&hl=en&_reqid='+reqid+'&rt=c',
@@ -111,7 +111,7 @@ function createGeminiWebTransport(options={}) {
     if (/text\/html/i.test(String(r.headers.get('content-type')||''))) throw error('返回登录或验证网页，内部协议可能已变化');
     const text=frameText(await boundedText(r,MAX_OUTPUT));
     if (!text) throw error('网页请求没有可读文本，可能限流或协议已变化');
-    return {text,model:'gemini-web-anonymous'};
+    return {text,model:'gemini-3.5-flash-lite'};
   }
   async function run(payload) {
     checkLimit();

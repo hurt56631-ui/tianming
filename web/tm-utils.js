@@ -2253,6 +2253,8 @@ function _useSecondaryTier() {
 // M3·按 tier 获取 AI 配置·secondary 未配时回退 primary
 // tier: 'primary'|'secondary'·默认 primary
 function _getAITier(tier) {
+  // This isolated NPC-chat tier never mutates P.ai.primary/secondary; all turn settlement stays on the API.
+  if (tier === 'geminiweb') return {key:'LOCAL_GEMINI_WEB_NO_API_KEY',url:'https://gemini-web.tianming.invalid/v1',model:'gemini-3.5-flash-lite',tier:'geminiweb'};
   var _s = P.ai && P.ai.secondary;
   if (tier === 'secondary' && _s && _s.key && _s.url) {
     return {
