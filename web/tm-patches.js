@@ -590,6 +590,7 @@ window.TM_PROVIDER_PRESETS = {
   openrouter:  { name:'OpenRouter',       url:'https://openrouter.ai/api/v1',                            model:'deepseek/deepseek-chat',  keyHint:'openrouter.ai → Keys' },
   openai:      { name:'OpenAI',           url:'https://api.openai.com/v1',                               model:'gpt-4o',                  keyHint:'platform.openai.com → API keys' },
   gemini:      { name:'Gemini·谷歌',      url:'https://generativelanguage.googleapis.com/v1beta/openai', model:'gemini-3.5-flash',        keyHint:'aistudio.google.com → Get API key' },
+  geminiweb:   { name:'Gemini Web·免密钥实验（仅桌面）', url:'https://gemini-web.tianming.invalid/v1', model:'gemini-web-anonymous', keyHint:'仅支持新 Electron 主程序；无需真实 API Key；Google 网页匿名协议可能限流或失效。' },
   anthropic:   { name:'Claude·Anthropic', url:'https://api.anthropic.com/v1',                            model:'claude-sonnet-4-6',       keyHint:'console.anthropic.com → API Keys' },
   groq:        { name:'Groq',             url:'https://api.groq.com/openai/v1',                          model:'llama-3.3-70b-versatile', keyHint:'console.groq.com → API Keys' },
   ollama:      { name:'Ollama·本机',      url:'http://localhost:11434/v1',                               model:'llama3.1',                keyHint:'本机跑 ollama 无需注册·Key 随便填个占位（如 ollama）' },
@@ -612,6 +613,11 @@ window.sProvPreset = function(v, sec){
   if (!p || !p.url) return; // 自定义/未知：不动已填内容
   var u = _$(sec ? 's-sec-url' : 's-url'), m = _$(sec ? 's-sec-model' : 's-model');
   if (u) u.value = p.url;
+  if (v === 'geminiweb') {
+    var keyEl = _$(sec ? 's-sec-key' : 's-key');
+    if (keyEl) keyEl.value = 'LOCAL_GEMINI_WEB_NO_API_KEY'; // nonsecret local marker, not sent to Google
+    if (m) m.value = p.model;
+  }
   // 2026-07-11 owner 拍板：预设只填地址·Model_ID 一律玩家自填（自动填示例模型名会误导接入点玩家——
   // 方舟等家的 Model_ID 是 ep- 接入点 ID·不是 LLM 名称）。示例只以文字提示·不进输入框。
   if (m && p.modelHint) m.title = p.modelHint.replace(/<[^>]+>/g, '');
@@ -1418,6 +1424,10 @@ function _sShowDetectLog() {
 /** 重新探测上下文窗口 */
 async function sReDetectCtx() {
   var st = _$('s-status');
+  if (_$('s-url') && _$('s-url').value.trim() === 'https://gemini-web.tianming.invalid/v1') {
+    if (st) st.textContent = 'Gemini Web 无可信的上下文窗口元数据；最多发送 95KB，请勿调用 API 探测。';
+    return;
+  }
   var key = _$('s-key') ? _$('s-key').value : P.ai.key;
   var url = _$('s-url') ? _$('s-url').value : P.ai.url;
   var model = _$('s-model') ? _$('s-model').value : P.ai.model;
@@ -1735,6 +1745,21 @@ async function sTestSecondaryConn(){
   else{try{delete P.ai.secondary;}catch(_){}} // arch-ok 体检收尾·本无次API则拆除临时对象
 }
 async function sTestConn(){
+  if (_$('s-url') && _$('s-url').value.trim() === 'https://gemini-web.tianming.invalid/v1') {
+    var stWeb = _$('s-status');
+    if (!window.tianming || !window.tianming.isDesktop || typeof window.tianming.geminiWebChat !== 'function') {
+      if (stWeb) stWeb.textContent = '该匿名模式仅支持新版 Electron，网页/APK 请使用 Gemini 正式 API。';
+      return;
+    }
+    if (stWeb) stWeb.textContent = 'Gemini Web：一次匿名文本测试中…';
+    try {
+      var rWeb = await window.tianming.geminiWebChat({ messages:[{role:'user',content:'请只回答：连接成功'}] });
+      if (stWeb) stWeb.textContent = rWeb && rWeb.ok && rWeb.text
+        ? 'Gemini Web 收到回复：' + rWeb.text.slice(0,90) + '。非官方通道，稳定性和额度不保证。'
+        : 'Gemini Web 测试失败：' + String(rWeb && rWeb.message || '无文本');
+    } catch(e) { if(stWeb) stWeb.textContent='Gemini Web 桥接失败：'+String(e && e.message || e); }
+    return;
+  }
   var key=_$("s-key")?_$("s-key").value.trim():"";var url=_$("s-url")?_$("s-url").value.trim():"";
   if(!key||!url){toast("填写");return;}var st=_$("s-status");if(st)st.textContent="正在体检…";
   // 临时更新P.ai以便体检与探测能使用未保存值·结束后恢复
