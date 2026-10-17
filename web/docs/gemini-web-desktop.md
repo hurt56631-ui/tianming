@@ -39,3 +39,35 @@ API 计数、退出读档、NPC 问对、结算一致性和拒绝访问时的恢
 开发验证：node web/scripts/smoke-gemini-web-desktop.js；
 node web/scripts/smoke-gemini-web-mobile.js。
 合并发布前仍需全仓库测试门禁和实机验收。
+
+
+## Google 登录态备用（自建网关；可选）
+
+《天命》不会索取、复制或存储 Google 登录 Cookie、密码或网页 XSRF。
+Google 官方阻止普通 Android WebView 的 OAuth 登录，外部 Chrome 的登录 Cookie
+也不会自动传给 Capacitor/Electron 游戏。
+
+如果确实需要将**自己已登录的 Google Gemini 网页账号**作为人物对话备用，使用自己信任并
+自己管理的 zexadev/gemini-web2api-go 服务：
+
+1. 先在电脑/VPS 的自建网关部署后台，由管理员在其管理页配置自己的 Google 登录 Cookie，
+   并通过其内置的认证检查确认不是“Cookie 无效而静默降级成匿名”。
+   **切勿将 Cookie 发给《天命》、陌生服务器或他人**；不推荐在共享的免费在线转发站使用此方案。
+2. 网关通过 HTTPS 提供 OpenAI-compatible \`/v1/chat/completions\`，且配置只限你
+   设备使用的独立 API Key。App 手机与电脑均使用可达的 HTTPS 域名，不能使用
+   指向电脑的 localhost。
+3. 游戏中在「典章 → API 连接 → Google 登录态备用」勾选启用，
+   填网关 \`https://自有域名/v1\`、网关 Key（**不是 Google Cookie**）和备用 Model ID
+   （默认 \`gemini-3.5-flash-lite\`；网关验证真的有授权后可尝试 \`gemini-3.1-pro\`），
+   单独点击「保存登录态备用」「测试备用网关」。
+4. 只有匿名 Gemini Web 的人物对话失败且状态为 401/403/405/429/5xx 时，才最多
+   尝试登录态备用一次；遇到 400/413/422、不合法输入、工具调用及取消均不回退。
+   备用网关自己返回 429/401/403 时冷却 60 秒以上，不轮换账号、密钥、IP 或自动重试。
+5. 登录态备用和主/次 API 完全分开。主 API 始终负责结束回合、
+   战争/外交/国库、承诺提取及其他状态结算。所有备用配置信息只保存在当前设备的
+   localStorage \`tm_gemini_login_backup_v1\`，不进入 \`P\` 存档，不会同步到另一设备；
+   「清除备用」可擦除此份本地 Key 和 URL。
+
+**不要误会：** 在浏览器里点击“使用 Google 账号登录”，不会使手机 App、电脑游戏
+或第三方服务立即获得已登录的 Gemini Web 请求权限；必须是你自行控制的网关已经真实认证成功。
+游戏的“备用网关测试成功”只验证文本 API 可达，仍需到网关后台确认 Google 登录有效。

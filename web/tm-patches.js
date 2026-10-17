@@ -713,6 +713,15 @@ openSettings=function(){
     '<label style="display:flex;align-items:center;gap:0.4rem;"><input id="s-free-npc" type="checkbox" '+((P.conf&&P.conf.geminiWebNpcEnabled)?'checked':'')+'><b>人物对话使用免费 Gemini 3.5 Flash-Lite（实验）</b></label>'+
     '<div style="font-size:0.74rem;color:var(--txt-d);margin:0.35rem 0;">人物发言走匿名网页；抽取承诺、判定政治后果、结束回合以及所有军政结算仍使用主/次 API。支持新版 Electron 和安卓 Capacitor；普通网页不支持。Google 网页通道可能限流或变更，不会自动偷用付费 API 重试。</div>'+
     '<button type="button" class="bt bs bsm" onclick="sTestGeminiWebNpc()">测试免费人物对话</button><span id="s-free-npc-status" style="font-size:0.73rem;color:var(--txt-d);margin-left:0.4rem;"></span>'+
+    '<div style="border-top:1px solid var(--bdr);margin-top:0.55rem;padding-top:0.5rem;">'+
+      '<label style="display:flex;gap:0.4rem;align-items:center;"><input type="checkbox" id="s-gw-enabled" '+(TM.GeminiLoginBackup&&TM.GeminiLoginBackup.summary().enabled?'checked':'')+'><b>Google 登录态备用（自建 Gemini 网关）</b></label>'+
+      '<div style="font-size:0.73rem;color:var(--txt-d);margin:0.3rem 0;">匿名人物对话失败时可自动改走你自己的已登录 Google 账号网关，不使用回合主 API。必须先在自己部署的 gemini-web2api-go 管理页配置 Google 登录态；在游戏内不输入 Google 密码或 Cookie。登录态是否有效以网关检查为准，普通 Google 浏览器登录不会自动同步到游戏。</div>'+
+      '<div class="fd"><label>备用网关 HTTPS Base URL（以 /v1 结尾）</label><input id="s-gw-url" placeholder="https://your-private-gemini-server.example/v1" value="'+escHtml((TM.GeminiLoginBackup&&TM.GeminiLoginBackup.summary().url)||'')+'"></div>'+
+      '<div class="rw"><div class="fd"><label>网关 API Key（不是 Google Cookie）</label><input type="password" id="s-gw-key" placeholder="'+(TM.GeminiLoginBackup&&TM.GeminiLoginBackup.summary().hasKey?'已保存；留空保持原 Key':'输入你的网关 API Key')+'" autocomplete="off"></div>'+
+      '<div class="fd"><label>备用模型</label><input id="s-gw-model" value="'+escHtml((TM.GeminiLoginBackup&&TM.GeminiLoginBackup.summary().model)||'gemini-3.5-flash-lite')+'"></div></div>'+
+      '<div style="display:flex;gap:0.3rem;flex-wrap:wrap;"><button class="bt bs bsm" onclick="sSaveGeminiLoginBackup()">保存登录态备用</button><button class="bt bs bsm" onclick="sTestGeminiLoginBackup()">测试备用网关</button><button class="bt bs bsm" onclick="sClearGeminiLoginBackup()">清除备用</button></div>'+
+      '<span id="s-gw-status" style="font-size:0.73rem;color:var(--txt-d);"></span>'+
+    '</div>'+
     '</div>'+
     "<div id=\"s-ctx-info\" style=\"font-size:0.72rem;color:var(--txt-d);margin-top:0.2rem;\"></div>"+
     "<div style=\"margin-top:0.6rem;padding-top:0.5rem;border-top:1px solid var(--bdr);\"><div style=\"font-size:0.75rem;color:var(--gold-d);margin-bottom:0.3rem;\">\u667A\u80FD\u751F\u56FE API\uFF08\u72EC\u7ACB\u914D\u7F6E\uFF0C\u7528\u4E8E\u7ACB\u7ED8\u7B49\u56FE\u7247\u751F\u6210\uFF09</div>"+
@@ -1745,6 +1754,44 @@ async function sTestSecondaryConn(){
   // \u6062\u590D\u539F\u59CB\u503C\uFF08\u907F\u514D\u672A\u4FDD\u5B58\u65F6\u6C61\u67D3\uFF09
   if(_had){P.ai.secondary.key=_orig.key;P.ai.secondary.url=_orig.url;P.ai.secondary.model=_orig.model;} // arch-ok 体检收尾恢复原值
   else{try{delete P.ai.secondary;}catch(_){}} // arch-ok 体检收尾·本无次API则拆除临时对象
+}
+function _sGeminiLoginDraft() {
+  return {
+    enabled:!!(_$('s-gw-enabled')&&_$('s-gw-enabled').checked),
+    url:_$('s-gw-url')?_$('s-gw-url').value:'',
+    apiKey:_$('s-gw-key')?_$('s-gw-key').value:'',
+    model:_$('s-gw-model')?_$('s-gw-model').value:'gemini-3.5-flash-lite'
+  };
+}
+function _sGeminiLoginStatus(text) {
+  var status=_$('s-gw-status');
+  if(status)status.textContent=String(text||'');
+}
+function sSaveGeminiLoginBackup(){
+  try{
+    if(!window.TM||!TM.GeminiLoginBackup)throw new Error('备用脚本尚未加载');
+    var result=TM.GeminiLoginBackup.save(_sGeminiLoginDraft());
+    _sGeminiLoginStatus(result.enabled?'已启用登录态备用（仅人物聊天）':'已保存，登录态备用未启用');
+    if(_$('s-gw-key'))_$('s-gw-key').value='';
+  }catch(e){_sGeminiLoginStatus('保存失败：'+String(e&&e.message||e));}
+}
+async function sTestGeminiLoginBackup(){
+  _sGeminiLoginStatus('正在测试用户自建网关的文字接口…');
+  try{
+    if(!window.TM||!TM.GeminiLoginBackup)throw new Error('备用脚本尚未加载');
+    var result=await TM.GeminiLoginBackup.test(_sGeminiLoginDraft());
+    _sGeminiLoginStatus('网关返回：'+result.text.slice(0,70)+'。注意：仍需在网关管理页确认 Google 登录态有效。');
+  }catch(e){_sGeminiLoginStatus('测试失败：'+String(e&&e.message||e));}
+}
+function sClearGeminiLoginBackup(){
+  try{
+    TM.GeminiLoginBackup.clear();
+    if(_$('s-gw-enabled'))_$('s-gw-enabled').checked=false;
+    if(_$('s-gw-url'))_$('s-gw-url').value='';
+    if(_$('s-gw-key'))_$('s-gw-key').value='';
+    if(_$('s-gw-model'))_$('s-gw-model').value='gemini-3.5-flash-lite';
+    _sGeminiLoginStatus('已清除设备上的备用网关配置；Google 账号未在游戏内保存。');
+  }catch(e){_sGeminiLoginStatus('清除失败：'+String(e&&e.message||e));}
 }
 async function sTestGeminiWebNpc(){
   var st=_$('s-free-npc-status');if(st)st.textContent='正在测试免费 Gemini 3.5…';

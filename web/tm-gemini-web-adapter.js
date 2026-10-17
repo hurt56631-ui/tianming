@@ -34,14 +34,27 @@ global._tmAIFetch=async function(url,options){
       var aborted=new Error('Gemini 人物对话已取消');aborted.name='AbortError';aborted.code='AI_ABORTED';throw aborted;
     }
     var code=Number(e&&e.status)||503;
-    if([400,403,405,413,422,429].indexOf(code)<0)code=503;
-    return failure(code,'Gemini 网页通道失败：'+String(e&&e.message||e).slice(0,120),e&&e.retryAfterMs);
+    result={ok:false,status:code,message:'匿名 Gemini 网页失败：'+String(e&&e.message||e).slice(0,110),
+      retryAfterMs:e&&e.retryAfterMs};
   }
   if(options.signal&&options.signal.aborted){var cancelled=new Error('已取消');cancelled.name='AbortError';throw cancelled;}
   if(!result||result.ok!==true||typeof result.text!=='string'||!result.text.trim()){
     var status=Number(result&&result.status)||503;
-    if(![400,403,405,413,422,429,500,502,503,504].includes(status))status=503;
-    return failure(status,result&&result.message||'没有可读回复',result&&result.retryAfterMs);
+    var loginBackup=global.TM&&global.TM.GeminiLoginBackup;
+    if(loginBackup&&loginBackup.configured()&&loginBackup.canFallback(status)) {
+      try{
+        var signed=await loginBackup.tryReply(input.messages,{signal:options.signal,
+          maxTokens:input.max_tokens||input.max_completion_tokens,tools:input.tools});
+        result={ok:true,text:signed.text,model:signed.model,route:'login-gateway'};
+      }catch(backupErr){
+        if(backupErr&&(backupErr.code==='AI_ABORTED'||backupErr.name==='AbortError'))throw backupErr;
+        var backupStatus=Number(backupErr&&backupErr.status)||503;
+        return failure(backupStatus,'匿名失败；'+String(backupErr&&backupErr.message||'登录态备用失败').slice(0,130));
+      }
+    } else {
+      if(![400,401,403,405,413,422,429,500,502,503,504].includes(status))status=503;
+      return failure(status,result&&result.message||'匿名 Gemini 没有可读回复',result&&result.retryAfterMs);
+    }
   }
   var id='chatcmpl-gemini-web-local';
   if(input.stream===true){

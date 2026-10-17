@@ -47,6 +47,14 @@ async function main(){
   assert(!settings.includes('网页/APK 请使用 Gemini 正式 API'),'settings must not advertise Android as unsupported');
   const pkg=JSON.parse(fs.readFileSync(path.join(WEB,'../package.json'),'utf8'));
   assert(pkg.build && Array.isArray(pkg.build.files) && pkg.build.files.includes('main-gemini-web.js'),'Electron installer must include the required Gemini Web main process module');
+
+  // Authenticated Google is an optional self-hosted OpenAI-compatible gateway, never a cookie field.
+  assert(read('tm-gemini-login-backup.js').includes("tm_gemini_login_backup_v1"),
+    'login gateway must use separate device-local storage');
+  assert(read('tm-gemini-web-adapter.js').includes('loginBackup.tryReply'),
+    'anonymous error should attempt a single explicit login-gateway fallback');
+  assert(read('tm-patches.js').includes('sSaveGeminiLoginBackup()'),
+    'settings must expose explicit login backup save');
   const core=read('tm-endturn-core.js');
   assert(core.includes("gemini-web\\.tianming\\.invalid"),'formal endTurn must reject old virtual primary');
   assert(!core.includes("_tmNpcDialogueAITier()"),'formal endTurn must not use free NPC route');
