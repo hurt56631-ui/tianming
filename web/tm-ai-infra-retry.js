@@ -118,7 +118,11 @@ async function _aiWithStreamScope(opts, execute) {
 
 function _aiConfiguredCallOptions(opts) {
   var policy = globalThis.TM && globalThis.TM.CallRetryPolicy;
-  return policy ? policy.options(opts) : Object.assign({}, opts || {});
+  var out = policy ? policy.options(opts) : Object.assign({}, opts || {});
+  // Anonymous webpage route must never retry an HTTP 429, 403, soft block or timeout.
+  // This also disables configured streaming retry and paid-API secondary fallback.
+  if (out.tier === 'geminiweb') { out.maxRetries = 0; out._configuredRetries = true; out._turnRetriesResolved = true; }
+  return out;
 }
 async function _aiConfiguredStreamRetry(messages, maxTok, opts) {
   var policy = globalThis.TM.CallRetryPolicy, partial = false;
