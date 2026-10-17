@@ -68,3 +68,10 @@ debug APK 使用测试签名，仅用于手机测试；不可以直接发布应�
 遇到签名冲突必须先导出备份游戏存档，再考虑卸载旧版。正式发行继续使用仓库 `AGENTS.md` 的两阶段发版与签名门禁。
 
 喜欢 Android Studio 图形界面：先 `npm run sync`，然后执行 `npm run open` 打开工程，在 Build 菜单选择 Build APK(s)。
+
+### 避免漏打人物立绘和音乐
+
+Debug APK 构建增加了**只读素材存在性检查**：按 `web/.hot-update-manifest.json` 中列出的
+人物立绘、图片、音频和场景模型核对本机 `web/assets`。GitHub 下载源码经常缺少 Git 未跟踪的资源。
+如果提示 `Missing ... essential artwork/audio files`，请从你保存的完整版《天命》原始素材文件夹
+恢复同名目录和文件；不要禁用检查，否则可能打出缺图的 APK。
