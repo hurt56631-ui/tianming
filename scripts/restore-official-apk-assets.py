@@ -14,7 +14,9 @@ import sys
 import tempfile
 from zipfile import ZipFile, BadZipFile
 
-ALLOWED_PREFIXES = ("assets/", "preview/", "vendor/", "bundled-scenarios/")
+ALLOWED_PREFIXES = ("assets/", "preview/", "vendor/")
+# bundled-scenarios/*.json is generated from THIS BRANCH by sync-official-scenarios.js.
+# Never copy old published scenarios into a newer experimental build.
 MAX_FILE_SIZE = 268435456
 MAX_TOTAL_SIZE = 2500000000
 
