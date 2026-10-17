@@ -29,7 +29,11 @@ global._tmAIFetch=async function(url,options){
     if(desktop)result=await global.tianming.geminiWebChat({messages:input.messages});
     else{var value=await global.TM.GeminiWebMobile.generate({messages:input.messages});result={ok:true,text:value.text,model:value.model};}
   }
-  catch(e){return failure(503,'本机 Gemini 桥失败：'+String(e&&e.message||e).slice(0,120));}
+  catch(e){
+    var code=Number(e&&e.status)||503;
+    if([400,403,405,413,422,429].indexOf(code)<0)code=503;
+    return failure(code,'Gemini 网页通道失败：'+String(e&&e.message||e).slice(0,120),e&&e.retryAfterMs);
+  }
   if(options.signal&&options.signal.aborted){var cancelled=new Error('已取消');cancelled.name='AbortError';throw cancelled;}
   if(!result||result.ok!==true||typeof result.text!=='string'||!result.text.trim()){
     var status=Number(result&&result.status)||503;
@@ -54,7 +58,9 @@ global.TM.GeminiWeb={isVirtual:virtual,desktopAvailable:function(){return !!(glo
 mobileAvailable:function(){return !!(global.TM.GeminiWebMobile&&global.TM.GeminiWebMobile.available());}};
 global._tmNpcDialogueAITier=function(){
   var normal=typeof global._useSecondaryTier==='function'&&global._useSecondaryTier()?'secondary':undefined;
-  if(global.P&&global.P.conf&&global.P.conf.geminiWebNpcEnabled===true&&!(global.GM&&(global.GM.busy||global.GM._endTurnBusy)))return 'geminiweb';
+  if(global.P&&global.P.conf&&global.P.conf.geminiWebNpcEnabled===true
+     &&!(global.GM&&(global.GM.busy||global.GM._endTurnBusy))
+     &&!(global.endTurn&&global.endTurn._preSubmitInFlight))return 'geminiweb';
   return normal;
 };
 })(window);
