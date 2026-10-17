@@ -1424,7 +1424,7 @@ function _sShowDetectLog() {
 async function sReDetectCtx() {
   var st = _$('s-status');
   if (_$('s-url') && _$('s-url').value.trim() === 'https://gemini-web.tianming.invalid/v1') {
-    if (st) st.textContent = 'Gemini Web 无可信的上下文窗口元数据；最多发送 95KB，请勿调用 API 探测。';
+    if (st) st.textContent = '这不是有效的主 API 地址。免费 Gemini Web 仅用于人物对话；请在主 API 重新填写正式服务商。';
     return;
   }
   var key = _$('s-key') ? _$('s-key').value : P.ai.key;
@@ -1755,18 +1755,8 @@ async function sTestGeminiWebNpc(){
 }
 async function sTestConn(){
   if (_$('s-url') && _$('s-url').value.trim() === 'https://gemini-web.tianming.invalid/v1') {
-    var stWeb = _$('s-status');
-    if (!window.tianming || !window.tianming.isDesktop || typeof window.tianming.geminiWebChat !== 'function') {
-      if (stWeb) stWeb.textContent = '该匿名模式仅支持新版 Electron，网页/APK 请使用 Gemini 正式 API。';
-      return;
-    }
-    if (stWeb) stWeb.textContent = 'Gemini Web：一次匿名文本测试中…';
-    try {
-      var rWeb = await window.tianming.geminiWebChat({ messages:[{role:'user',content:'请只回答：连接成功'}] });
-      if (stWeb) stWeb.textContent = rWeb && rWeb.ok && rWeb.text
-        ? 'Gemini Web 收到回复：' + rWeb.text.slice(0,90) + '。非官方通道，稳定性和额度不保证。'
-        : 'Gemini Web 测试失败：' + String(rWeb && rWeb.message || '无文本');
-    } catch(e) { if(stWeb) stWeb.textContent='Gemini Web 桥接失败：'+String(e && e.message || e); }
+    var stWeb=_$('s-status');
+    if(stWeb)stWeb.textContent='免费 Gemini Web 是独立的人物对话选项，不是主 API。请在主 API 中填正式服务商。';
     return;
   }
   var key=_$("s-key")?_$("s-key").value.trim():"";var url=_$("s-url")?_$("s-url").value.trim():"";

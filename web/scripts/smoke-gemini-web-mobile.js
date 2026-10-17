@@ -47,6 +47,21 @@ async function main(){
   assert.strictEqual(deniedCount,after,'429 cooldown must prevent additional upstream traffic');
   await assert.rejects(t.generate({messages:[{role:'user',content:'中'.repeat(35000)}]}),/95KB/);
   await assert.rejects(t.generate({messages:[{role:'user',content:'x'}],tools:[{}]}),/Agent/);
+  // Integration: virtual OpenAI endpoint -> Android adapter -> native HTTP -> Gemini frames.
+  let nativeCalls=0;
+  ctx._tmAIFetch=async function(url){
+    nativeCalls++;
+    return url.endsWith('/app')
+      ? new Response('"'+bl+'"',{status:200,headers:{'content-type':'text/html'}})
+      : new Response(sample('安卓已连通。'),{status:200,headers:{'content-type':'text/plain'}});
+  };
+  const adapter=fs.readFileSync(path.join(__dirname,'../tm-gemini-web-adapter.js'),'utf8');
+  vm.runInNewContext(adapter,ctx,{filename:'tm-gemini-web-adapter.js'});
+  const response=await ctx._tmAIFetch('https://gemini-web.tianming.invalid/v1/chat/completions',
+    {body:JSON.stringify({messages:[{role:'user',content:'你好'}]})});
+  assert.strictEqual(response.status,200,'mobile virtual endpoint should return ChatCompletion JSON');
+  assert.strictEqual((await response.json()).choices[0].message.content,'安卓已连通。');
+  assert.strictEqual(nativeCalls,2,'native upstream should see 1 GET + 1 POST without recursive loops');
   ctx.Capacitor={isNativePlatform:()=>false};
   assert.strictEqual(m.available(),false);
   await assert.rejects(m.generate({messages:[{role:'user',content:'x'}]}),/安卓/);
