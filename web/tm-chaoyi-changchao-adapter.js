@@ -1211,7 +1211,7 @@ async function _cc3_callAI(prompt, onChunk) {
     try {
       return await callAIMessagesStream(messages, tok, { signal: signal, onChunk: function(partial) { if (partial) streamed = true; onChunk(partial); }, tier: _tmNpcDialogueAITier() });
     } catch (e) {
-      if (streamed || (signal && signal.aborted) || (e && (e._aiRetryExhausted || e._tmNativeTransport || e.name === 'AbortError' || e.code === 'AI_ABORTED')) ||
+      if (streamed || (signal && signal.aborted) || (e && Number(e.status) === 429) || (e && (e._aiRetryExhausted || e._tmNativeTransport || e.name === 'AbortError' || e.code === 'AI_ABORTED')) ||
           (typeof _aiErrorIsTerminal === 'function' && _aiErrorIsTerminal(e))) throw e;
       console.warn('[cc3·stream] 流式失败·退非流式·', e && e.message);
     }
