@@ -590,7 +590,6 @@ window.TM_PROVIDER_PRESETS = {
   openrouter:  { name:'OpenRouter',       url:'https://openrouter.ai/api/v1',                            model:'deepseek/deepseek-chat',  keyHint:'openrouter.ai → Keys' },
   openai:      { name:'OpenAI',           url:'https://api.openai.com/v1',                               model:'gpt-4o',                  keyHint:'platform.openai.com → API keys' },
   gemini:      { name:'Gemini·谷歌',      url:'https://generativelanguage.googleapis.com/v1beta/openai', model:'gemini-3.5-flash',        keyHint:'aistudio.google.com → Get API key' },
-  geminiweb:   { name:'Gemini Web·免密钥实验（仅桌面）', url:'https://gemini-web.tianming.invalid/v1', model:'gemini-web-anonymous', keyHint:'仅支持新 Electron 主程序；无需真实 API Key；Google 网页匿名协议可能限流或失效。' },
   anthropic:   { name:'Claude·Anthropic', url:'https://api.anthropic.com/v1',                            model:'claude-sonnet-4-6',       keyHint:'console.anthropic.com → API Keys' },
   groq:        { name:'Groq',             url:'https://api.groq.com/openai/v1',                          model:'llama-3.3-70b-versatile', keyHint:'console.groq.com → API Keys' },
   ollama:      { name:'Ollama·本机',      url:'http://localhost:11434/v1',                               model:'llama3.1',                keyHint:'本机跑 ollama 无需注册·Key 随便填个占位（如 ollama）' },
@@ -613,11 +612,6 @@ window.sProvPreset = function(v, sec){
   if (!p || !p.url) return; // 自定义/未知：不动已填内容
   var u = _$(sec ? 's-sec-url' : 's-url'), m = _$(sec ? 's-sec-model' : 's-model');
   if (u) u.value = p.url;
-  if (v === 'geminiweb') {
-    var keyEl = _$(sec ? 's-sec-key' : 's-key');
-    if (keyEl) keyEl.value = 'LOCAL_GEMINI_WEB_NO_API_KEY'; // nonsecret local marker, not sent to Google
-    if (m) m.value = p.model;
-  }
   // 2026-07-11 owner 拍板：预设只填地址·Model_ID 一律玩家自填（自动填示例模型名会误导接入点玩家——
   // 方舟等家的 Model_ID 是 ep- 接入点 ID·不是 LLM 名称）。示例只以文字提示·不进输入框。
   if (m && p.modelHint) m.title = p.modelHint.replace(/<[^>]+>/g, '');
@@ -1520,6 +1514,7 @@ var DEFAULT_PROMPT="\u4F60\u662F\u5386\u53F2\u6A21\u62DF\u63A8\u6F14AI\u3002\u52
 var DEFAULT_RULES="1.\u6570\u503C\u5408\u7406 2.\u89D2\u8272\u72EC\u7ACB 3.\u6218\u4E89\u6D88\u8017 4.\u5B63\u8282\u5F71\u54CD 5.\u5386\u53F2\u540D\u81E3\u7B26\u5408\u53F2\u5B9E";
 
 function _sApplyPrimaryApiFields(){
+  if (_$('s-free-npc') && P && P.conf) P.conf.geminiWebNpcEnabled = !!_$('s-free-npc').checked;
   P.ai.key=_$("s-key")?_$("s-key").value:"";P.ai.url=_$("s-url")?_$("s-url").value:"";P.ai.model=_$("s-model")?_$("s-model").value:"";var _tv=parseFloat(_$("s-temp")?_$("s-temp").value:"");P.ai.temp=isNaN(_tv)?0.8:_tv;var _mv=parseInt(_$("s-mem")?_$("s-mem").value:"");P.ai.mem=isNaN(_mv)?20:_mv;P.ai.provider=_$("s-prov")?_$("s-prov").value:"openai";
   if (window.TM && TM.APISettings) TM.APISettings.read('primary', P.ai);
 }
@@ -1528,6 +1523,7 @@ function _sDeviceSettingsReady(){
   catch(error){toast('未保存：'+error.message);return false;}
 }
 function sSaveAPI(){
+  if (_$('s-url') && /gemini-web\.tianming\.invalid/.test(_$('s-url').value||'')) { toast('免费 Gemini 仅供人物对话；主 API 请使用正式服务商。'); return false; }
   if(!_sDeviceSettingsReady())return false;
   try { if (window.TM && TM.CallBudgetSettings) TM.CallBudgetSettings.validate(); } catch(e) { toast(e.message); return false; }
   _sApplyPrimaryApiFields();
@@ -1541,6 +1537,7 @@ function sSaveAPI(){
   toast("\u2705 API\u5DF2\u4FDD\u5B58");
 }
 function sSaveAll(){
+  if (_$('s-url') && /gemini-web\.tianming\.invalid/.test(_$('s-url').value||'')) { toast('结束回合必须用真实 API，请配置正式服务商。'); return false; }
   if(!_sDeviceSettingsReady())return false;
   try { if (window.TM && TM.CallBudgetSettings) TM.CallBudgetSettings.validate(); } catch(e) { toast(e.message); return false; }
   // 先把主/次 API 面板全部合入内存，最后一次性写 tm_api；旧实现先持久化旧 secondary，
