@@ -1,11 +1,11 @@
-name: Tianming Gemini PR4 Android debug APK
+name: Tianming NPC/API Pool Android debug APK
 # Validate native inventory before downloading the full 1.5GB official media APK.
 
 # Build test APK only; never publish a release or alter the application signing key.
 on:
   push:
     branches:
-      - codex/gemini-web-free-desktop-20261017
+      - codex/fix-npc-silence-api-pool-20261018
     paths:
       - .github/workflows/gemini-pr4-android-debug.yml
       - mobile/**
@@ -30,7 +30,7 @@ concurrency:
 
 jobs:
   debug-apk:
-    if: github.ref == 'refs/heads/codex/gemini-web-free-desktop-20261017'
+    if: github.ref == 'refs/heads/codex/fix-npc-silence-api-pool-20261018'
     runs-on: windows-latest
     timeout-minutes: 150
     steps:
@@ -71,6 +71,10 @@ jobs:
       - name: Exercise offline asset safety tests
         shell: pwsh
         run: |
+          node web/scripts/smoke-npc-api-pool.js
+          if ($LASTEXITCODE -ne 0) { throw 'Multi-API/NPC regression tests failed' }
+          node web/scripts/smoke-modern-chinese-prompts.js
+          if ($LASTEXITCODE -ne 0) { throw 'NPC modern Chinese contract failed' }
           node web/scripts/smoke-android-debug-sdk35.js
           if ($LASTEXITCODE -ne 0) { throw 'Android SDK35 Gradle compatibility fixture failed' }
           python scripts/test-restore-official-apk-assets.py
@@ -124,7 +128,7 @@ jobs:
           if ($bytes -lt 1000000000) { throw "Full game test APK unexpectedly small ($bytes bytes)" }
           $sum = (Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash.ToLowerInvariant()
           Write-Host "APK debug size=$bytes sha256=$sum"
-          "### Experimental Tianming PR4 Android APK (NOT a release)" >> $env:GITHUB_STEP_SUMMARY
+          "### Experimental Tianming NPC/API Pool Android APK (NOT a release)" >> $env:GITHUB_STEP_SUMMARY
           "Commit: $env:GITHUB_SHA" >> $env:GITHUB_STEP_SUMMARY
           "APK bytes: $bytes" >> $env:GITHUB_STEP_SUMMARY
           "APK SHA256: $sum" >> $env:GITHUB_STEP_SUMMARY
@@ -133,7 +137,7 @@ jobs:
       - name: Upload APK for manual testing (never a published release)
         uses: actions/upload-artifact@v4
         with:
-          name: tianming-pr4-debug-apk-${{ github.sha }}
+          name: tianming-npc-api-pool-debug-apk-${{ github.sha }}
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           compression-level: 0

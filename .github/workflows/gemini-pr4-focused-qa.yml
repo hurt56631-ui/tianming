@@ -1,4 +1,4 @@
-name: Tianming NPC speech and multi API pool QA
+name: Tianming NPC/API Pool verified QA
 # Official API endturn, experimental free NPC, native manifests and safe Android release.
 on:
   push:
@@ -45,6 +45,7 @@ jobs:
           node --check web/tm-wendui.js
           node --check web/tm-api-pool.js
           node --check web/tm-npc-speech.js
+          node --check web/tm-gemini-web-adapter.js
   broad-smokes:
     runs-on: ubuntu-latest
     timeout-minutes: 45
