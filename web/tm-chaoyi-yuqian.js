@@ -245,7 +245,7 @@ async function _yq2_oneAdvisorSpeak(name, roundNum) {
     candorLevel = candor > 80 ? '推心置腹' : candor > 50 ? '大致坦言' : '揣摩圣意';
   }
 
-  if (!P.ai || !P.ai.key) {
+  if ((!P.ai || !P.ai.key) && !(P.conf && P.conf.geminiWebNpcEnabled===true)) {
     addCYBubble(name, '（臣以为……）', false);
     CY._yq2.opinions[name] = { line: '(无 AI)', candor: candor };
     return;
