@@ -27,9 +27,15 @@ function begin(){
     throw error('免费网页不支持 Agent/函数工具回合，请切换普通回合模式或使用正式 Gemini API','FREE_GEMINI_TURN_TOOLS');
   if(state&&state.active)throw error('免费回合仍在运行，已阻止重复启动','AI_FREE_TURN_REENTRY');
   state={active:selected(),gm:g.GM||null,calls:0,failure:null};
+  // Renderer-only flag: not part of P/GM serialized save data.
+  g._tmFreeGeminiTurnActive=state.active;
   return state.active;
 }
-function end(){if(state)state.active=false;state=null;}
+function end(){
+  g._tmFreeGeminiTurnActive=false;
+  if(state)state.active=false;
+  state=null;
+}
 function failed(){return !!(state&&state.failure);}
 function assertBeforeSave(){
   if(!active())return;
