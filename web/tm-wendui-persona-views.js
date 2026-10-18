@@ -138,12 +138,12 @@ function _wdConsortContext(ch) {
       if (ch.spouseRank === 'empress' && _mood === '宫务') {
         _spouseCtx += '  【国母奏事】你身为皇后·统六宫·此番求见以"中宫奏事"名义·非私情倾诉而有具体事务：';
         _spouseCtx += '\n    - 具体宫务事项之一或二·带建议/请旨/征询';
-        _spouseCtx += '\n    - 言辞用"妾""臣妾""贱妾"（视朝代）·兼皇后身份的端方';
+        _spouseCtx += '\n    - 用正常白话谈具体宫务，私下多用“我”，正式场合可偶尔自称“臣妾”；不要用“贱妾”或一再自称；皇后身份靠判断与责任体现，不靠古装腔';
         _spouseCtx += '\n    - 可借此机会提及某妃嫔（赞或贬）·或请立/废某位·或请赐某皇子师傅';
         _spouseCtx += '\n    - 若陛下宠信某妃而你不悦·可借"宫务"理由隐晦表达';
         _spouseCtx += '\n    - 若陛下久未临幸·你反而不宜直诉幽怨（失国母体统）·但可借"宫务"多留几盏茶光景';
       }
-      _spouseCtx += '  ★ 你应主动开口陈述来意（奏对模式），不等帝发问。开场宜带称谓："陛下"/"官家"/"夫君"（随朝代）+ 撒娇/担忧/请安 式起句。\n';
+      _spouseCtx += '  ★ 主动说明具体来意，称谓可用“陛下”或符合时代的家庭称呼，但不强制每句请安、撒娇或跪拜；先讲正事，再说感受。\n';
       _spouseCtx += '  ★ 绝不走"臣听候圣谕"套路——你是妻室不是臣子。语气偏私密、柔软、带情感色彩。\n';
       // 朝堂模式 vs 私下模式差异
       if (_wenduiMode === 'formal') {
@@ -434,7 +434,7 @@ function _wdBuildPrompt(ch, name) {
       : (_isPrivateMode
         ? '\u2022 \u8BED\u6C14\u81EA\u7136\u4EB2\u5207\uFF0C\u53EF\u804A\u79C1\u4E8B\u3001\u8BF4\u671D\u5802\u4E0A\u4E0D\u65B9\u4FBF\u8BF4\u7684\u8BDD\n'
         : '\u2022 \u73B0\u4EE3\u767D\u8BDD\uFF0C\u4FDD\u7559\u6B63\u5F0F\u573A\u5408\u793C\u8282\uFF0C\u6C47\u62A5\u653F\u52A1\u6761\u7406\u6E05\u6670\n');
-    p += '\u2022 \u52A8\u4F5C\u548C\u795E\u6001\u7528\u62EC\u53F7\u6807\u6CE8\n\u2022 ' + _charRangeText('wd') + '\n';
+    p += '• 人物直接用现代白话说话。默认不写动作旁白，不要以“臣妾（含泪叩首）”等括号舞台动作开头；特别需要交代神态时只补一句简短描述。\n• ' + _charRangeText('wd') + '\n';
     p += '\u2022 \u89D2\u8272\u4FE1\u606F\u53D7\u7ACB\u573A\u548C\u80FD\u529B\u9650\u5236\uFF0C\u4E0D\u4E00\u5B9A\u51C6\u786E\n';
     p += '\u2022 【层叠差异化——按5层依次叠加生成此人的回答】\n';
     p += '  \u5C421\u00B7\u80FD\u529B\u57FA\u5E95\uFF1A\u6B64\u4EBA\u8C08\u8BBA\u7684\u8BDD\u9898\u662F\u5426\u5176\u64C5\u957F\u9886\u57DF\uFF1F\n';
@@ -591,6 +591,14 @@ function _wdBuildPrompt(ch, name) {
   if (typeof TM !== 'undefined' && TM.PromptComposer && typeof TM.PromptComposer.buildLanguageGuide === 'function') {
     p += TM.PromptComposer.buildLanguageGuide();
   }
+  // This is the last voice directive: past dialogue and era examples carry facts,
+  // but do not override spoken modern language or NPC autonomy.
+  p += '\n【最终对白验收（只约束语言，保留历史事实与身份）】'
+    + 'reply 只写此人会当面说的话：先回应，再说做什么、谁来办、何时去办、有哪些风险。'
+    + '可称“陛下”“臣妾”或使用本朝官职，但不要每句重复自称，不用“若再不知轻重”“便真个”“拼死进谏”“粉身碎骨”“重蹈覆辙”“天颜”等古装剧套话；'
+    + '不要“臣妾（眼眶泛红，重重叩首）”一类舞台说明开头；玩家提到前世或未来也不能擅自保证历史必然改写。'
+    + '比如回禀秘密调查：“陛下，我明白。慈宁宫的人我会先核查；旧账安排可靠的人逐笔对照；司礼监和内阁的消息只向您密报。没有查清前，不会擅自抓人或定罪。如果您决定太急，我会直接劝您。”'
+    + '人物可以不同意玩家或承认能力范围，不需要次次宣誓效忠；难事可以讲细，但不要重复抒情。输出格式、记忆字段、数值及已发生事实仍按前文执行。';
   return p;
 }
 

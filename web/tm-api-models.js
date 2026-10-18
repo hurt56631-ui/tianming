@@ -11,7 +11,11 @@
     if ((host === 'generativelanguage.googleapis.com' || /:generateContent$/.test(path)) && !/\/openai(?:\/|$)/.test(path)) mode = 'gemini';
     if (mode === 'gemini') path = path.replace(/\/models\/[^/]+:(?:streamGenerateContent|generateContent)$/, '');
     else path = path.replace(/\/(?:chat\/completions|messages|responses)$/, '');
-    if (!path) path = mode === 'anthropic' ? '/v1' : mode === 'gemini' ? '/v1beta' : '';
+    if (!path) {
+      // Official OpenAI needs /v1/models even if the user entered only its root.
+      path = mode === 'anthropic' || host === 'api.openai.com' ? '/v1' :
+        mode === 'gemini' ? '/v1beta' : '';
+    }
     u.pathname = /\/models$/.test(path) ? path : path + '/models';
     return { url: u, mode: mode };
   }
@@ -39,7 +43,15 @@
         var resp = await (options.fetch || global._tmAIFetch || global.fetch)(target.url.href, {
           method: 'GET', headers: headers, signal: ctrl.signal, timeoutMs: options.timeoutMs || 20000, redirect: 'error', cache: 'no-store', credentials: 'omit'
         });
-        if (!resp.ok) throw fail('模型列表 HTTP ' + resp.status + '；请检查地址、密钥或模型列表权限');
+        if (!resp.ok) {
+          var http = Number(resp.status) || 0;
+          var reason = http === 401 ? 'Key 无效或已过期' :
+            http === 403 ? 'Key 无权列举模型；若聊天正常，可手动填写 Model_ID' :
+            http === 404 || http === 405 ? '当前服务商不提供这个模型列表接口；聊天可用时可手填 Model_ID' :
+            http === 429 ? '请求被限流，请稍后再试' :
+            http >= 500 ? '模型列表服务暂时异常' : '请核对地址、密钥和权限';
+          throw fail('模型列表 HTTP ' + http + '：' + reason);
+        }
         var data; try { data = await resp.json(); } catch (_) { throw fail('模型列表不是有效 JSON，可能是网页地址或中转响应异常'); }
         if (ctrl.signal.aborted) throw fail('请求已取消');
         var rows = target.mode === 'gemini' ? data && data.models : data && data.data;
@@ -62,8 +74,10 @@
     }
     try { return await Promise.race([read(), aborted]); }
     catch (e) {
-      if (e && (e.name === 'AbortError' || /^AI_MOBILE_/.test(e.code || '') || e.code === 'AI_TIMEOUT' || /^模型列表|^响应没有/.test(e.message || ''))) throw e;
-      throw fail('无法拉取模型列表，请检查网络、跨域许可或地址；仍可手动填写 Model_ID');
+      if (e && (e.name === 'AbortError' || /^AI_MOBILE_/.test(e.code || '') || e.code === 'AI_TIMEOUT' ||
+        /^模型列表|^响应没有|^请求已取消/.test(e.message || ''))) throw e;
+      // Some relays include credentials in thrown exception messages; never expose them.
+      throw fail('模型列表网络请求失败：检查 HTTPS 证书、网络和浏览器 CORS；若测试连接正常，可直接填写 Model_ID');
     } finally {
       clearTimeout(timer); if (signal) signal.removeEventListener('abort', cancel); ctrl.signal.removeEventListener('abort', stop);
     }

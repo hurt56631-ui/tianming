@@ -611,7 +611,11 @@ window.sProvPreset = function(v, sec){
   var p = TM_PROVIDER_PRESETS[v];
   if (!p || !p.url) return; // 自定义/未知：不动已填内容
   var u = _$(sec ? 's-sec-url' : 's-url'), m = _$(sec ? 's-sec-model' : 's-model');
-  if (u) u.value = p.url;
+  if (u) {
+    u.value = p.url;
+    // Preset assignments do not fire input automatically: invalidate stale model chips.
+    u.dispatchEvent(new Event('input', { bubbles:true }));
+  }
   // 2026-07-11 owner 拍板：预设只填地址·Model_ID 一律玩家自填（自动填示例模型名会误导接入点玩家——
   // 方舟等家的 Model_ID 是 ep- 接入点 ID·不是 LLM 名称）。示例只以文字提示·不进输入框。
   if (m && p.modelHint) m.title = p.modelHint.replace(/<[^>]+>/g, '');

@@ -44,6 +44,8 @@ const response=data=>({ok:true,status:200,json:async()=>data});
  await test('model URL keeps custom prefixes and strips only the complete inference suffix',()=>{
   for(const suffix of ['/chat/completions','/responses','/models',''])assert.equal(M.endpoint({url:cfg.url+suffix}).url.href,cfg.url+'/models');
   assert.equal(M.endpoint({url:'https://api.anthropic.com/v1/messages'}).url.href,'https://api.anthropic.com/v1/models');
+  assert.equal(M.endpoint({url:'https://api.openai.com'}).url.href,'https://api.openai.com/v1/models');
+  assert.equal(M.endpoint({url:'https://api.openai.com/chat/completions'}).url.href,'https://api.openai.com/v1/models');
   assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'}).url.href,'https://generativelanguage.googleapis.com/v1beta/models');
  });
  await test('format repair inherits the original thinking snapshot without changing its own output budget',()=>{
@@ -57,6 +59,12 @@ const response=data=>({ok:true,status:200,json:async()=>data});
  await test('model list uses entered key, no inference, no cookies, no redirect or cache leakage',async()=>{
   const calls=[],ids=['z',`\"><img src=x onerror=evil()>`,'z','a'];const r=await M.list(cfg,{fetch:async(url,opts)=>{calls.push({url,opts});return response({data:ids.map(id=>({id}))});}});
   assert.equal(calls.length,1);assert.equal(calls[0].url,cfg.url+'/models');assert.equal(calls[0].opts.headers.Authorization,'Bearer fixture-only');assert.equal(calls[0].opts.method,'GET');assert.equal(calls[0].opts.redirect,'error');assert.equal(calls[0].opts.cache,'no-store');assert.equal(calls[0].opts.credentials,'omit');assert.equal(r.models.length,3);assert(r.models.some(x=>x.id===ids[1]));
+ });
+ await test('model pull shows actionable HTTP and network errors without printing secrets',async()=>{
+  for(const [status,hint] of [[401,'Key'],[403,'无权'],[404,'不提供'],[405,'不提供'],[429,'限流']]){
+    await assert.rejects(M.list(cfg,{fetch:async()=>({ok:false,status})}),e=>e.message.includes(hint)&&e.message.includes(String(status))&&!e.message.includes(cfg.key));
+  }
+  await assert.rejects(M.list(cfg,{fetch:async()=>{throw Error('PRIVATE-KEY:'+cfg.key)}}),e=>e.message.includes('CORS')&&!e.message.includes(cfg.key));
  });
  await test('empty list remains honestly empty; HTTP, HTML and malformed envelopes invent no models',async()=>{
   assert.equal((await M.list(cfg,{fetch:async()=>response({data:[]})})).models.length,0);
