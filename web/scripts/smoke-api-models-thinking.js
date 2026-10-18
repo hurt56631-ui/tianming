@@ -50,6 +50,11 @@ const response=data=>({ok:true,status:200,json:async()=>data});
   assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai'}).url.href,'https://generativelanguage.googleapis.com/v1beta/models');
   assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'}).mode,'openai');
   assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai'}).listMode,'gemini');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai/'}).url.href,'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1/openai'}).url.href,'https://generativelanguage.googleapis.com/v1/models');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'}).url.href,'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai/'}).mode,'openai');
+  assert.throws(()=>M.endpoint({url:'http://generativelanguage.googleapis.com/v1beta/openai'}),/HTTPS/);
  });
  await test('format repair inherits the original thinking snapshot without changing its own output budget',()=>{
   const source=A.apply({...body,model:'gpt-5.2'},{...cfg,model:'gpt-5.2',thinking:true});
