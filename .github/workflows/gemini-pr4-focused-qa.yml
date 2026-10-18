@@ -60,6 +60,11 @@ jobs:
           git diff --exit-code
       - name: Architecture lint on merged language/free-mode source
         run: node web/scripts/lint-arch-all.js
+      - name: Verify byte-pinned native/startup inventories generated from this source
+        run: |
+          node web/scripts/lint-global-providers.js
+          node web/scripts/build-startup-phase-manifest.js --check
+          node scripts/build-native-preparation-manifest.cjs --check
       - name: Full game smoke suite (no release publish)
         run: node web/scripts/ci-smokes.js --jobs 2
 
