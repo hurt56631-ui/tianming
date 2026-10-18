@@ -150,6 +150,16 @@
   g.TM.GeminiLoginBackup = {
     summary:summary, configured:configured, save:save, clear:clear,
     tryReply:tryReply, test:test,
+    // Fail-closed allowlist: ONLY this running signed-in gateway request may
+    // cross the free endturn paid-network barrier. No secret is exposed.
+    isOwnRequest:function(url,options){
+      var cfg=load();
+      var h=options&&options.headers||{};
+      return cfg.enabled===true && inFlight>0 && !!cfg.apiKey &&
+        String(url||'')===cfg.url+'/chat/completions' &&
+        String(options&&options.method||'').toUpperCase()==='POST' &&
+        h.Authorization==='Bearer '+cfg.apiKey;
+    },
     markAnonymous:function(){lastRoute='anonymous';},
     canFallback:function(status) {
       return [401,403,405,429,500,502,503,504].includes(Number(status));

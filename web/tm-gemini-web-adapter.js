@@ -74,7 +74,7 @@ global.TM=global.TM||{};
 global.TM.AITransportHooks=global.TM.AITransportHooks||{};
 global.TM.AITransportHooks.geminiWeb=function(url,options){
   var freeTurn=global.TM&&global.TM.GeminiTurn;
-  if(freeTurn&&freeTurn.active()&&!virtual(url))freeTurn.guardExternal(url);
+  if(freeTurn&&freeTurn.active()&&!virtual(url))freeTurn.guardExternal(url,options);
   if(!virtual(url))return null;
   return _geminiVirtualResponse(url,options);
 };

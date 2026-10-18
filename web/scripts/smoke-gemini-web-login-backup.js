@@ -27,13 +27,20 @@ function ctxForTest(){
     }
   };
   ctx.window=ctx;
+  // Mirror the production *single* core _tmAIFetch provider with its optional
+  // virtual hook. Backup captures this hook-aware transport before adapter load.
+  const native=ctx._tmAIFetch;
+  ctx._tmAIFetch=async function(url,opts){
+    const hook=ctx.TM.AITransportHooks&&ctx.TM.AITransportHooks.geminiWeb;
+    if(hook){
+      const virtual=hook(url,opts);
+      if(virtual!=null)return virtual;
+    }
+    return native(url,opts);
+  };
   vm.runInNewContext(read('tm-gemini-login-backup.js'),ctx);
   vm.runInNewContext(read('tm-gemini-web-adapter.js'),ctx);
-  const original=ctx._tmAIFetch;
-  ctx._tmAIFetch=function(url,opts){
-    const hook=ctx.TM.AITransportHooks.geminiWeb(url,opts);
-    return hook==null?original(url,opts):hook;
-  };
+  vm.runInNewContext(read('tm-gemini-turn.js'),ctx);
   return {ctx,local,outbound,setAnon:x=>anon=x,setGateway:x=>gateway=x};
 }
 async function main(){
@@ -72,6 +79,22 @@ async function main(){
   assert(!outbound[0].options.headers.Cookie && !outbound[0].options.headers['X-Goog-AuthUser'],
     'Google credentials may not enter the app');
   assert.strictEqual(JSON.parse(outbound[0].options.body).model,'gemini-3.5-flash-lite');
+  // When the free END TURN is active, signed-in backup is the only authorized
+  // non-Google request; paid primary/secondary must remain blocked.
+  ctx.P.conf.geminiWebTurnEnabled=true;
+  ctx.GM.busy=true;ctx.GM._endTurnBusy=true;
+  const freeTurn=ctx.TM.GeminiTurn;
+  freeTurn.begin();
+  const beforeSignedTurn=outbound.length;
+  const signedTurn=await send();
+  assert.strictEqual((await signedTurn.json()).choices[0].message.content,'已登录网关回答');
+  assert.strictEqual(outbound.length,beforeSignedTurn+1,'explicit signed fallback must be allowed during free endturn');
+  await assert.rejects(ctx._tmAIFetch('https://paid-provider.example/v1/chat/completions',{
+    method:'POST',headers:{Authorization:'Bearer PAID_PRIMARY_KEY'},body:'{}'}),/禁止暗中使用付费 API/);
+  assert.strictEqual(outbound.length,beforeSignedTurn+1,'paid provider never gets called');
+  freeTurn.end();
+  ctx.GM.busy=false;ctx.GM._endTurnBusy=false;
+  ctx.P.conf.geminiWebTurnEnabled=false;
   const sse=await ctx._tmAIFetch(URL_VIRTUAL,{body:JSON.stringify(Object.assign({},sample,{stream:true}))});
   assert((await sse.text()).includes('data: [DONE]'),'stream compatibility');
   const countBeforeAbort=outbound.length;

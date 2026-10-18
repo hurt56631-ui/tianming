@@ -89,7 +89,7 @@ function route(url,body,opts){
     _secondaryFallbackOwner:false
   })};
 }
-function guardExternal(url){
+function guardExternal(url,options){
   if(!active())return false;
   var s=String(url||'');
   // Android native anonymous transport legitimately fetches the official
@@ -97,6 +97,10 @@ function guardExternal(url){
   // its pre-adapter transport (it never accesses P.ai's paid key).
   if(s.indexOf('https://gemini.google.com/')===0)return false;
   if(s===VIRTUAL)return false;
+  // A signed-in *user-controlled* gateway may be used only for a request
+  // made by the owned backup transport with its own key and exact URL.
+  var backup=g.TM&&g.TM.GeminiLoginBackup;
+  if(backup&&typeof backup.isOwnRequest==='function'&&backup.isOwnRequest(s,options))return false;
   fail('检测到绕过免费回合的其他 AI 网络请求');
   throw error('免费推演期间拦截了非免费 AI 请求，禁止暗中使用付费 API',
     'FREE_GEMINI_PAID_ROUTE_BLOCKED',403);

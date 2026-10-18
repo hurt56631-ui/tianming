@@ -22,7 +22,7 @@ async function run(){
   vm.runInNewContext(u.slice(start,end),sandbox);
   vm.runInNewContext(read('tm-gemini-web-adapter.js'),sandbox);
   const original=sandbox._tmAIFetch;
-  sandbox._tmAIFetch=function(url,opts){
+  sandbox._tmAIFetch=async function(url,opts){
     const intercepted=sandbox.TM.AITransportHooks.geminiWeb(url,opts);
     return intercepted==null?original(url,opts):intercepted;
   };
