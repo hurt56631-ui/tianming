@@ -87,6 +87,9 @@ async function main(){
   assert(src.includes('async function _tmAIFetchDirect(resource, options)'), 'native transport retained');
   assert(src.includes('pool.route(resource,options,_tmAIFetchDirect)'), 'pool wraps actual HTTP transport');
   assert(read('tm-wendui.js').includes("P.conf&&P.conf.geminiWebNpcEnabled"),'NPC chat should work with no main API key');
+  assert(read('tm-chaoyi-yuqian.js').includes("P.conf.geminiWebNpcEnabled===true"),'御前无主 Key 仍能调用免费 NPC');
+  assert(read('tm-chaoyi-tinyi.js').includes("P.conf.geminiWebNpcEnabled===true"),'廷议无主 Key 仍能调用免费 NPC');
+  assert(read('tm-chaoyi-changchao-adapter.js').includes("(P.conf && P.conf.geminiWebNpcEnabled===true)"),'常朝无主 Key 仍能调用免费 NPC');
   assert(read('tm-wendui.js').includes("人物 AI 暂时无法回复："),'NPC error must stay visible');
   assert(read('tm-gemini-web-adapter.js').includes("geminiWebNpcFallbackPrimary===true"),'paid NPC fallback must be opt-in only');
   assert(read('index.html').includes('tm-api-pool.js')&&read('index.html').includes('tm-npc-speech.js'),'both modules are loaded by mobile and desktop');
