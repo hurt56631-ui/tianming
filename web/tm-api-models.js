@@ -16,6 +16,18 @@
       path = mode === 'anthropic' || host === 'api.openai.com' ? '/v1' :
         mode === 'gemini' ? '/v1beta' : '';
     }
+    // Official Google supports both the OpenAI-compatible inference route and
+    // native listModels. Native discovery is stable, and returns generation
+    // capabilities, so prefer it even when chat uses /v1beta/openai.
+    // Keep mode='openai' for the settings thinking-parameter preview.
+    if (host === 'generativelanguage.googleapis.com') {
+      if (u.protocol !== 'https:') throw fail('Google Gemini API 必须使用 HTTPS');
+      var version = /^\/v1(?:\/|$)/.test(path) ? '/v1' : '/v1beta';
+      var compatible = /\/openai(?:\/|$)/.test(path);
+      u.pathname = version + '/models';
+      return {url:u,mode:mode,listMode:'gemini',
+        compatibilityUrl: compatible ? new URL(version+'/openai/models',u.origin) : null};
+    }
     u.pathname = /\/models$/.test(path) ? path : path + '/models';
     return { url: u, mode: mode };
   }
@@ -23,9 +35,10 @@
     options = options || {};
     var key = String(cfg.key || '').trim();
     if (!key) throw fail('请先填写 API Key');
-    var target = endpoint(cfg), headers = { Accept: 'application/json' };
-    if (target.mode === 'anthropic') { headers['x-api-key'] = key; headers['anthropic-version'] = '2023-06-01'; }
-    else if (target.mode === 'gemini') headers['x-goog-api-key'] = key;
+    var target = endpoint(cfg), mode = target.listMode || target.mode;
+    var headers = { Accept: 'application/json' };
+    if (mode === 'anthropic') { headers['x-api-key'] = key; headers['anthropic-version'] = '2023-06-01'; }
+    else if (mode === 'gemini') headers['x-goog-api-key'] = key;
     else headers.Authorization = 'Bearer ' + key;
     var ctrl = new AbortController(), signal = options.signal, timedOut = false, timer;
     function cancel() { ctrl.abort(); }
@@ -38,11 +51,25 @@
     timer = setTimeout(function() { timedOut = true; cancel(); }, options.timeoutMs || 20000);
     async function read() {
       var entries = new Map(), tokens = new Set(), partial = false;
+      var endpointUrl = target.url, listingMode = mode, listingHeaders = headers;
+      var networkFetch = options.fetch || global._tmAIFetch || global.fetch;
       for (var page = 0; page < 20; page++) {
         if (ctrl.signal.aborted) throw fail('请求已取消');
-        var resp = await (options.fetch || global._tmAIFetch || global.fetch)(target.url.href, {
-          method: 'GET', headers: headers, signal: ctrl.signal, timeoutMs: options.timeoutMs || 20000, redirect: 'error', cache: 'no-store', credentials: 'omit'
-        });
+        var requestOptions = function(usedHeaders) {
+          return {method:'GET',headers:usedHeaders,signal:ctrl.signal,timeoutMs:options.timeoutMs || 20000,
+            redirect:'error',cache:'no-store',credentials:'omit'};
+        };
+        var resp = await networkFetch(endpointUrl.href, requestOptions(listingHeaders));
+        // A small number of Google API installations expose only the
+        // compatibility list route. Retry there on first-page route/auth
+        // differences, with the SAME official Google host and original Key.
+        if (!resp.ok && page === 0 && target.compatibilityUrl &&
+            [403,404,405].indexOf(Number(resp.status)) >= 0) {
+          endpointUrl = target.compatibilityUrl;
+          listingMode = 'openai';
+          listingHeaders = {Accept:'application/json',Authorization:'Bearer '+key};
+          resp = await networkFetch(endpointUrl.href, requestOptions(listingHeaders));
+        }
         if (!resp.ok) {
           var http = Number(resp.status) || 0;
           var reason = http === 401 ? 'Key 无效或已过期' :
@@ -54,20 +81,20 @@
         }
         var data; try { data = await resp.json(); } catch (_) { throw fail('模型列表不是有效 JSON，可能是网页地址或中转响应异常'); }
         if (ctrl.signal.aborted) throw fail('请求已取消');
-        var rows = target.mode === 'gemini' ? data && data.models : data && data.data;
+        var rows = listingMode === 'gemini' ? data && data.models : data && data.data;
         if (!Array.isArray(rows)) throw fail('响应没有模型列表；保留手动填写 Model_ID');
         rows.forEach(function(row) {
           if (!row || typeof row !== 'object') return;
-          if (target.mode === 'gemini' && Array.isArray(row.supportedGenerationMethods) && row.supportedGenerationMethods.indexOf('generateContent') < 0) return;
-          var id = target.mode === 'gemini' ? row.name : row.id;
+          if (listingMode === 'gemini' && Array.isArray(row.supportedGenerationMethods) && row.supportedGenerationMethods.indexOf('generateContent') < 0) return;
+          var id = listingMode === 'gemini' ? row.name : row.id;
           if (typeof id !== 'string' || !id.trim()) return;
-          if (target.mode === 'gemini') id = id.replace(/^models\//, '');
+          if (listingMode === 'gemini') id = id.replace(/^models\//, '');
           entries.set(id, { id: id });
         });
-        var next = target.mode === 'gemini' ? data.nextPageToken : (target.mode === 'anthropic' && data.has_more ? data.last_id : '');
+        var next = listingMode === 'gemini' ? data.nextPageToken : (listingMode === 'anthropic' && data.has_more ? data.last_id : '');
         if (!next) { partial = data.has_more === true; break; }
         if (typeof next !== 'string' || tokens.has(next)) throw fail('模型列表分页异常，请稍后重试');
-        tokens.add(next); target.url.searchParams.set(target.mode === 'gemini' ? 'pageToken' : 'after_id', next);
+        tokens.add(next); endpointUrl.searchParams.set(listingMode === 'gemini' ? 'pageToken' : 'after_id', next);
         partial = page === 19;
       }
       return { models: Array.from(entries.values()).sort(function(a, b) { return a.id.localeCompare(b.id); }), partial: partial };

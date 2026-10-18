@@ -47,6 +47,9 @@ const response=data=>({ok:true,status:200,json:async()=>data});
   assert.equal(M.endpoint({url:'https://api.openai.com'}).url.href,'https://api.openai.com/v1/models');
   assert.equal(M.endpoint({url:'https://api.openai.com/chat/completions'}).url.href,'https://api.openai.com/v1/models');
   assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'}).url.href,'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai'}).url.href,'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'}).mode,'openai');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai'}).listMode,'gemini');
  });
  await test('format repair inherits the original thinking snapshot without changing its own output budget',()=>{
   const source=A.apply({...body,model:'gpt-5.2'},{...cfg,model:'gpt-5.2',thinking:true});
@@ -73,6 +76,43 @@ const response=data=>({ok:true,status:200,json:async()=>data});
  await test('native Gemini pagination filters non-chat models and uses header auth',async()=>{
   const calls=[];const r=await M.list({...cfg,url:'https://generativelanguage.googleapis.com/v1beta'},{fetch:async(url,opts)=>{calls.push({url,opts});return response(calls.length===1?{models:[{name:'models/gemini-2.5-flash',supportedGenerationMethods:['generateContent']},{name:'models/embedding',supportedGenerationMethods:['embedContent']}],nextPageToken:'page2'}:{models:[{name:'models/gemini-3-flash'}]});}});
   assert.equal(r.models.length,2);assert.equal(calls[0].opts.headers['x-goog-api-key'],cfg.key);assert.equal(calls[0].opts.headers.Authorization,undefined);assert(new URL(calls[1].url).searchParams.has('pageToken'));
+ });
+ await test('Google original API main/secondary preset lists models without mutating inference protocol',async()=>{
+  const calls=[];
+  const google={key:'real-looking-but-fixture-only',url:'https://generativelanguage.googleapis.com/v1beta/openai'};
+  for(const tier of ['primary','secondary']){
+    const out=await M.list({...google,tier},{fetch:async(url,opts)=>{
+      calls.push({tier,url,opts});
+      return response({models:[{name:'models/gemini-test-flash',supportedGenerationMethods:['generateContent']},
+        {name:'models/text-embedding-demo',supportedGenerationMethods:['embedContent']}]});
+    }});
+    assert.deepEqual(plain(out.models),[{id:'gemini-test-flash'}]);
+  }
+  assert.equal(calls.length,2);
+  assert(calls.every(c=>c.url==='https://generativelanguage.googleapis.com/v1beta/models'));
+  assert(calls.every(c=>c.opts.headers['x-goog-api-key']===google.key&&!c.opts.headers.Authorization));
+  assert.equal(M.endpoint(google).mode,'openai','Gemini OpenAI-compatible chat must keep its original thinking wire');
+ });
+ await test('Google official native list failure retries only on the same Google host through compatible route',async()=>{
+  const calls=[];
+  const out=await M.list({url:'https://generativelanguage.googleapis.com/v1beta/openai',key:'fixture-google'},{
+    fetch:async(url,opts)=>{
+      calls.push({url,headers:opts.headers});
+      return calls.length===1?{ok:false,status:404}:response({data:[{id:'gemini-compat'}]});
+    }
+  });
+  assert.deepEqual(plain(out.models),[{id:'gemini-compat'}]);
+  assert.equal(calls.length,2);
+  assert.equal(calls[0].url,'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.equal(calls[1].url,'https://generativelanguage.googleapis.com/v1beta/openai/models');
+  assert.equal(calls[1].headers.Authorization,'Bearer fixture-google');
+ });
+ await test('Google API auth failure never leaks Key or redirects to arbitrary relay',async()=>{
+  let calls=0;
+  await assert.rejects(M.list({url:'https://generativelanguage.googleapis.com/v1beta/openai',key:'secret-google'},{
+    fetch:async()=>{calls++;return {ok:false,status:401};}
+  }),e=>e.message.includes('401')&&!e.message.includes('secret-google'));
+  assert.equal(calls,1,'no retry for a known invalid API key');
  });
  await test('native Claude pagination uses after_id and the native auth header',async()=>{
   const calls=[];const r=await M.list({...cfg,url:'https://api.anthropic.com/v1'},{fetch:async(url,opts)=>{calls.push({url,opts});return response({data:[{id:'claude-'+calls.length}],has_more:calls.length===1,last_id:'first'});}});
