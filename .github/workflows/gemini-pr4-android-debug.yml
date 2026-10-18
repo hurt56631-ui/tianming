@@ -96,6 +96,11 @@ jobs:
           npm ci --prefix mobile
           if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
 
+      - name: Verify native startup inventory matches latest Gemini and modern-Chinese scripts
+        shell: pwsh
+        run: |
+          node scripts/build-native-preparation-manifest.cjs --check
+          if ($LASTEXITCODE -ne 0) { throw 'Native startup inventory mismatch: refuse to package stale JS' }
       - name: Verify staged web files, sync Capacitor, assemble debug APK
         shell: pwsh
         run: |
