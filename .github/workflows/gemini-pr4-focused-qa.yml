@@ -53,6 +53,11 @@ jobs:
           cache: npm
       - name: Install locked test dependencies
         run: npm ci --ignore-scripts
+      - name: Restore ignored official scenario JSON from canonical tracked scenarios
+        run: |
+          node web/scripts/sync-official-scenarios.js
+          node web/scripts/sync-official-scenarios.js --check
+          git diff --exit-code
       - name: Architecture lint on merged language/free-mode source
         run: node web/scripts/lint-arch-all.js
       - name: Full game smoke suite (no release publish)
