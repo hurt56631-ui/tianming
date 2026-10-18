@@ -882,7 +882,7 @@ async function _callAIWithToolsScoped(prompt, tools, opts) {
   }
   var isAnthropicNative = provider === 'anthropic' && /api\.anthropic\.com/i.test(userUrl);
   // Gemini 原生：用 generateContent 接口（非 /v1beta/openai/）
-  var isGeminiNative = provider === 'gemini' && /generativelanguage\.googleapis\.com/i.test(userUrl) && !/\/v1beta\/openai\//i.test(userUrl);
+  var isGeminiNative = provider === 'gemini' && /generativelanguage\.googleapis\.com/i.test(userUrl) && !/\/(?:v1|v1beta)\/openai(?:\/|$)/i.test(userUrl);
   var maxTok = opts.maxTok || 2000;
   var _scaledTok = Math.round(maxTok * ((typeof getCompressionParams === 'function') ? Math.max(1.0, getCompressionParams().scale) : 1.0));
 

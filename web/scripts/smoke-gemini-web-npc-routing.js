@@ -45,6 +45,19 @@ async function main(){
   assert(read('tm-ai-infra-retry.js').includes("opts.tier !== 'geminiweb' && _providerS === 'anthropic'"),'stream native Anthropic cache isolation');
   assert(read('tm-ai-infra.js').includes("tier !== 'geminiweb' && _provider === 'anthropic'"),'non-stream native Anthropic cache isolation');
   assert(!read('tm-hongyan-office.js').includes('100-200 字古典中文'),'letters must not demand archaic Chinese');
+  // Official Google OpenAI-compatible Base URL must never emit native
+  // generateContent/tool schema, with or without a trailing slash.
+  const nativeMatch=/var isGeminiNative = ([^;\r\n]+);/.exec(read('tm-ai-infra.js'));
+  assert(nativeMatch&&nativeMatch[1],'Google tool transport native selector exists');
+  const googleIsNative=(provider,userUrl)=>vm.runInNewContext(nativeMatch[1],{provider,userUrl});
+  for(const url of ['https://generativelanguage.googleapis.com/v1beta/openai',
+    'https://generativelanguage.googleapis.com/v1beta/openai/',
+    'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    'https://generativelanguage.googleapis.com/v1/openai'])
+    assert.strictEqual(googleIsNative('gemini',url),false,'Google official compatible tool API must not be treated as native: '+url);
+  assert.strictEqual(googleIsNative('gemini','https://generativelanguage.googleapis.com/v1beta/models/gemini-test:generateContent'),true);
+  assert.strictEqual(googleIsNative('openai_compat','https://generativelanguage.googleapis.com/v1beta'),false);
+
   const settings=read('tm-patches.js');
   assert(!settings.includes('网页/APK 请使用 Gemini 正式 API'),'settings must not advertise Android as unsupported');
   const pkg=JSON.parse(fs.readFileSync(path.join(WEB,'../package.json'),'utf8'));
