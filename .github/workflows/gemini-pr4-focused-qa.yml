@@ -1,5 +1,5 @@
 name: Tianming Gemini PR4 focused QA
-# Recheck after native manifest regeneration and world-identity free route guard.
+# Official API endturn, experimental free NPC, native manifests and safe Android release.
 on:
   push:
     branches:
@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Free endturn and modern Chinese regressions
+      - name: Official API endturn, NPC Gemini, and modern Chinese regressions
         run: |
           set -e
           node web/scripts/smoke-modern-chinese-prompts.js
@@ -36,7 +36,6 @@ jobs:
           node web/scripts/smoke-gemini-web-mobile.js
       - name: Cross-check JavaScript parse and no source conflicts
         run: |
-          node --check web/tm-gemini-turn.js
           node --check web/tm-endturn-core.js
           node --check web/tm-endturn-ai-infer.js
           node --check web/tm-prompt-composer.js

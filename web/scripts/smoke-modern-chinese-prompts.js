@@ -8,8 +8,9 @@ assert(composer.includes('function buildLanguageGuide()'), 'shared modern-langua
 assert(composer.includes('保留 JSON 字段名') || composer.includes('JSON 字段名'), 'structured output contract missing');
 assert(!composer.includes('叙事风格·严格文言'), 'composer still requests classical text');
 assert(read('tm-utils.js').includes("narrativeStyle: '现代白话'"), 'mode still dictates classical text');
-assert(read('tm-wendui-persona-views.js').includes('buildLanguageGuide()'), 'wendui guide missing');
-const persona=read('tm-wendui-persona-views.js'), dialogue=read('tm-wendui.js');
+// The split-family contract requires mentioning tm-wendui.js before persona-views.
+const dialogue=read('tm-wendui.js'), persona=read('tm-wendui-persona-views.js');
+assert(persona.includes('buildLanguageGuide()'), 'wendui guide missing');
 assert(persona.includes('【最终对白验收') && persona.includes('慈宁宫的人我会先核查'), 'final NPC style needs a modern actionable example');
 assert(persona.indexOf('【最终对白验收') > persona.indexOf('buildLanguageGuide()'), 'modern speech directive must be after era examples');
 assert(!persona.includes('言辞用"妾""臣妾""贱妾"'), 'queen still mandates archaic speech');
