@@ -81,7 +81,7 @@ function stub(returnByKind) {
 
   // DA-Q2·证 deepen_narrative 史记提示词源自共享 recordSpecs(与 sc1 逐字同源·零 drift·非旧 paraphrase)
   var _ns = globalThis.__lastNarrSys || '';
-  assert(/现代白话/.test(_ns) && /记事不评论/.test(_ns) && /实录体/.test(_ns), 'deepen_narrative 实录用 canonical recordSpecs.shilu(与 sc1 同源·现代白话实录体)');
+  assert(/现代白话/.test(_ns) && /不评议/.test(_ns) && /实录体/.test(_ns), 'deepen_narrative 实录用 canonical recordSpecs.shilu(与 sc1 同源·现代白话实录体)');
   assert(/用现代白话写政务纪要/.test(_ns) && /完整因果链/.test(_ns), 'deepen_narrative 时政记正文用 canonical recordSpecs.shizhengji');
   assert(/主角内心独白/.test(_ns), 'deepen_narrative playerInner 用 canonical 主角内心独白(修正旧"朝野反响"语义漂移)');
   assert(!/稗官野史口吻一句/.test(_ns) && !/朝野对君上本回合举措的反响/.test(_ns), 'deepen_narrative 旧 paraphrase(houren 一句/playerInner 朝野反响)已废');

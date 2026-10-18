@@ -16,6 +16,7 @@ assert(read('tm-endturn-record-specs.js').includes('现代白话实录体'), 'sh
 assert(read('tm-benji.js').includes('现代白话'), 'biography still classical');
 assert(read('tm-hongyan-office.js').includes('现代白话写回信'), 'letter still classical');
 assert(read('tm-endturn-prompt.js').includes('现代白话'), 'endturn guide missing');
+assert(!/半文言200-500字|古典中文|纯文言史官体/.test(read('tm-endturn-ai.js')), 'endturn subsidiary response schemas still demand classical language');
 // Key safety check: no newly added romance mechanics or coupling in this change.
 assert(!composer.includes('buildRomanceContext'), 'unexpected romance coupling');
 
