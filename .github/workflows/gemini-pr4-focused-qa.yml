@@ -1,9 +1,9 @@
-name: Tianming Gemini PR4 focused QA
+name: Tianming NPC speech and multi API pool QA
 # Official API endturn, experimental free NPC, native manifests and safe Android release.
 on:
   push:
     branches:
-      - codex/gemini-web-free-desktop-20261017
+      - codex/fix-npc-silence-api-pool-20261018
     paths:
       - .github/workflows/gemini-pr4-focused-qa.yml
       - web/**
@@ -29,6 +29,7 @@ jobs:
         run: |
           set -e
           node web/scripts/smoke-modern-chinese-prompts.js
+          node web/scripts/smoke-npc-api-pool.js
           node web/scripts/smoke-gemini-web-turn.js
           node web/scripts/smoke-gemini-web-npc-routing.js
           node web/scripts/smoke-gemini-web-login-backup.js
@@ -42,6 +43,8 @@ jobs:
           node --check web/tm-wendui-persona-views.js
           node --check web/tm-ai-infra-retry.js
           node --check web/tm-wendui.js
+          node --check web/tm-api-pool.js
+          node --check web/tm-npc-speech.js
   broad-smokes:
     runs-on: ubuntu-latest
     timeout-minutes: 45

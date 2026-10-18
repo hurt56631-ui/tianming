@@ -1,10 +1,10 @@
-name: Tianming PR4 one-time derived manifest refresh
+name: Tianming NPC API pool derived manifest refresh
 # Regenerate startup and native byte inventories whenever source JS or index changes.
 # Deliberately excludes generated manifests, so the bot's own commit cannot loop.
 on:
   push:
     branches:
-      - codex/gemini-web-free-desktop-20261017
+      - codex/fix-npc-silence-api-pool-20261018
     paths:
       - .github/workflows/gemini-pr4-regenerate-derived.yml
       - web/*.js
@@ -16,11 +16,11 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: gemini-pr4-derived-commit
+  group: npc-api-pool-derived-commit
   cancel-in-progress: false
 jobs:
   refresh-derived:
-    if: github.ref == 'refs/heads/codex/gemini-web-free-desktop-20261017'
+    if: github.ref == 'refs/heads/codex/fix-npc-silence-api-pool-20261018'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -53,6 +53,6 @@ jobs:
             echo 'Both generated manifests already match the test branch'
             exit 0
           fi
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'build: regenerate native and startup manifests for Gemini PR4'
-          git push origin HEAD:codex/gemini-web-free-desktop-20261017
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'build: refresh native and startup inventories for NPC/API pool test'
+          git push origin HEAD:codex/fix-npc-silence-api-pool-20261018
           echo 'Committed generated manifests to experiment branch only; official release baseline unchanged'
