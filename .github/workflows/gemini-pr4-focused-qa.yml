@@ -1,0 +1,44 @@
+name: Tianming Gemini PR4 focused QA
+on:
+  push:
+    branches:
+      - codex/gemini-web-free-desktop-20261017
+    paths:
+      - .github/workflows/gemini-pr4-focused-qa.yml
+      - web/**
+      - main-gemini-web.js
+      - preload-impl.js
+      - main-impl.js
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gemini-pr4-focused-qa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  free-turn-and-language:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Free endturn and modern Chinese regressions
+        run: |
+          set -e
+          node web/scripts/smoke-modern-chinese-prompts.js
+          node web/scripts/smoke-gemini-web-turn.js
+          node web/scripts/smoke-gemini-web-npc-routing.js
+          node web/scripts/smoke-gemini-web-login-backup.js
+          node web/scripts/smoke-gemini-web-desktop.js
+          node web/scripts/smoke-gemini-web-mobile.js
+      - name: Cross-check JavaScript parse and no source conflicts
+        run: |
+          node --check web/tm-gemini-turn.js
+          node --check web/tm-endturn-core.js
+          node --check web/tm-endturn-ai-infer.js
+          node --check web/tm-prompt-composer.js
+          node --check web/tm-wendui-persona-views.js
+          node --check web/tm-ai-infra-retry.js
+          node --check web/tm-wendui.js
