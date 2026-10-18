@@ -67,6 +67,13 @@ async function run(){
     tianming:{isDesktop:true,geminiWebChat:async()=>({ok:true,text:'皇上，可以议和。'})},TM:{}};
   context.window=context;
   vm.runInNewContext(script,context,{filename:'tm-gemini-web-adapter.js'});
+  // Real tm-ai-infra-retry owns _tmAIFetch and invokes AITransportHooks.
+  // This fixture stubs the transport, so explicitly mirror that hook dispatch.
+  const networkFetch=context._tmAIFetch;
+  context._tmAIFetch=async function(url,opts){
+    const hook=context.TM.AITransportHooks.geminiWeb(url,opts);
+    return hook==null?networkFetch(url,opts):hook;
+  };
   const fake='https://gemini-web.tianming.invalid/v1/chat/completions';
   const a=await context._tmAIFetch(fake,{body:JSON.stringify({messages:[{role:'user',content:'议和'}]})});
   assert.strictEqual((await a.json()).choices[0].message.content,'皇上，可以议和。');
