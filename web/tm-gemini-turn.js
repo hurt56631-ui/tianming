@@ -21,6 +21,10 @@ function fail(reason) {
   if(state&&state.active&&!state.failure)state.failure=reason&&reason.message||String(reason||'免费请求失败');
 }
 function begin(){
+  if(selected() && g.TM && g.TM.Endturn && g.TM.Endturn.ModeContract &&
+     g.TM.Endturn.ModeContract.selectedMode &&
+     g.TM.Endturn.ModeContract.selectedMode(g.P)==='agent')
+    throw error('免费网页不支持 Agent/函数工具回合，请切换普通回合模式或使用正式 Gemini API','FREE_GEMINI_TURN_TOOLS');
   if(state&&state.active)throw error('免费回合仍在运行，已阻止重复启动','AI_FREE_TURN_REENTRY');
   state={active:selected(),gm:g.GM||null,calls:0,failure:null};
   return state.active;

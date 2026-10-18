@@ -17,7 +17,9 @@
     need('Pipeline.run', TM.Endturn.Pipeline && TM.Endturn.Pipeline.run);
     need('Pipeline.buildCtx', TM.Endturn.Pipeline && TM.Endturn.Pipeline.buildCtx);
     need('_buildSaveState', root._buildSaveState);
-    if (p.ai && p.ai.key) {
+    // Explicit keyless Gemini full-turn also needs the complete AI pipeline;
+    // skipping these checks could silently advance a turn without AI.
+    if ((p.ai && p.ai.key) || (TM.GeminiTurn && TM.GeminiTurn.selected())) {
       need('_aiFetchWithRetry', root._aiFetchWithRetry); need('_aiComputeTimeout', root._aiComputeTimeout);
       need('_aiErrorIsTerminal', root._aiErrorIsTerminal); need('_tmAIFetch', root._tmAIFetch);
       if (mode === 'agent') {
