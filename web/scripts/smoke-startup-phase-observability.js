@@ -8,6 +8,10 @@ const vm = require('vm');
 const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
+// A standalone smoke run has no provider inventory until its generator executes.
+execFileSync(process.execPath, [path.join(__dirname, 'lint-global-providers.js')], {
+  cwd: path.resolve(ROOT, '..'), stdio: 'pipe'
+});
 execFileSync(process.execPath, [path.join(__dirname, 'build-startup-phase-manifest.js'), '--check'], {
   cwd: path.resolve(ROOT, '..'),
   stdio: 'pipe'
