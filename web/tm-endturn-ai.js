@@ -50,8 +50,7 @@
 
   ns.setupInfra = function(ctx) {
     ensureGroups(ctx);
-    var _freeTurn=global.TM&&TM.GeminiTurn&&TM.GeminiTurn.active();
-    var url = _freeTurn ? 'https://gemini-web.tianming.invalid/v1/chat/completions' : String((P.ai&&P.ai.url)||'');
+    var url = String((P.ai&&P.ai.url)||'');
     if (url.indexOf("/chat/completions") < 0) url = url.replace(/\/+$/, "") + "/chat/completions";
 
     var _tokCp = (typeof getCompressionParams === "function") ? getCompressionParams() : { scale: 1.0, contextK: 32 };
@@ -274,14 +273,9 @@
       };
     }
     async function _parseOrRepairJsonResult(raw, data, label, opts) {
-      var free=global.TM&&TM.GeminiTurn&&TM.GeminiTurn.active();
-      if(free) opts=Object.assign({},opts||{},{url:'https://gemini-web.tianming.invalid/v1/chat/completions',key:'LOCAL_GEMINI_WEB_NO_API_KEY'});
-      var result=await (global.TM && TM.RecoveryRuntime
+      return await (global.TM && TM.RecoveryRuntime
         ? TM.RecoveryRuntime.parse(raw,data,label,opts,_parseOrRepairJsonResultNormal)
         : _parseOrRepairJsonResultNormal(raw,data,label,opts));
-      if(free&&opts&&opts.expectedKeys&&(!result||!result.parsed||result.failed))
-        TM.GeminiTurn.fail('关键 JSON 无法验证：'+String(label||'回合推演'));
-      return result;
     }
     async function _parseOrRepairJsonResultNormal(raw, data, label, opts) {
       opts = opts || {};
@@ -399,17 +393,11 @@
       var callUrl = opts.url || url;
       var key = opts.key || (P.ai && P.ai.key);
       var _thinkingCfg = P.ai;
-      if (global.TM && TM.GeminiTurn && TM.GeminiTurn.active()) {
-        callUrl='https://gemini-web.tianming.invalid/v1/chat/completions';
-        key='LOCAL_GEMINI_WEB_NO_API_KEY';
-        _thinkingCfg=(typeof _getAITier==='function')?_getAITier('geminiweb'):_thinkingCfg;
-        opts.tier='geminiweb';
-      }
       // 速度批一2026-07-21·机械/格式化子调用分流次要快模型(玩家配了才生效·未配零变化)：
       // 实录sc1d/丰化sc19/快照sc28/审查sc27_review+sc27/记忆落写memwrite/收编consolidate/压缩×3——
       // 高判断的 sc0/sc1/sc2_prose/sc15 一律不动仍走主模型
       var _SEC_SUBCALLS = { sc1d: 1, sc19: 1, sc28: 1, sc27_review: 1, sc27: 1, sc_memwrite: 1, sc_consolidate: 1, compress_ai_memory: 1, compress_foreshadows: 1, compress_conversation: 1 };
-      if (!(global.TM && TM.GeminiTurn && TM.GeminiTurn.active()) && !opts.url && opts.id && _SEC_SUBCALLS[opts.id] &&
+      if (!opts.url && opts.id && _SEC_SUBCALLS[opts.id] &&
           typeof _useSecondaryTier === 'function' && _useSecondaryTier() &&
           typeof _getAITier === 'function' && typeof _buildAIUrlForTier === 'function') {
         var _secCfg = _getAITier('secondary');
