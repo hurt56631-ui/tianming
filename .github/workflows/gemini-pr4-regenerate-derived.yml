@@ -1,5 +1,6 @@
 name: Tianming PR4 one-time derived manifest refresh
 # Regenerate for the final modern Chinese + free-turn source audit; no version stamping.
+# Also pin the active free-only guard after a mid-turn world/snapshot replacement.
 on:
   push:
     branches:
