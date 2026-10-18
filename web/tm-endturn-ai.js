@@ -50,7 +50,8 @@
 
   ns.setupInfra = function(ctx) {
     ensureGroups(ctx);
-    var url = P.ai.url;
+    var _freeTurn=global.TM&&TM.GeminiTurn&&TM.GeminiTurn.active();
+    var url = _freeTurn ? 'https://gemini-web.tianming.invalid/v1/chat/completions' : String((P.ai&&P.ai.url)||'');
     if (url.indexOf("/chat/completions") < 0) url = url.replace(/\/+$/, "") + "/chat/completions";
 
     var _tokCp = (typeof getCompressionParams === "function") ? getCompressionParams() : { scale: 1.0, contextK: 32 };
@@ -273,7 +274,14 @@
       };
     }
     async function _parseOrRepairJsonResult(raw, data, label, opts) {
-      return global.TM && TM.RecoveryRuntime ? TM.RecoveryRuntime.parse(raw,data,label,opts,_parseOrRepairJsonResultNormal) : _parseOrRepairJsonResultNormal(raw,data,label,opts);
+      var free=global.TM&&TM.GeminiTurn&&TM.GeminiTurn.active();
+      if(free) opts=Object.assign({},opts||{},{url:'https://gemini-web.tianming.invalid/v1/chat/completions',key:'LOCAL_GEMINI_WEB_NO_API_KEY'});
+      var result=await (global.TM && TM.RecoveryRuntime
+        ? TM.RecoveryRuntime.parse(raw,data,label,opts,_parseOrRepairJsonResultNormal)
+        : _parseOrRepairJsonResultNormal(raw,data,label,opts));
+      if(free&&opts&&opts.expectedKeys&&(!result||!result.parsed||result.failed))
+        TM.GeminiTurn.fail('关键 JSON 无法验证：'+String(label||'回合推演'));
+      return result;
     }
     async function _parseOrRepairJsonResultNormal(raw, data, label, opts) {
       opts = opts || {};
@@ -391,6 +399,12 @@
       var callUrl = opts.url || url;
       var key = opts.key || (P.ai && P.ai.key);
       var _thinkingCfg = P.ai;
+      if (global.TM && TM.GeminiTurn && TM.GeminiTurn.active()) {
+        callUrl='https://gemini-web.tianming.invalid/v1/chat/completions';
+        key='LOCAL_GEMINI_WEB_NO_API_KEY';
+        _thinkingCfg=(typeof _getAITier==='function')?_getAITier('geminiweb'):_thinkingCfg;
+        opts.tier='geminiweb';
+      }
       // 速度批一2026-07-21·机械/格式化子调用分流次要快模型(玩家配了才生效·未配零变化)：
       // 实录sc1d/丰化sc19/快照sc28/审查sc27_review+sc27/记忆落写memwrite/收编consolidate/压缩×3——
       // 高判断的 sc0/sc1/sc2_prose/sc15 一律不动仍走主模型

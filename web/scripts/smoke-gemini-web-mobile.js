@@ -6,7 +6,7 @@ const path=require('path');
 function sample(text){const p=Array(5).fill(null);p[4]=[[null,[text]]];return ")]}'\n"+JSON.stringify([['wrb.fr','',JSON.stringify(p)]])+'\n';}
 async function main(){
   const source=fs.readFileSync(path.join(__dirname,'../tm-gemini-web-mobile.js'),'utf8');
-  const ctx={console,URLSearchParams,TextEncoder,Uint8Array,Response,setTimeout,Promise,Date,
+  const ctx={console,URL,URLSearchParams,TextEncoder,Uint8Array,Response,setTimeout,Promise,Date,
     Capacitor:{isNativePlatform:()=>true},crypto:{randomUUID:()=> '125891fe-d605-42e8-89a4-999a6303d001'},
     _tmAIFetch:async()=>new Response('unused'),TM:{}};
   ctx.window=ctx;
