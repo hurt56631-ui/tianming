@@ -1138,6 +1138,8 @@ function _wdSanitizeDialogueReplyText(name, ch, parsed, rawReply) {
   if (_wdLooksLikeStructuredReply(replyText)) replyText = _wdVisibleReplyPreview(replyText);
   if (!replyText) replyText = _wdReadableTextFallback(replyText);
   if (!replyText) replyText = _wdAudienceOpeningFallback(name, ch);
+  if(typeof TM!=='undefined'&&TM.NPCSpeech)
+    replyText=TM.NPCSpeech.clean(replyText,{consort:!!(ch&&ch.spouseRank)});
   return replyText;
 }
 
@@ -1155,6 +1157,8 @@ function _wdFlagVitalConflict(entry) {
 }
 function _wdCommitAudienceOpening(name, ch, replyText) {
   var safeText = String(replyText == null ? '' : replyText).trim() || _wdAudienceOpeningFallback(name, ch);
+  if(typeof TM!=='undefined'&&TM.NPCSpeech)
+    safeText=TM.NPCSpeech.clean(safeText,{consort:!!(ch&&ch.spouseRank)});
   var bubble = _$('wd-init-bubble');
   if (bubble) { bubble.textContent = safeText; bubble.removeAttribute('id'); }
   if (!GM.wenduiHistory) GM.wenduiHistory = {};
@@ -1362,7 +1366,9 @@ async function _wdNpcInitiateSpeak(name) {
     + '<div class="wendui-npc-bubble wd-selectable" id="wd-init-bubble">\u2026</div></div>';
   chatEl.appendChild(div);
 
-  if (!(typeof P !== 'undefined' && P.ai && P.ai.key && typeof callAIMessagesStream === 'function')) {
+  if (!(typeof callAIMessagesStream === 'function' &&
+        ((typeof P!=='undefined'&&P.ai&&P.ai.key) ||
+         (typeof P!=='undefined'&&P.conf&&P.conf.geminiWebNpcEnabled)))) {
     _wdCommitAudienceOpening(name, ch, _wdAudienceOpeningFallback(name, ch));
     _wenduiSending = false;
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '奉旨'; }
@@ -1416,6 +1422,8 @@ async function _wdNpcInitiateSpeak(name) {
     sysP += '    ✓ topic="针对吴地赋税连年欠缴"\n';
     sysP += '      content="臣请陛下遣户部侍郎某某巡按江南，择苏松常三州先行清丈田亩，以三月为期。若豪右隐匿，许其自首减免，逾期则籍没半数。同时诏命漕运总督约束胥吏，不得骚扰民户。如此上体朝廷之公，下息百姓之怨"\n';
 
+    if(typeof TM!=='undefined'&&TM.NPCSpeech)
+      sysP+=TM.NPCSpeech.hint(!!(ch&&ch.spouseRank),_wenduiMode==='private');
     var msgs = [{ role: 'system', content: sysP + '\n' + (typeof _aiDialogueWordHint==='function'?_aiDialogueWordHint("wd"):'') }];
     var _wdInitPending = null, _wdInitRaf = 0;
     var _wdInitFlush = function() {
@@ -1497,7 +1505,18 @@ async function _wdNpcInitiateSpeak(name) {
       }
     }
   } catch(e) {
-    if (!_audienceOpeningCommitted) _wdCommitAudienceOpening(name, ch, _wdAudienceOpeningFallback(name, ch));
+    console.error('[问对求见] NPC AI failed:',e);
+    // Never forge an AI failure as a successful NPC response or save it in history.
+    if (!_audienceOpeningCommitted) {
+      var failedOpening=_$('wd-init-bubble');
+      if(failedOpening) {
+        failedOpening.id='';
+        failedOpening.textContent='（人物 AI 暂时没有回应：'+
+          ((typeof _tmAiErrHuman==='function'&&_tmAiErrHuman(e))||'免费网页接口可能限流或不可用，请检查 API 配置')+
+          '。可以关闭免费人物聊天或启用正式主 API 备用。）';
+      }
+      toast('人物 AI 没有回应，请检查聊天内错误提示');
+    }
   }
   _wenduiSending = false;
   if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '奉旨'; }
@@ -2424,7 +2443,7 @@ async function sendWendui(){
   chat.scrollTop=chat.scrollHeight;
 
   var ch=findCharByName(name);
-  if(P.ai.key&&ch){
+  if(ch&&((P.ai&&P.ai.key)||(P.conf&&P.conf.geminiWebNpcEnabled===true))){
     _wenduiSending = true;
     var sendBtn = _$('wd-send-btn');
     if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '…'; }
@@ -2472,6 +2491,10 @@ async function sendWendui(){
         else messages.push({ role: _r, content: _c });
       });
 
+      // This is after historical assistant messages: don't imitate older archaic dialogue.
+      if(messages.length&&messages[messages.length-1].role==='user') {
+        messages[messages.length-1].content+='\n【表达要求】请像正常人说话，不像古装剧写台词。保留历史称谓，用现代句式，不要“政务倥偬、臣妾虽居后宫、亲操针黹、乾纲独断”等套话。';
+      }
       var streamBubble = _$('wd-stream-text');
       // 性能·2026-06-10·流式合帧:原每 chunk 都「全文重提取+textContent 重排+scrollTop 强制布局」·快流 20-60 chunk/s 把聊天列每秒重排几十次。
       // 改 rAF 合并:每帧至多一次 DOM 写·且仅当玩家贴近底部才跟滚(不打断回看·少一次强制布局)
@@ -2506,11 +2529,7 @@ async function sendWendui(){
         // 深诊断(2026-06-26)：定位"问对AI返回史记格式{shizhengji,zhengwen,player_status}"——
         // 确认发出的 sysP 是问对(含loyaltyDelta)还是被串成史记(含shizhengji/时政记)·并看 AI 原始回复
         try { var _spS = String(typeof sysP !== 'undefined' ? sysP : ''); console.log('[问对诊断·深] sysP问对schema=' + (_spS.indexOf('loyaltyDelta') >= 0) + '·sysP混入史记=' + (_spS.indexOf('shizhengji') >= 0 || _spS.indexOf('时政记') >= 0) + '·history条=' + ((GM.wenduiHistory && GM.wenduiHistory[name] || []).length) + '·rawReply前300=' + String(rawReply || '').slice(0, 300)); } catch (_dgX) {}
-        if (parsed && parsed.reply) {
-          replyText = parsed.reply;
-        } else {
-          replyText = _wdSanitizeDialogueReplyText(name, ch, parsed, rawReply);
-        }
+        replyText = _wdSanitizeDialogueReplyText(name, ch, parsed, rawReply);
         // #9·基础对话忠诚缩放：深谈（多轮）更有分量·仍封顶（formal≤4·private≤5）
         var _ldBase = (_wenduiMode === 'private') ? 3 : 2;
         var _ldTurns = (GM._wdState && GM._wdState[name] && GM._wdState[name].turns) || 0;
@@ -2797,8 +2816,18 @@ async function sendWendui(){
       }
     }catch(err){
       console.error('[问对] 流式失败:', err);
-      var sd3 = _$('wd-stream-active'); if (sd3) sd3.remove();
-      toast('对话失败');
+      var sd3 = _$('wd-stream-active');
+      var explain=(typeof _tmAiErrHuman==='function'&&_tmAiErrHuman(err))||
+        '免费 Gemini 网页接口不可用，或当前平台未连接；请尝试关闭免费人物对话、测试正式 API。';
+      if(sd3){
+        var bubble=sd3.querySelector('.wendui-npc-bubble');
+        if(bubble) {
+          bubble.textContent='人物 AI 暂时无法回复：'+explain;
+          bubble.style.color='var(--vermillion-400,#c04030)';
+        }
+        sd3.removeAttribute('id');
+      }
+      toast('对话失败：'+String(explain).slice(0,90));
     }
     _wenduiSending = false;
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = '奉旨'; }

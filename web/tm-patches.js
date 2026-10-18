@@ -717,6 +717,7 @@ openSettings=function(){
     '<div style="border:1px solid var(--bdr);padding:0.65rem;margin:0.6rem 0;border-radius:6px;">'+
     '<label style="display:flex;align-items:center;gap:0.4rem;"><input id="s-free-npc" type="checkbox" '+((P.conf&&P.conf.geminiWebNpcEnabled)?'checked':'')+'><b>人物对话使用免费 Gemini 3.5 Flash-Lite（实验）</b></label>'+
     '<div style="font-size:0.74rem;color:var(--txt-d);margin:0.35rem 0;">免费 Gemini 网页只用于人物对话；结束回合固定使用正式主 API，并按原设置分流次 API。支持新版 Electron 与安卓 Capacitor；Google 网页可能限流或协议变更。</div>'+
+    '<label style="display:flex;align-items:center;gap:0.4rem;margin:0.4rem 0;"><input id="s-free-npc-paid-fallback" type="checkbox" '+(P.conf&&P.conf.geminiWebNpcFallbackPrimary?'checked':'')+'><span>免费人物对话失败后允许改用正式主 API（可能产生费用，默认关闭）</span></label>'+
     '<button type="button" class="bt bs bsm" onclick="sTestGeminiWebNpc()">测试免费人物对话</button><span id="s-free-npc-status" style="font-size:0.73rem;color:var(--txt-d);margin-left:0.4rem;"></span>'+
     '<div style="border-top:1px solid var(--bdr);margin-top:0.55rem;padding-top:0.5rem;">'+
       '<label style="display:flex;gap:0.4rem;align-items:center;"><input type="checkbox" id="s-gw-enabled" '+(TM.GeminiLoginBackup&&TM.GeminiLoginBackup.summary().enabled?'checked':'')+'><b>Google 登录态备用（自建 Gemini 网关）</b></label>'+
@@ -1534,6 +1535,7 @@ var DEFAULT_RULES="1.\u6570\u503C\u5408\u7406 2.\u89D2\u8272\u72EC\u7ACB 3.\u621
 
 function _sApplyPrimaryApiFields(){
   if (_$('s-free-npc') && P && P.conf) P.conf.geminiWebNpcEnabled = !!_$('s-free-npc').checked;
+  if (_$('s-free-npc-paid-fallback') && P && P.conf) P.conf.geminiWebNpcFallbackPrimary = !!_$('s-free-npc-paid-fallback').checked;
   // Legacy save migration: removed free full-turn mode has no effect and is cleared on save.
   if (P && P.conf) delete P.conf.geminiWebTurnEnabled;
   P.ai.key=_$("s-key")?_$("s-key").value:"";P.ai.url=_$("s-url")?_$("s-url").value:"";P.ai.model=_$("s-model")?_$("s-model").value:"";var _tv=parseFloat(_$("s-temp")?_$("s-temp").value:"");P.ai.temp=isNaN(_tv)?0.8:_tv;var _mv=parseInt(_$("s-mem")?_$("s-mem").value:"");P.ai.mem=isNaN(_mv)?20:_mv;P.ai.provider=_$("s-prov")?_$("s-prov").value:"openai";

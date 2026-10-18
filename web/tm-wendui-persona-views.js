@@ -161,10 +161,10 @@ function _wdConsortContext(ch) {
       var _recentHist = (typeof _tmFilterWenduiEntries === 'function') ? _tmFilterWenduiEntries((GM.wenduiHistory && GM.wenduiHistory[ch.name]) || [], GM) : ((GM.wenduiHistory && GM.wenduiHistory[ch.name]) || []);   /* 刀B·生死矛盾问对条不注入后妃承续上下文 */
       if (_recentHist.length > 0) {
         var _lastFew = _recentHist.slice(-4);
-        _spouseCtx += '\n  【最近问对记录·请自然承续】';
+        _spouseCtx += '\n  【最近谈过的事情·仅供事实记忆，不要模仿旧台词的古文语气】';
         _lastFew.forEach(function(h){
-          var tag = h.role === 'player' ? '帝' : '汝';
-          _spouseCtx += '\n    ' + tag + '曰：' + (h.content||'').slice(0, 40);
+          var tag = h.role === 'player' ? '玩家之前提到' : '你之前谈及';
+          _spouseCtx += '\n    ' + tag + '：' + (h.content||'').slice(0, 40);
         });
       }
       // 当前朝政关切点（借题发挥用）
@@ -181,7 +181,7 @@ function _wdConsortContext(ch) {
       }
       // 时代背景（剧本 era）
       var _sc2 = findScenarioById && findScenarioById(GM.sid);
-      if (_sc2 && _sc2.era) _spouseCtx += '\n  【时代】' + _sc2.era + '——你的言谈辞令应符合此时朝代风貌';
+      if (_sc2 && _sc2.era) _spouseCtx += '\n  【时代】' + _sc2.era + '——制度、身份与称谓符合时代；说话句式仍是现代自然口语';
       _spouseCtx += '\n  ★ 请见动机多样·不必硬套：①真有事②吸引帝之注意③发泄闷气④随口引子⑤喜做此事——AI 依性情择其一';
       _spouseCtx += '\n  ★ suggestions 可涉及：母族升赏、皇子教育、某宫嫔失仪、天象占吉（借他人口）、某大臣印象（借题起议）；不必写政务大策\n';
     }
@@ -599,6 +599,8 @@ function _wdBuildPrompt(ch, name) {
     + '不要“臣妾（眼眶泛红，重重叩首）”一类舞台说明开头；玩家提到前世或未来也不能擅自保证历史必然改写。'
     + '比如回禀秘密调查：“陛下，我明白。慈宁宫的人我会先核查；旧账安排可靠的人逐笔对照；司礼监和内阁的消息只向您密报。没有查清前，不会擅自抓人或定罪。如果您决定太急，我会直接劝您。”'
     + '人物可以不同意玩家或承认能力范围，不需要次次宣誓效忠；难事可以讲细，但不要重复抒情。输出格式、记忆字段、数值及已发生事实仍按前文执行。';
+  if(typeof TM!=='undefined'&&TM.NPCSpeech)
+    p+=TM.NPCSpeech.hint(_isPlayerConsort,_isPrivateMode);
   return p;
 }
 
