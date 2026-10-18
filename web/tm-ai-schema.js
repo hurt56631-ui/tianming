@@ -53,7 +53,7 @@
     // ──────────────────────────────────────────────
     // 叙事文本（string）
     // ──────────────────────────────────────────────
-    narrative:   { type: 'string', desc: '回合主叙事，半文言 300-800 字' },
+    narrative:   { type: 'string', desc: '回合主叙事，现代白话 300-800 字' },
     shilu_text:  { type: 'string', desc: '实录风格叙事补充' },
     shizhengji:  { type: 'string', desc: '时政记风格补充' },
     event:       { type: 'object', desc: '单个主要事件，带 desc' },
