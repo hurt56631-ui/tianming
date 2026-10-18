@@ -1,4 +1,5 @@
 name: Tianming Gemini PR4 Android debug APK
+# Recheck after native manifest regeneration and world-identity free route guard.
 
 # Build test APK only; never publish a release or alter the application signing key.
 on:

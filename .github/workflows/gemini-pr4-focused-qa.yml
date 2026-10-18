@@ -1,4 +1,5 @@
 name: Tianming Gemini PR4 focused QA
+# Recheck after native manifest regeneration and world-identity free route guard.
 on:
   push:
     branches:
