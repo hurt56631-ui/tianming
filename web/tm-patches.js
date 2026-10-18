@@ -711,7 +711,10 @@ openSettings=function(){
     "<div id=\"s-status\" style=\"font-size:0.78rem;color:var(--txt-d);margin-top:0.3rem;\"></div>"+
     '<div style="border:1px solid var(--bdr);padding:0.65rem;margin:0.6rem 0;border-radius:6px;">'+
     '<label style="display:flex;align-items:center;gap:0.4rem;"><input id="s-free-npc" type="checkbox" '+((P.conf&&P.conf.geminiWebNpcEnabled)?'checked':'')+'><b>人物对话使用免费 Gemini 3.5 Flash-Lite（实验）</b></label>'+
-    '<div style="font-size:0.74rem;color:var(--txt-d);margin:0.35rem 0;">人物发言走匿名网页；抽取承诺、判定政治后果、结束回合以及所有军政结算仍使用主/次 API。支持新版 Electron 和安卓 Capacitor；普通网页不支持。Google 网页通道可能限流或变更，不会自动偷用付费 API 重试。</div>'+
+    '<div style="font-size:0.74rem;color:var(--txt-d);margin:0.35rem 0;">人物发言走匿名网页；默认结束回合仍用主/次 API。支持新版 Electron 和安卓 Capacitor；普通网页只有自行配置 HTTPS 登录态网关才可使用。Google 网页可能限流或变更。</div>'+
+    '<label style="display:flex;align-items:center;gap:0.4rem;margin-top:0.5rem;"><input id="s-free-turn" type="checkbox" '+((P.conf&&P.conf.geminiWebTurnEnabled)?'checked':'')+'><b>结束回合也尝试免费 Gemini 3.5（高风险实验；默认关闭）</b></label>'+
+    '<div style="font-size:0.73rem;color:var(--txt-d);margin:0.25rem 0 0.45rem;">免费网页不保证支持长回合和复杂 JSON。每次输入超过约 90KB、额度受限或格式无法验证，回合会中断并尝试回滚，绝不偷偷使用主/次付费 API。正式 Gemini AI Studio 的免费 API 额度更稳定，推荐复杂回合使用。</div>'+
+    '<button type="button" class="bt bs bsm" onclick="sTestGeminiWebTurn()">测试免费回合 JSON</button><span id="s-free-turn-status" style="font-size:0.73rem;color:var(--txt-d);margin-left:0.4rem;"></span>'+
     '<button type="button" class="bt bs bsm" onclick="sTestGeminiWebNpc()">测试免费人物对话</button><span id="s-free-npc-status" style="font-size:0.73rem;color:var(--txt-d);margin-left:0.4rem;"></span>'+
     '<div style="border-top:1px solid var(--bdr);margin-top:0.55rem;padding-top:0.5rem;">'+
       '<label style="display:flex;gap:0.4rem;align-items:center;"><input type="checkbox" id="s-gw-enabled" '+(TM.GeminiLoginBackup&&TM.GeminiLoginBackup.summary().enabled?'checked':'')+'><b>Google 登录态备用（自建 Gemini 网关）</b></label>'+
@@ -1529,6 +1532,7 @@ var DEFAULT_RULES="1.\u6570\u503C\u5408\u7406 2.\u89D2\u8272\u72EC\u7ACB 3.\u621
 
 function _sApplyPrimaryApiFields(){
   if (_$('s-free-npc') && P && P.conf) P.conf.geminiWebNpcEnabled = !!_$('s-free-npc').checked;
+  if (_$('s-free-turn') && P && P.conf) P.conf.geminiWebTurnEnabled = !!_$('s-free-turn').checked;
   P.ai.key=_$("s-key")?_$("s-key").value:"";P.ai.url=_$("s-url")?_$("s-url").value:"";P.ai.model=_$("s-model")?_$("s-model").value:"";var _tv=parseFloat(_$("s-temp")?_$("s-temp").value:"");P.ai.temp=isNaN(_tv)?0.8:_tv;var _mv=parseInt(_$("s-mem")?_$("s-mem").value:"");P.ai.mem=isNaN(_mv)?20:_mv;P.ai.provider=_$("s-prov")?_$("s-prov").value:"openai";
   if (window.TM && TM.APISettings) TM.APISettings.read('primary', P.ai);
 }
@@ -1537,7 +1541,7 @@ function _sDeviceSettingsReady(){
   catch(error){toast('未保存：'+error.message);return false;}
 }
 function sSaveAPI(){
-  if (_$('s-url') && /gemini-web\.tianming\.invalid/.test(_$('s-url').value||'')) { toast('免费 Gemini 仅供人物对话；主 API 请使用正式服务商。'); return false; }
+  if (_$('s-url') && /gemini-web\.tianming\.invalid/.test(_$('s-url').value||'')) { toast('免费 Gemini 请通过独立的聊天/回合勾选开关启用；不要把虚拟地址填入正式 API 栏。'); return false; }
   if(!_sDeviceSettingsReady())return false;
   try { if (window.TM && TM.CallBudgetSettings) TM.CallBudgetSettings.validate(); } catch(e) { toast(e.message); return false; }
   _sApplyPrimaryApiFields();
@@ -1551,7 +1555,7 @@ function sSaveAPI(){
   toast("\u2705 API\u5DF2\u4FDD\u5B58");
 }
 function sSaveAll(){
-  if (_$('s-url') && /gemini-web\.tianming\.invalid/.test(_$('s-url').value||'')) { toast('结束回合必须用真实 API，请配置正式服务商。'); return false; }
+  if (_$('s-url') && /gemini-web\.tianming\.invalid/.test(_$('s-url').value||'')) { toast('请使用免费回合开关或配置正式 API，不可把虚拟地址填入主 API。'); return false; }
   if(!_sDeviceSettingsReady())return false;
   try { if (window.TM && TM.CallBudgetSettings) TM.CallBudgetSettings.validate(); } catch(e) { toast(e.message); return false; }
   // 先把主/次 API 面板全部合入内存，最后一次性写 tm_api；旧实现先持久化旧 secondary，
@@ -1792,6 +1796,21 @@ function sClearGeminiLoginBackup(){
     if(_$('s-gw-model'))_$('s-gw-model').value='gemini-3.5-flash-lite';
     _sGeminiLoginStatus('已清除设备上的备用网关配置；Google 账号未在游戏内保存。');
   }catch(e){_sGeminiLoginStatus('清除失败：'+String(e&&e.message||e));}
+}
+async function sTestGeminiWebTurn(){
+  var st=_$('s-free-turn-status');
+  if(st)st.textContent='正在测试免费 Gemini 是否能返回严格 JSON…';
+  try{
+    var text=await callAIMessages([
+      {role:'system',content:'只返回合法 JSON，不写 markdown 或其他文字。用自然现代汉语回答。'},
+      {role:'user',content:'请返回这个 JSON 对象并填写内容：{"turn_summary":"一句现代白话","resource_changes":{},"events":[]}'}
+    ],256,null,'geminiweb',{maxRetries:0});
+    var parsed=typeof extractJSON==='function'?extractJSON(text):JSON.parse(text);
+    if(!parsed||typeof parsed.turn_summary!=='string'||!parsed.turn_summary.trim()||
+       !parsed.resource_changes||typeof parsed.resource_changes!=='object'||
+       !Array.isArray(parsed.events))throw new Error('返回内容不是可用的回合 JSON；不能安全用于正式回合');
+    if(st)st.textContent='JSON 测试通过：'+parsed.turn_summary.slice(0,50)+'。注意不代表复杂回合必然成功。';
+  }catch(e){if(st)st.textContent='失败：'+String(e&&e.message||e).slice(0,130);}
 }
 async function sTestGeminiWebNpc(){
   var st=_$('s-free-npc-status');if(st)st.textContent='正在测试免费 Gemini 3.5…';
