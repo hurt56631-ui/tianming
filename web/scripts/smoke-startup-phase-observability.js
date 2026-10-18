@@ -37,6 +37,10 @@ assert(scriptNames.indexOf(officeDutyModules[0])<scriptNames.indexOf(officeDutyM
 assert(scriptNames.indexOf(officeDutyModules[1])<scriptNames.indexOf('tm-office-system.js'),'shared office readers precede their consumers');
 const visualAdapters=['tm-shanhe-runtime.js'];
 const requestControls=['tm-call-retry-policy.js','tm-call-budget-settings.js'];
+const geminiModules=['tm-gemini-web-mobile.js','tm-gemini-login-backup.js','tm-gemini-web-adapter.js','tm-gemini-turn.js'];
+geminiModules.forEach(name=>assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once'));
+assert(scriptNames.indexOf('tm-gemini-web-adapter.js')>scriptNames.indexOf('tm-ai-infra-retry.js'),'Gemini hook requires the owned AI transport first');
+assert(scriptNames.indexOf('tm-gemini-turn.js')>scriptNames.indexOf('tm-gemini-web-adapter.js'),'free endturn waits for Gemini transport bridge');
 const emergencyModules=['core','tools','adapters','runtime','edict','review','settings'].map(n=>'tm-emergency-recovery-'+n+'.js');
 emergencyModules.forEach(name=>{assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once');assert(scriptNames.indexOf(name)>scriptNames.indexOf('tm-agent-kernel.js'),'recovery needs existing AgentKernel first');});
 const enactedOrderModules=['tm-agent-world-editor.js','tm-social-formation.js','tm-imperial-orders.js','tm-personal-memory-recall.js','tm-live-context.js','tm-tax-policy.js'];
@@ -62,7 +66,7 @@ travelModules.forEach(name=>{assert.strictEqual(scriptNames.filter(src=>src===na
 const tenureModules=['tm-office-tenure.js'];
 tenureModules.forEach(name=>{assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once');assert(scriptNames.indexOf(name)>scriptNames.indexOf('tm-npc-decision-ai-driven.js'),'tenure adapter loads after the NPC registry');});
 assert(scriptNames.indexOf('tm-map-circuits.js')<scriptNames.indexOf('phase8-formal-map-dossier.js'),'circuit data layer precedes the map dossier that reads it');
-assert.strictEqual(manifest.scriptCount,417+dailyModules.length+politicalModules.length+officeDutyModules.length+exportModules.length+nativeModules.length+fiscalModules.length+recoveryModules.length+outputContractModules.length+visualAdapters.length+requestControls.length+enactedOrderModules.length+emergencyModules.length+edictEfficacyModules.length+mapDataModules.length+timeModules.length+travelModules.length+tenureModules.length,'retain every prior script and every explicitly registered runtime addition');
+assert.strictEqual(manifest.scriptCount,417+dailyModules.length+politicalModules.length+officeDutyModules.length+exportModules.length+nativeModules.length+fiscalModules.length+recoveryModules.length+outputContractModules.length+visualAdapters.length+requestControls.length+geminiModules.length+enactedOrderModules.length+emergencyModules.length+edictEfficacyModules.length+mapDataModules.length+timeModules.length+travelModules.length+tenureModules.length,'retain every prior script and every explicitly registered runtime addition');
 fiscalModules.forEach(name=>assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once'));
 assert(scriptNames.indexOf('tm-fiscal-statements.js')<scriptNames.indexOf('tm-fiscal-engine.js'),'shared statements precede the fiscal engine');
 assert(scriptNames.indexOf('tm-public-treasury.js')<scriptNames.indexOf('tm-military-arrears.js'),'public treasury precedes army liabilities');
