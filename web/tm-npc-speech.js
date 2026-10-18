@@ -31,7 +31,7 @@ function clean(input,opts){
   if(opts.consort===true){
     // A spouse speaking alone is not reciting a memorial. "我" sounds natural.
     s=s.replace(/臣妾/g,'我').replace(/妾身/g,'我');
-    s=s.replace(/我虽/g,'我虽然').replace(/我亦/g,'我也');
+    s=s.replace(/我虽(?!然)/g,'我虽然').replace(/我亦/g,'我也');
   }
   s=s.replace(/拼死进谏/g,'直接劝您').replace(/粉身碎骨/g,'竭尽全力')
     .replace(/重蹈覆辙/g,'再犯同样的错误').replace(/天颜/g,'您');
