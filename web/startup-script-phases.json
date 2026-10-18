@@ -864,43 +864,8 @@
       "reason": "Legacy eager script: document order remains observable, but adjacency is not represented as a dependency. Explicit split contracts remain owned by lint-split-contracts.js."
     },
     {
-      "script": "tm-api-pool.js",
-      "order": 32,
-      "phase": "core",
-      "loadPolicy": "eager-ordered",
-      "platform": "any",
-      "sideEffects": "legacy-unknown",
-      "provides": [
-        "TM",
-        "sTestPoolAPI"
-      ],
-      "consumes": [],
-      "dependsOn": [],
-      "mustLoadBefore": [],
-      "mustLoadAfter": [],
-      "lazySafe": false,
-      "reason": "Legacy eager script: document order remains observable, but adjacency is not represented as a dependency. Explicit split contracts remain owned by lint-split-contracts.js."
-    },
-    {
-      "script": "tm-npc-speech.js",
-      "order": 33,
-      "phase": "core",
-      "loadPolicy": "eager-ordered",
-      "platform": "any",
-      "sideEffects": "legacy-unknown",
-      "provides": [
-        "TM"
-      ],
-      "consumes": [],
-      "dependsOn": [],
-      "mustLoadBefore": [],
-      "mustLoadAfter": [],
-      "lazySafe": false,
-      "reason": "Legacy eager script: document order remains observable, but adjacency is not represented as a dependency. Explicit split contracts remain owned by lint-split-contracts.js."
-    },
-    {
       "script": "tm-ai-infra-model-detect.js",
-      "order": 34,
+      "order": 32,
       "phase": "core",
       "loadPolicy": "eager-ordered",
       "platform": "any",
@@ -933,6 +898,41 @@
         "probeModelQuickCheck",
         "probeModelSelfReport",
         "runSelfTests"
+      ],
+      "consumes": [],
+      "dependsOn": [],
+      "mustLoadBefore": [],
+      "mustLoadAfter": [],
+      "lazySafe": false,
+      "reason": "Legacy eager script: document order remains observable, but adjacency is not represented as a dependency. Explicit split contracts remain owned by lint-split-contracts.js."
+    },
+    {
+      "script": "tm-api-pool.js",
+      "order": 33,
+      "phase": "core",
+      "loadPolicy": "eager-ordered",
+      "platform": "any",
+      "sideEffects": "legacy-unknown",
+      "provides": [
+        "TM",
+        "sTestPoolAPI"
+      ],
+      "consumes": [],
+      "dependsOn": [],
+      "mustLoadBefore": [],
+      "mustLoadAfter": [],
+      "lazySafe": false,
+      "reason": "Legacy eager script: document order remains observable, but adjacency is not represented as a dependency. Explicit split contracts remain owned by lint-split-contracts.js."
+    },
+    {
+      "script": "tm-npc-speech.js",
+      "order": 34,
+      "phase": "core",
+      "loadPolicy": "eager-ordered",
+      "platform": "any",
+      "sideEffects": "legacy-unknown",
+      "provides": [
+        "TM"
       ],
       "consumes": [],
       "dependsOn": [],
