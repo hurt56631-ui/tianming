@@ -141,8 +141,10 @@ function route(resource,options,next){
   })();
 }
 async function testSlot(i){
-  var idx=Number(i),cfg=draft(),row=cfg.rows[idx];
-  if(!row)throw Error('此备用线路未完整配置');
+  var idx=Number(i),stored=getStore(),row=slotDraft(idx,stored);
+  if(!Number.isInteger(idx)||idx<0||idx>=MAX)throw Error('备用线路编号无效');
+  if(!row.url||!row.model||!row.key)throw Error('此备用线路未完整配置');
+  normalize({enabled:true,rows:[row]});
   var endpoint=chatUrl(row.url),body={model:row.model,messages:[{role:'user',content:'只回答：正常'}],max_tokens:16,stream:false};
   // Bypass round-robin: test EXACTLY this configured endpoint once.
   var fetcher=typeof global._tmAIFetchDirect==='function'?global._tmAIFetchDirect:global.fetch;

@@ -713,6 +713,7 @@ openSettings=function(){
     "<div style=\"font-size:0.7rem;color:var(--txt-d);margin:-0.2rem 0 0.3rem;\">\u4E0A\u4E0B\u6587\u7A97\u53E3\u5F71\u54CD\u8BB0\u5FC6\u538B\u7F29\u7B56\u7565\uFF1A128K+\u5BBD\u677E\u4FDD\u7559\u3001<32K\u6FC0\u8FDB\u538B\u7F29\u3001\u7559\u7A7A\u81EA\u52A8\u8BC6\u522B\u6A21\u578B</div>"+
     "<div style=\"display:flex;gap:0.3rem;margin-top:0.4rem;\"><button class=\"bt bs bsm\" onclick=\"sTestConn()\">\u6D4B\u8BD5\u8FDE\u63A5</button><button class=\"bt bs bsm\" onclick=\"sReDetectCtx()\">\u91CD\u65B0\u63A2\u6D4B\u7A97\u53E3</button><button class=\"bt bp bsm\" onclick=\"sSaveAPI()\">\u4FDD\u5B58</button></div>"+
     "<div id=\"s-status\" style=\"font-size:0.78rem;color:var(--txt-d);margin-top:0.3rem;\"></div>"+
+    (window.TM&&TM.APIPool?TM.APIPool.render():'')+
     '<div style="border:1px solid var(--bdr);padding:0.65rem;margin:0.6rem 0;border-radius:6px;">'+
     '<label style="display:flex;align-items:center;gap:0.4rem;"><input id="s-free-npc" type="checkbox" '+((P.conf&&P.conf.geminiWebNpcEnabled)?'checked':'')+'><b>人物对话使用免费 Gemini 3.5 Flash-Lite（实验）</b></label>'+
     '<div style="font-size:0.74rem;color:var(--txt-d);margin:0.35rem 0;">免费 Gemini 网页只用于人物对话；结束回合固定使用正式主 API，并按原设置分流次 API。支持新版 Electron 与安卓 Capacitor；Google 网页可能限流或协议变更。</div>'+
@@ -1545,7 +1546,11 @@ function _sDeviceSettingsReady(){
 function sSaveAPI(){
   if (_$('s-url') && /gemini-web\.tianming\.invalid/.test(_$('s-url').value||'')) { toast('免费 Gemini 请通过独立的聊天/回合勾选开关启用；不要把虚拟地址填入正式 API 栏。'); return false; }
   if(!_sDeviceSettingsReady())return false;
-  try { if (window.TM && TM.CallBudgetSettings) TM.CallBudgetSettings.validate(); } catch(e) { toast(e.message); return false; }
+  try {
+    if (window.TM && TM.CallBudgetSettings) TM.CallBudgetSettings.validate();
+    if (window.TM && TM.APIPool) TM.APIPool.validateUI();
+  } catch(e) { toast(e.message); return false; }
+  try { if(window.TM&&TM.APIPool) TM.APIPool.saveUI(); } catch(e) {toast(e.message);return false;}
   _sApplyPrimaryApiFields();
   try{ if(typeof tmApplyInsecureTlsConfig==='function') tmApplyInsecureTlsConfig(); }catch(_){}
   // ★2026-07-01·修「桌面端保存主 API key·关游戏再进就丢」:key 真源在 localStorage.tm_api(启动时 tm-player-core.js:257
@@ -1559,7 +1564,11 @@ function sSaveAPI(){
 function sSaveAll(){
   if (_$('s-url') && /gemini-web\.tianming\.invalid/.test(_$('s-url').value||'')) { toast('请使用免费回合开关或配置正式 API，不可把虚拟地址填入主 API。'); return false; }
   if(!_sDeviceSettingsReady())return false;
-  try { if (window.TM && TM.CallBudgetSettings) TM.CallBudgetSettings.validate(); } catch(e) { toast(e.message); return false; }
+  try {
+    if (window.TM && TM.CallBudgetSettings) TM.CallBudgetSettings.validate();
+    if (window.TM && TM.APIPool) TM.APIPool.validateUI();
+  } catch(e) {toast(e.message);return false;}
+  try {if(window.TM&&TM.APIPool)TM.APIPool.saveUI();}catch(e){toast(e.message);return false;}
   // 先把主/次 API 面板全部合入内存，最后一次性写 tm_api；旧实现先持久化旧 secondary，
   // 随后只改内存，导致重启恢复旧次 key。
   _sApplyPrimaryApiFields();

@@ -282,7 +282,15 @@ if (typeof window !== 'undefined') {
   window.TM=window.TM||{};
   window.TM.AITransportHooks=window.TM.AITransportHooks||{};
 }
+// Core HTTP transport stays authoritative for browser and Capacitor native requests.
+// The optional multi-API switch only runs for explicitly configured official
+// OpenAI-compatible completion endpoints; free Gemini and models GET remain untouched.
 async function _tmAIFetch(resource, options) {
+  var pool=typeof globalThis!=='undefined'&&globalThis.TM&&globalThis.TM.APIPool;
+  if(pool&&typeof pool.route==='function')return pool.route(resource,options,_tmAIFetchDirect);
+  return _tmAIFetchDirect(resource,options);
+}
+async function _tmAIFetchDirect(resource, options) {
   var hooks=globalThis.TM&&globalThis.TM.AITransportHooks;
   var interceptor=hooks&&hooks['geminiWeb'];
   if(typeof interceptor==='function'){
@@ -375,6 +383,9 @@ async function _tmAIFetch(resource, options) {
     });
   });
 }
+// Exposed only for the explicit per-line test button; bypasses load balancing
+// while retaining mobile CapacitorHttp SSL/timeout protections.
+if(typeof window!=='undefined')window._tmAIFetchDirect=_tmAIFetchDirect;
 
 // Stream transport shares the timeout and cancellation owner.
 async function _callAIMessagesStreamDirect(messages, maxTok, opts) {
