@@ -10,8 +10,10 @@ function selected(){
   return !!(g.P && g.P.conf && g.P.conf.geminiWebTurnEnabled===true);
 }
 function active(){
-  return !!(state && state.active && state.gm===g.GM &&
-    g.GM && g.GM.busy===true && g.GM._endTurnBusy===true);
+  // Own the entire turn transaction until end() in the core finally block.
+  // Busy flags can be cleared just before autosave; dropping the free guard
+  // earlier would permit a pending AI call to silently use the paid API.
+  return !!(state && state.active && state.gm===g.GM);
 }
 function error(message,code,status){
   var e=new Error(message);e.code=code||'FREE_GEMINI_TURN_FAILED';e.status=status||422;

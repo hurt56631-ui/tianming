@@ -30,6 +30,11 @@ async function run(){
   assert(turn.selected()&&!turn.active());
   assert.strictEqual(sandbox._getAITier('primary').key,'PAID_PRIMARY_KEY');
   assert(turn.begin()&&turn.active());
+  // A finished loading animation / cleared busy bit must NOT release the
+  // free-only network barrier before the transaction's finally has run.
+  sandbox.GM.busy=false; sandbox.GM._endTurnBusy=false;
+  assert(turn.active(),'free-only guard remains owned through final save');
+  sandbox.GM.busy=true; sandbox.GM._endTurnBusy=true;
   assert.throws(()=>turn.assertBeforeSave(),/空回合提交/,'a free turn with zero model requests must not silently commit');
   assert.strictEqual(sandbox._getAITier('primary').tier,'geminiweb');
   assert.strictEqual(sandbox._getAITier('secondary').tier,'geminiweb');
