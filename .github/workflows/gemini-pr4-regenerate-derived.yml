@@ -1,12 +1,17 @@
 name: Tianming PR4 one-time derived manifest refresh
-# Regenerate for the final modern Chinese + free-turn source audit; no version stamping.
-# Also pin the active free-only guard after a mid-turn world/snapshot replacement.
+# Regenerate startup and native byte inventories whenever source JS or index changes.
+# Deliberately excludes generated manifests, so the bot's own commit cannot loop.
 on:
   push:
     branches:
       - codex/gemini-web-free-desktop-20261017
     paths:
       - .github/workflows/gemini-pr4-regenerate-derived.yml
+      - web/*.js
+      - web/index.html
+      - web/scripts/*.js
+      - '!web/startup-script-phases.json'
+      - '!web/tm-start-runtime-manifest.json'
   workflow_dispatch:
 permissions:
   contents: write
