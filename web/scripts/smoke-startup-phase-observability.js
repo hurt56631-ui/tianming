@@ -41,10 +41,10 @@ assert(scriptNames.indexOf(officeDutyModules[0])<scriptNames.indexOf(officeDutyM
 assert(scriptNames.indexOf(officeDutyModules[1])<scriptNames.indexOf('tm-office-system.js'),'shared office readers precede their consumers');
 const visualAdapters=['tm-shanhe-runtime.js'];
 const requestControls=['tm-call-retry-policy.js','tm-call-budget-settings.js'];
-const geminiModules=['tm-gemini-web-mobile.js','tm-gemini-login-backup.js','tm-gemini-web-adapter.js','tm-gemini-turn.js'];
+const geminiModules=['tm-gemini-web-mobile.js','tm-gemini-login-backup.js','tm-gemini-web-adapter.js'];
 geminiModules.forEach(name=>assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once'));
 assert(scriptNames.indexOf('tm-gemini-web-adapter.js')>scriptNames.indexOf('tm-ai-infra-retry.js'),'Gemini hook requires the owned AI transport first');
-assert(scriptNames.indexOf('tm-gemini-turn.js')>scriptNames.indexOf('tm-gemini-web-adapter.js'),'free endturn waits for Gemini transport bridge');
+assert(!scriptNames.includes('tm-gemini-turn.js'),'retired free endturn must not load');
 const emergencyModules=['core','tools','adapters','runtime','edict','review','settings'].map(n=>'tm-emergency-recovery-'+n+'.js');
 emergencyModules.forEach(name=>{assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once');assert(scriptNames.indexOf(name)>scriptNames.indexOf('tm-agent-kernel.js'),'recovery needs existing AgentKernel first');});
 const enactedOrderModules=['tm-agent-world-editor.js','tm-social-formation.js','tm-imperial-orders.js','tm-personal-memory-recall.js','tm-live-context.js','tm-tax-policy.js'];

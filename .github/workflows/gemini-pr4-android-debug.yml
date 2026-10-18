@@ -1,5 +1,5 @@
 name: Tianming Gemini PR4 Android debug APK
-# Recheck after native manifest regeneration and world-identity free route guard.
+# Validate native inventory before downloading the full 1.5GB official media APK.
 
 # Build test APK only; never publish a release or alter the application signing key.
 on:
@@ -9,7 +9,12 @@ on:
     paths:
       - .github/workflows/gemini-pr4-android-debug.yml
       - mobile/**
-      - web/**
+      - web/*.js
+      - web/*.css
+      - web/index.html
+      - web/assets/**
+      - web/scenarios/**
+      - web/tm-start-runtime-manifest.json
       - scripts/**
       - package.json
   workflow_dispatch:
@@ -69,6 +74,11 @@ jobs:
           python scripts/test-restore-official-apk-assets.py
           if ($LASTEXITCODE -ne 0) { throw "Asset restore safety tests failed" }
 
+      - name: Verify native startup inventory matches latest Gemini and modern-Chinese scripts
+        shell: pwsh
+        run: |
+          node scripts/build-native-preparation-manifest.cjs --check
+          if ($LASTEXITCODE -ne 0) { throw 'Native startup inventory mismatch: refuse to package stale JS' }
       - name: Download original official full APK with pinned SHA256
         shell: pwsh
         env:
@@ -97,11 +107,6 @@ jobs:
           npm ci --prefix mobile
           if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
 
-      - name: Verify native startup inventory matches latest Gemini and modern-Chinese scripts
-        shell: pwsh
-        run: |
-          node scripts/build-native-preparation-manifest.cjs --check
-          if ($LASTEXITCODE -ne 0) { throw 'Native startup inventory mismatch: refuse to package stale JS' }
       - name: Verify staged web files, sync Capacitor, assemble debug APK
         shell: pwsh
         run: |
