@@ -62,3 +62,27 @@ jobs:
         run: node web/scripts/lint-arch-all.js
       - name: Full game smoke suite (no release publish)
         run: node web/scripts/ci-smokes.js --jobs 2
+
+  targeted-legacy-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        smoke:
+          - smoke-agent-mode-d2d3
+          - smoke-edict-narrative-link
+          - smoke-endturn-fatal-boundary
+          - smoke-secondary-changchao-retries
+          - smoke-storage-desktop-unavailable
+          - smoke-startup-phase-observability
+          - smoke-native-start-preparation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run one isolated existing regression without test masking
+        run: node web/scripts/${{ matrix.smoke }}.js
