@@ -1535,7 +1535,7 @@ var DEFAULT_RULES="1.\u6570\u503C\u5408\u7406 2.\u89D2\u8272\u72EC\u7ACB 3.\u621
 
 function _sApplyPrimaryApiFields(){
   if (_$('s-free-npc') && P && P.conf) P.conf.geminiWebNpcEnabled = !!_$('s-free-npc').checked;
-  if (_$('s-free-npc-paid-fallback') && P && P.conf) P.conf.geminiWebNpcFallbackPrimary = !!_$('s-free-npc-paid-fallback').checked;
+  if (_$('s-free-npc-paid-fallback') && P && P.conf) P.conf.geminiWebNpcFallbackPrimary = !!_$('s-free-npc-paid-fallback').checked; // arch-ok: original settings owner persists validated explicit opt-in
   // Legacy save migration: removed free full-turn mode has no effect and is cleared on save.
   if (P && P.conf) delete P.conf.geminiWebTurnEnabled;
   P.ai.key=_$("s-key")?_$("s-key").value:"";P.ai.url=_$("s-url")?_$("s-url").value:"";P.ai.model=_$("s-model")?_$("s-model").value:"";var _tv=parseFloat(_$("s-temp")?_$("s-temp").value:"");P.ai.temp=isNaN(_tv)?0.8:_tv;var _mv=parseInt(_$("s-mem")?_$("s-mem").value:"");P.ai.mem=isNaN(_mv)?20:_mv;P.ai.provider=_$("s-prov")?_$("s-prov").value:"openai";

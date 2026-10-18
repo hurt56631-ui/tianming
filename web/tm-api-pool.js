@@ -69,7 +69,7 @@ function saveUI(){
 function render(){
   var cfg=getStore(),s='<section class="settings-section" style="border-left:3px solid var(--gold);padding:0.55rem;margin-top:0.7rem;">'+
     '<h4>多 API 轮询 / 故障切换（实验）</h4>'+
-    '<p style="font-size:0.74rem;color:var(--txt-d);">额外最多三个 OpenAI 兼容 API。默认关闭。仅作用于正式主 API 的聊天和回合请求，不影响免费 NPC、次 API、模型查询。调用可能产生费用；切换服务商会把该次提示词发送给对应服务商。不会跨 API 绕过限流或在收到部分内容后重发。</p>'+
+    '<p style="color:var(--txt-d);">额外最多三个 OpenAI 兼容 API。默认关闭。仅作用于正式主 API 的聊天和回合请求，不影响免费 NPC、次 API、模型查询。调用可能产生费用；切换服务商会把该次提示词发送给对应服务商。不会跨 API 绕过限流或在收到部分内容后重发。</p>'+
     '<label><input type="checkbox" id="s-pool-enabled"'+(cfg.enabled?' checked':'')+'> 启用多个 API</label>'+
     '<select id="s-pool-mode" style="margin-left:0.6rem;">'+
       '<option value="failover"'+(cfg.mode==='failover'?' selected':'')+'>主 API 优先，故障自动切换</option>'+
@@ -78,14 +78,14 @@ function render(){
   for(var i=0;i<MAX;i++){
     var c=cfg.rows[i]||{},label=i+1;
     s+='<div style="border-top:1px dashed var(--bdr);padding:0.45rem 0;margin-top:0.35rem;">'+
-      '<strong style="font-size:0.8rem;">备用 API '+label+'</strong>'+
+      '<strong style="">备用 API '+label+'</strong>'+
       '<div class="rw"><div class="fd"><label>HTTPS Base URL</label><input id="s-pool-'+label+'-url" value="'+escapeHtml(c.url)+'" placeholder="https://api.example.com/v1"></div>'+
       '<div class="fd"><label>Model_ID</label><input id="s-pool-'+label+'-model" value="'+escapeHtml(c.model)+'" placeholder="填写此线路专用模型 ID"></div></div>'+
       '<div class="fd"><label>API Key（留空保留同地址现有 Key）</label><input type="password" id="s-pool-'+label+'-key" autocomplete="off" placeholder="'+(c.key?'已保存，留空不改变':'输入该 API 的 Key')+'"></div>'+
       '<button type="button" class="bt bs bsm" onclick="sTestPoolAPI('+i+')">单独测试第 '+label+' 路（会发生一次小额调用）</button>'+
-      '<span id="s-pool-'+label+'-status" style="font-size:0.72rem;margin-left:0.3rem;"></span></div>';
+      '<span id="s-pool-'+label+'-status" style="margin-left:0.3rem;"></span></div>';
   }
-  return s+'<p style="font-size:0.72rem;color:var(--txt-d);">轮换仅发送一次；在网络异常或 502/503/504 且尚未收到有效响应时，最多向另一条线路再试一次。401/403/429 不跨号重试，需尊重服务商限制。Key 只保存在此设备，与主 API 类似，不写入游戏存档。请点击下方“保存所有设置”。</p></section>';
+  return s+'<p style="color:var(--txt-d);">轮换仅发送一次；在网络异常或 502/503/504 且尚未收到有效响应时，最多向另一条线路再试一次。401/403/429 不跨号重试，需尊重服务商限制。Key 只保存在此设备，与主 API 类似，不写入游戏存档。请点击下方“保存所有设置”。</p></section>';
 }
 function isAborted(signal) {return !!(signal&&signal.aborted);}
 function networkFail(err){

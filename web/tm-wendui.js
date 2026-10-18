@@ -2823,7 +2823,7 @@ async function sendWendui(){
         var bubble=sd3.querySelector('.wendui-npc-bubble');
         if(bubble) {
           bubble.textContent='人物 AI 暂时无法回复：'+explain;
-          bubble.style.color='var(--vermillion-400,#c04030)';
+          bubble.style.color='var(--vermillion-400)';
         }
         sd3.removeAttribute('id');
       }
