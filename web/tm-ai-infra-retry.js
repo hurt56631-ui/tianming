@@ -286,7 +286,19 @@ function _tmAINativePlatform() {
   var cap = typeof window !== 'undefined' && window.Capacitor;
   return !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
 }
+// Optional app-specific virtual model routes register here; a single HTTP
+// provider must own _tmAIFetch across game and authoring/editor pages.
+if (typeof window !== 'undefined') {
+  window.TM=window.TM||{};
+  window.TM.AITransportHooks=window.TM.AITransportHooks||{};
+}
 async function _tmAIFetch(resource, options) {
+  var hooks=globalThis.TM&&globalThis.TM.AITransportHooks;
+  var interceptor=hooks&&hooks['geminiWeb'];
+  if(typeof interceptor==='function'){
+    var result=interceptor(resource,options);
+    if(result!==null&&result!==undefined)return result;
+  }
   options = options || {};
   if (!_tmAINativePlatform()) return fetch(resource, options);
   var cap = window.Capacitor, headers = new Headers(options.headers || {});

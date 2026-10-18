@@ -29,6 +29,11 @@ function ctxForTest(){
   ctx.window=ctx;
   vm.runInNewContext(read('tm-gemini-login-backup.js'),ctx);
   vm.runInNewContext(read('tm-gemini-web-adapter.js'),ctx);
+  const original=ctx._tmAIFetch;
+  ctx._tmAIFetch=function(url,opts){
+    const hook=ctx.TM.AITransportHooks.geminiWeb(url,opts);
+    return hook==null?original(url,opts):hook;
+  };
   return {ctx,local,outbound,setAnon:x=>anon=x,setGateway:x=>gateway=x};
 }
 async function main(){

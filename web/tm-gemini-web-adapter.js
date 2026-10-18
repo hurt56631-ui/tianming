@@ -13,10 +13,7 @@ function failure(status,message,retry){
   if(status===429)headers['retry-after']=String(Math.max(0,Math.ceil((Number(retry)||0)/1000)));
   return new Response(JSON.stringify({error:{message:String(message),type:'gemini_web'}}),{status:status,headers:headers});
 }
-global._tmAIFetch=async function(url,options){
-  var freeTurn=global.TM&&global.TM.GeminiTurn;
-  if(freeTurn&&freeTurn.active()&&!virtual(url))freeTurn.guardExternal(url);
-  if(!virtual(url))return prior(url,options);
+async function _geminiVirtualResponse(url,options){
   options=options||{};
   if(options.signal&&options.signal.aborted){var abort=new Error('已取消');abort.name='AbortError';throw abort;}
   var desktop=!!(global.tianming&&global.tianming.isDesktop&&typeof global.tianming.geminiWebChat==='function');
@@ -72,8 +69,15 @@ global._tmAIFetch=async function(url,options){
   return new Response(JSON.stringify({id:id,object:'chat.completion',model:result.model||'gemini-3.5-flash-lite',
     choices:[{index:0,message:{role:'assistant',content:result.text},finish_reason:'stop'}]}),
     {status:200,headers:{'content-type':'application/json'}});
-};
+}
 global.TM=global.TM||{};
+global.TM.AITransportHooks=global.TM.AITransportHooks||{};
+global.TM.AITransportHooks.geminiWeb=function(url,options){
+  var freeTurn=global.TM&&global.TM.GeminiTurn;
+  if(freeTurn&&freeTurn.active()&&!virtual(url))freeTurn.guardExternal(url);
+  if(!virtual(url))return null;
+  return _geminiVirtualResponse(url,options);
+};
 global.TM.GeminiWeb={isVirtual:virtual,desktopAvailable:function(){return !!(global.tianming&&global.tianming.isDesktop&&global.tianming.geminiWebChat);},
 mobileAvailable:function(){return !!(global.TM.GeminiWebMobile&&global.TM.GeminiWebMobile.available());}};
 global._tmNpcDialogueAITier=function(){

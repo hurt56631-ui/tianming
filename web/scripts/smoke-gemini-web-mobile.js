@@ -94,6 +94,12 @@ async function main(){
   };
   const adapter=fs.readFileSync(path.join(__dirname,'../tm-gemini-web-adapter.js'),'utf8');
   vm.runInNewContext(adapter,ctx,{filename:'tm-gemini-web-adapter.js'});
+  const primaryTransport=ctx._tmAIFetch;
+  assert(typeof ctx.TM.AITransportHooks.geminiWeb==='function');
+  ctx._tmAIFetch=function(url,opts){
+    const intercepted=ctx.TM.AITransportHooks.geminiWeb(url,opts);
+    return intercepted==null ? primaryTransport(url,opts) : intercepted;
+  };
   const response=await ctx._tmAIFetch('https://gemini-web.tianming.invalid/v1/chat/completions',
     {body:JSON.stringify({messages:[{role:'user',content:'你好'}]})});
   assert.strictEqual(response.status,200,'mobile virtual endpoint should return ChatCompletion JSON');

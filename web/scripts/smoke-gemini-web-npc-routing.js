@@ -22,6 +22,8 @@ async function main(){
   ctx.window=ctx;
   vm.runInNewContext(read('tm-gemini-web-adapter.js'),ctx);
   assert.strictEqual(ctx._tmNpcDialogueAITier(),'geminiweb');
+  assert(typeof ctx.TM.AITransportHooks.geminiWeb === 'function',
+    'Gemini addon must register a hook instead of overriding core _tmAIFetch');
   ctx.GM.busy=true;
   assert.strictEqual(ctx._tmNpcDialogueAITier(),'secondary','game turn must use configured API');
   ctx.GM.busy=false;ctx.GM._endTurnBusy=true;
@@ -40,8 +42,8 @@ async function main(){
   assert(!react.includes("'secondary'"),'no hardcoded secondary API for NPC court speech');
   assert(react.includes("npcTier === 'geminiweb'"),'free failure should not silently resend');
   assert(court.includes("if (tier === 'geminiweb') return"),'plain system prompt must skip Anthropic cache format');
-  assert(read('tm-ai-infra.js').includes("tier !== 'geminiweb' && _provider === 'anthropic'"),'non-stream native Anthropic cache isolation');
   assert(read('tm-ai-infra-retry.js').includes("opts.tier !== 'geminiweb' && _providerS === 'anthropic'"),'stream native Anthropic cache isolation');
+  assert(read('tm-ai-infra.js').includes("tier !== 'geminiweb' && _provider === 'anthropic'"),'non-stream native Anthropic cache isolation');
   assert(!read('tm-hongyan-office.js').includes('100-200 字古典中文'),'letters must not demand archaic Chinese');
   const settings=read('tm-patches.js');
   assert(!settings.includes('网页/APK 请使用 Gemini 正式 API'),'settings must not advertise Android as unsupported');

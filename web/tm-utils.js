@@ -2255,8 +2255,12 @@ function _useSecondaryTier() {
 function _getAITier(tier) {
   // Active, explicitly selected free-turn scope. All primary AND secondary
   // inference remains on the free route; never fall back to the paid API.
+  // Every renderer (including independent scenario editors) loads tm-utils.
+  // Route from current game-state flags without depending on the optional
+  // GeminiTurn module, which is loaded only in the main game entry.
   if ((tier == null || tier === 'primary' || tier === 'secondary') &&
-      typeof TM !== 'undefined' && TM.GeminiTurn && TM.GeminiTurn.active())
+      typeof GM !== 'undefined' && GM && GM.busy===true && GM._endTurnBusy===true &&
+      typeof P !== 'undefined' && P && P.conf && P.conf.geminiWebTurnEnabled===true)
     tier = 'geminiweb';
   // This virtual tier never writes a placeholder key to P.ai.
   if (tier === 'geminiweb') return {key:'LOCAL_GEMINI_WEB_NO_API_KEY',url:'https://gemini-web.tianming.invalid/v1',model:'gemini-3.5-flash-lite',tier:'geminiweb'};

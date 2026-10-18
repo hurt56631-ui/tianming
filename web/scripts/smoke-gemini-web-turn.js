@@ -21,6 +21,11 @@ async function run(){
   assert(start>=0&&end>start,'tier owner found');
   vm.runInNewContext(u.slice(start,end),sandbox);
   vm.runInNewContext(read('tm-gemini-web-adapter.js'),sandbox);
+  const original=sandbox._tmAIFetch;
+  sandbox._tmAIFetch=function(url,opts){
+    const intercepted=sandbox.TM.AITransportHooks.geminiWeb(url,opts);
+    return intercepted==null?original(url,opts):intercepted;
+  };
   const turn=sandbox.TM.GeminiTurn;
   assert(turn.selected()&&!turn.active());
   assert.strictEqual(sandbox._getAITier('primary').key,'PAID_PRIMARY_KEY');
