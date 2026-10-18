@@ -13,11 +13,18 @@ function active(){
   // Own the entire turn transaction until end() in the core finally block.
   // Busy flags can be cleared just before autosave; dropping the free guard
   // earlier would permit a pending AI call to silently use the paid API.
-  return !!(state && state.active && state.gm===g.GM);
+  return !!(state && state.active);
 }
 function error(message,code,status){
   var e=new Error(message);e.code=code||'FREE_GEMINI_TURN_FAILED';e.status=status||422;
   return e;
+}
+function assertWorldIdentity(){
+  if(active() && state.gm!==g.GM){
+    var stale=error('免费回合进行时游戏世界或存档已切换；禁止把旧请求发送到其他 AI',
+      'FREE_GEMINI_STALE_WORLD',409);
+    fail(stale);throw stale;
+  }
 }
 function fail(reason) {
   if(state&&state.active&&!state.failure)state.failure=reason&&reason.message||String(reason||'免费请求失败');
@@ -41,6 +48,7 @@ function end(){
 function failed(){return !!(state&&state.failure);}
 function assertBeforeSave(){
   if(!active())return;
+  assertWorldIdentity();
   if(failed())throw error('本回合免费 Gemini 有请求失败，已停止写入并保留原存档：'+state.failure,
     'FREE_GEMINI_TURN_FAILED',503);
   if(state.calls===0)throw error('免费回合没有成功进入 AI 推演请求阶段，已阻止空回合提交',
@@ -57,6 +65,7 @@ function plain(c){
 }
 function route(url,body,opts){
   if(!active())return null;
+  assertWorldIdentity();
   if(failed())throw error('免费推演此前已有请求失败；禁止继续推演','FREE_GEMINI_TURN_FAILED',503);
   if(!body||!Array.isArray(body.messages)||!body.messages.length||
       body.messages.length>200)throw error('免费回合对话格式无效','FREE_GEMINI_TURN_REQUEST',400);
@@ -93,6 +102,7 @@ function route(url,body,opts){
 }
 function guardExternal(url,options){
   if(!active())return false;
+  assertWorldIdentity();
   var s=String(url||'');
   // Android native anonymous transport legitimately fetches the official
   // Gemini web host. Login backup is independently user-opted-in and calls

@@ -35,6 +35,16 @@ async function run(){
   sandbox.GM.busy=false; sandbox.GM._endTurnBusy=false;
   assert(turn.active(),'free-only guard remains owned through final save');
   sandbox.GM.busy=true; sandbox.GM._endTurnBusy=true;
+  // Replacing the loaded world while a free turn is pending must NEVER make
+  // the owner fall through to an authenticated primary/secondary API.
+  const oldWorld=sandbox.GM;
+  sandbox.GM={busy:false,_endTurnBusy:false,turn:999};
+  assert(turn.active(),'free-only guard stays active even after world replacement');
+  assert.throws(()=>turn.route('https://paid-provider.example/v1/chat/completions',
+    {messages:[{role:'user',content:'旧世界仍在推演'}]},{}),/世界或存档已切换/);
+  assert.strictEqual(charged,0,'no paid calls after a save/world switch');
+  sandbox.GM=oldWorld;
+  turn.end();turn.begin();
   assert.throws(()=>turn.assertBeforeSave(),/空回合提交/,'a free turn with zero model requests must not silently commit');
   assert.strictEqual(sandbox._getAITier('primary').tier,'geminiweb');
   assert.strictEqual(sandbox._getAITier('secondary').tier,'geminiweb');
