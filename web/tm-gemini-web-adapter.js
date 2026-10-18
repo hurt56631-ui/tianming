@@ -14,6 +14,8 @@ function failure(status,message,retry){
   return new Response(JSON.stringify({error:{message:String(message),type:'gemini_web'}}),{status:status,headers:headers});
 }
 global._tmAIFetch=async function(url,options){
+  var freeTurn=global.TM&&global.TM.GeminiTurn;
+  if(freeTurn&&freeTurn.active()&&!virtual(url))freeTurn.guardExternal(url);
   if(!virtual(url))return prior(url,options);
   options=options||{};
   if(options.signal&&options.signal.aborted){var abort=new Error('已取消');abort.name='AbortError';throw abort;}

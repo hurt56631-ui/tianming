@@ -173,9 +173,20 @@ async function _aiBudgetedRetryWait(ms, signal, budget) {
   return _aiWaitForRetry(ms, signal);
 }
 async function _aiFetchWithRetry(url, body, signal, opts) {
-  var recovery = globalThis.TM && globalThis.TM.Endturn && globalThis.TM.Endturn.ResponseRecovery;
+  var turn = globalThis.TM && TM.GeminiTurn;
+  var isFree = !!(turn && turn.active());
+  if(isFree){
+    try{
+      var routed=turn.route(url,body,opts);
+      url=routed.url;body=routed.body;opts=routed.opts;
+    }catch(e){turn.fail(e);throw e;}
+  }
+  var recovery = globalThis.TM && TM.Endturn && TM.Endturn.ResponseRecovery;
   var execute = function(next) { return _aiFetchWithRetryUncached(url, body, signal, next); };
-  return recovery && !(opts && opts._recoveryValidationRetry) ? recovery.jsonRequest(url, body, signal, opts, execute) : execute(opts);
+  try{
+    return await (recovery && !(opts && opts._recoveryValidationRetry)
+      ? recovery.jsonRequest(url, body, signal, opts, execute) : execute(opts));
+  }catch(e){if(isFree)turn.fail(e);throw e;}
 }
 async function _aiFetchWithRetryUncached(url, body, signal, opts) {
   if (globalThis.TM && TM.RecoveryAdapters) opts = TM.RecoveryAdapters.beginNormal(opts);

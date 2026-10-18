@@ -2253,7 +2253,12 @@ function _useSecondaryTier() {
 // M3·按 tier 获取 AI 配置·secondary 未配时回退 primary
 // tier: 'primary'|'secondary'·默认 primary
 function _getAITier(tier) {
-  // This isolated NPC-chat tier never mutates P.ai.primary/secondary; all turn settlement stays on the API.
+  // Active, explicitly selected free-turn scope. All primary AND secondary
+  // inference remains on the free route; never fall back to the paid API.
+  if ((tier == null || tier === 'primary' || tier === 'secondary') &&
+      typeof TM !== 'undefined' && TM.GeminiTurn && TM.GeminiTurn.active())
+    tier = 'geminiweb';
+  // This virtual tier never writes a placeholder key to P.ai.
   if (tier === 'geminiweb') return {key:'LOCAL_GEMINI_WEB_NO_API_KEY',url:'https://gemini-web.tianming.invalid/v1',model:'gemini-3.5-flash-lite',tier:'geminiweb'};
   var _s = P.ai && P.ai.secondary;
   if (tier === 'secondary' && _s && _s.key && _s.url) {

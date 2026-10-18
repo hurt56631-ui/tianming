@@ -32,7 +32,7 @@ async function _endTurn_aiInfer(edicts, xinglu, memRes, oldVars, externalCtx) {
   var timeRatio = getTimeRatio();
 
   // 2. AI推演
-  if(P.ai.key){
+  if((P.ai && P.ai.key) || (window.TM && TM.GeminiTurn && TM.GeminiTurn.active())){
     // 严格史实模式：检索数据库
     if(P.conf.gameMode === 'strict_hist' && P.conf.refText) {
       showLoading("检索数据库中",20);

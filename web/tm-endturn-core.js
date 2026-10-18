@@ -365,7 +365,7 @@ async function endTurn(){
   // ★[无密钥前置守卫·2026-06-14] 天命以 AI 为引擎，未配 API 密钥则过回合纯空转——
   //   旧行为：深层 if(P.ai.key) 无 else，回合数照变而世界毫无反应，新玩家误判为「游戏坏了」。
   //   此处在入口处一次性拦下：明确告知非故障 + 一键前往配置，绝不静默空转。
-  if (!P.ai || !P.ai.key || !String(P.ai.key).trim() || /gemini-web\.tianming\.invalid/.test(String(P.ai.url||''))) {
+  if ((!P.ai || !P.ai.key || !String(P.ai.key).trim() || /gemini-web\.tianming\.invalid/.test(String(P.ai.url||''))) && !(window.TM && TM.GeminiTurn && TM.GeminiTurn.selected())) {
     try {
       if (typeof notifyUrgent === 'function') {
         notifyUrgent(
@@ -700,6 +700,8 @@ function _tmRollbackEndTurnTransaction(txn, reason) {
 }
 
 async function _tmFinalizeEndTurnTransaction(ctx, txn) {
+  if (globalThis.TM && TM.GeminiTurn && TM.GeminiTurn.active())
+    TM.GeminiTurn.assertBeforeSave();
   ctx = ctx || { meta: {} };
   ctx.meta = ctx.meta || {};
   ctx.meta.transaction = txn;
@@ -813,6 +815,7 @@ async function _endTurnCore(options){
   GM._endTurnCommitPending = true; // arch-ok end-turn transaction owns its commit barrier
   GM.busy=true;
   GM._endTurnBusy=true;
+  if (window.TM && TM.GeminiTurn) TM.GeminiTurn.begin();
   if(btn){ btn.textContent="\u63A8\u6F14\u4E2D...";btn.style.opacity="0.6"; }
   // 后朝中不用 showLoading（会遮挡朝会）
   if (!(GM._pendingShijiModal && GM._pendingShijiModal.courtDone === false)) {
@@ -1082,7 +1085,7 @@ async function _endTurnCore(options){
   _tmRequestEndTurnDesktopAutoSaveFlush('end-turn-commit');
   } catch (error) {
     var completionPolicy=globalThis.TM&&TM.Endturn&&TM.Endturn.Validity;
-    if(_obsCtx&&_turnTxn&&!_turnTxn.committed&&!_obsCtx.meta.endTurnSavePromise&&_tmEndTurnTransactionCurrent(_turnTxn)&&completionPolicy&&completionPolicy.canDefer(_obsCtx,error)){
+    if(_obsCtx&&_turnTxn&&!_turnTxn.committed&&!_obsCtx.meta.endTurnSavePromise&&_tmEndTurnTransactionCurrent(_turnTxn)&&!(globalThis.TM&&TM.GeminiTurn&&TM.GeminiTurn.failed())&&completionPolicy&&completionPolicy.canDefer(_obsCtx,error)){
       completionPolicy.defer(_obsCtx,'回合收尾',error);
       try{
         if(Number(GM.turn)===Number(_turnTxn.turn))GM.turn=Number(_turnTxn.turn)+1; // arch-ok: completion owner advances the generated turn exactly once after an auxiliary tail failure.
@@ -1147,6 +1150,10 @@ async function _endTurnCore(options){
       btn.style.opacity = "1";
     }
     hideLoading();
+  } finally {
+    // Never retain a free end-turn session across save/load, rollback or a
+    // user's next NPC dialogue. This finally also runs on early returns.
+    if (globalThis.TM && TM.GeminiTurn) TM.GeminiTurn.end();
   }
 }
 
