@@ -44,7 +44,6 @@ const requestControls=['tm-call-retry-policy.js','tm-call-budget-settings.js'];
 const geminiModules=['tm-gemini-web-mobile.js','tm-gemini-login-backup.js','tm-gemini-web-adapter.js'];
 const npcAIModules=['tm-api-pool.js','tm-npc-speech.js'];
 npcAIModules.forEach(name=>assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads exactly once'));
-assert(scriptNames.indexOf('tm-api-pool.js')>scriptNames.indexOf('tm-ai-infra-model-detect.js'),'pool loads after the complete AI infra family');
 assert(scriptNames.indexOf('tm-npc-speech.js')>scriptNames.indexOf('tm-api-pool.js'),'modern dialogue guard follows official HTTP pool');
 assert(scriptNames.indexOf('tm-npc-speech.js')<scriptNames.indexOf('tm-wendui.js'),'NPC modern speech guard precedes dialogue');
 geminiModules.forEach(name=>assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once'));
@@ -96,6 +95,7 @@ assert(scriptNames.indexOf('tm-api-models.js') < scriptNames.indexOf('tm-api-set
 assert(scriptNames.indexOf('tm-api-settings.js') < scriptNames.indexOf('tm-patches.js'), 'settings controls load before the settings renderer');
 assert.strictEqual(scriptNames.filter((name) => name === 'tm-ai-infra-retry.js').length, 1, 'retry helpers load exactly once');
 assert.strictEqual(scriptNames.indexOf('tm-ai-infra-retry.js') + 1, scriptNames.indexOf('tm-ai-infra.js'), 'retry helpers directly precede their consumer');
+assert(scriptNames.indexOf('tm-api-pool.js')>scriptNames.indexOf('tm-ai-infra-model-detect.js'),'pool loads after the complete AI infra family');
 assert(scriptNames.indexOf('tm-ai-request-options.js') < scriptNames.indexOf('tm-ai-infra.js'), 'thinking policy loads before its transport consumers');
 assert.strictEqual(scriptNames.filter((name) => name === 'tm-building-orders.js').length, 1, 'the building-order owner must be loaded exactly once');
 assert(scriptNames.indexOf('tm-building-orders.js') > scriptNames.indexOf('tm-custom-build-agent.js'), 'the order owner follows its actual construction provider');
