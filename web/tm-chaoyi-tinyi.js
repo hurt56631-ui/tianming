@@ -798,7 +798,7 @@ async function _ty2_genOneSpeech(name, roundNum, prevSpeeches) {
            + '  · 你若被某人论点说服而改立场→reason 写明被谁何语打动。\n'
            + '  发言要像真朝堂辩论·有来有往。';
   }
-  prompt += '\n请根据以上推断你对本议题的立场（不给预设选项，自行判断），写发言（文言/半文言，符合身份）。' + (typeof _aiDialogueWordHint === 'function' ? _aiDialogueWordHint() : '') + '\n';
+  prompt += '\n请根据以上推断你对本议题的立场（不给预设选项，自行判断），写发言（自然现代白话，符合身份与本朝礼节）。' + (typeof _aiDialogueWordHint === 'function' ? _aiDialogueWordHint() : '') + '\n';
   prompt += '返回 JSON：{"stance":"极力支持/支持/倾向支持/中立/倾向反对/反对/极力反对/折中/另提议","confidence":0-100,"line":"发言内容","reason":"内在动机"' + (_debateOn ? ',"respondTo":"你主要回应或反驳的同僚名(无则空字符串)","stanceShiftReason":"若因他人论点改立场·写明被谁何语打动(无则空)"' : '') + '}';
 
   // A1: 流式化——先建占位气泡·onChunk 用 regex 渐进显示 "line" 字段
@@ -1033,7 +1033,7 @@ async function _ty2_offerMediation() {
       if (_mdBits.length) prompt += '局中利害：' + _mdBits.join('；') + '\n';
     }
   } catch (_mdME) {}
-  prompt += '请提出一个折中方案（文言/半文言）——兼顾各方、可操作。' + (typeof _aiDialogueWordHint === 'function' ? _aiDialogueWordHint() : '') + '\n返回纯文本。';
+  prompt += '请用现代白话提出一个折中方案——兼顾各方、可操作。' + (typeof _aiDialogueWordHint === 'function' ? _aiDialogueWordHint() : '') + '\n返回纯文本。';
   try {
     var raw = await callAI(prompt, (typeof _aiDialogueTok==='function'?_aiDialogueTok("cy", 1):500), null, (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined);  // 廷议走次 API
     addCYBubble(mediator, '〔折中〕' + escHtml(raw.trim()), false, true);
