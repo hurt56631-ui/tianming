@@ -25,6 +25,7 @@ async function run(){
   assert(turn.selected()&&!turn.active());
   assert.strictEqual(sandbox._getAITier('primary').key,'PAID_PRIMARY_KEY');
   assert(turn.begin()&&turn.active());
+  assert.throws(()=>turn.assertBeforeSave(),/空回合提交/,'a free turn with zero model requests must not silently commit');
   assert.strictEqual(sandbox._getAITier('primary').tier,'geminiweb');
   assert.strictEqual(sandbox._getAITier('secondary').tier,'geminiweb');
   const body={model:'paid-model',messages:[
@@ -79,6 +80,13 @@ async function run(){
   assert(!turn.selected());
   assert.strictEqual(sandbox._getAITier('primary').key,'PAID_PRIMARY_KEY');
   assert(read('tm-endturn-core.js').includes('TM.GeminiTurn.assertBeforeSave()'),'turn commit owner must assert');
+  const infer=read('tm-endturn-ai.js');
+  assert(infer.includes("var _freeTurn=global.TM&&TM.GeminiTurn&&TM.GeminiTurn.active();"),'endturn setup must resolve a free virtual URL without a paid key');
+  assert(infer.includes("opts.tier='geminiweb'"),'endturn subcall tier must be free');
+  assert(infer.includes("key='LOCAL_GEMINI_WEB_NO_API_KEY'"),'no paid key in free subcall');
+  assert(infer.includes("!opts.url && opts.id && _SEC_SUBCALLS"),'secondary-model routing must be conditional');
+  assert(infer.includes("TM.GeminiTurn.fail('关键 JSON 无法验证"),'invalid JSON must block commit');
+
   assert(read('tm-endturn-core.js').includes('TM.GeminiTurn.end()'),'turn scope must end in finally');
   assert(read('tm-endturn-ai-infer.js').includes('TM.GeminiTurn.active()'),'keyless inference must not skip AI');
   assert(read('tm-endturn-reliability.js').includes('TM.GeminiTurn.selected()'),'keyless preflight must check required helpers');

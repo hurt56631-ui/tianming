@@ -32,8 +32,11 @@ function begin(){
 function end(){if(state)state.active=false;state=null;}
 function failed(){return !!(state&&state.failure);}
 function assertBeforeSave(){
+  if(!active())return;
   if(failed())throw error('本回合免费 Gemini 有请求失败，已停止写入并保留原存档：'+state.failure,
     'FREE_GEMINI_TURN_FAILED',503);
+  if(state.calls===0)throw error('免费回合没有成功进入 AI 推演请求阶段，已阻止空回合提交',
+    'FREE_GEMINI_NO_CALLS',503);
 }
 function plain(c){
   if(typeof c==='string')return c;

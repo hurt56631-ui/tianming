@@ -42,3 +42,18 @@ jobs:
           node --check web/tm-wendui-persona-views.js
           node --check web/tm-ai-infra-retry.js
           node --check web/tm-wendui.js
+  broad-smokes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked test dependencies
+        run: npm ci --ignore-scripts
+      - name: Architecture lint on merged language/free-mode source
+        run: node web/scripts/lint-arch-all.js
+      - name: Full game smoke suite (no release publish)
+        run: node web/scripts/ci-smokes.js --jobs 2
