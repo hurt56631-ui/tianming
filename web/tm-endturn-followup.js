@@ -3482,7 +3482,7 @@
           histCheckPrompt += '  "ai_errors": ["AI 自虚构的错误描述·列举具体错误点"],\n';
           histCheckPrompt += '  "corrected_shizhengji": "修正后的时政记全文·仅替换 AI 自生错误的词句·玩家诏令引起的内容原样保留",\n';
           histCheckPrompt += '  "corrected_zhengwen": "修正后的正文全文·同规则",\n';
-          histCheckPrompt += '  "note": "一段 30-60 字的「史官按」注释·文言体·说明 AI 幻觉已被修正"\n';
+          histCheckPrompt += '  "note": "一段 30-60 字的「史官按」注释·现代白话说明 AI 幻觉已被修正"\n';
           histCheckPrompt += '}\n';
           histCheckPrompt += "★ 修正原则：只换 AI 错的词句·不删不增玩家内容·不改叙事框架。\n";
           histCheckPrompt += "★ 若全部是玩家诏令引起（即便荒唐）·返回 has_ai_hallucination:false·其他字段留空。";

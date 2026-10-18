@@ -1404,6 +1404,7 @@ async function _wdNpcInitiateSpeak(name) {
       sysP += '\n直接以"臣有事启奏——"或类似开头，主动陈述你的来意和诉求。不要等皇帝先说话。';
     }
     sysP += '\n返回 JSON：{"reply":"主动陈述内容","loyaltyDelta":0,"emotionState":"当前情绪","suggestions":[{"topic":"针对什么问题/情境(10-25字具体说明上下文)","content":"详尽建议(80-200字，含具体执行者、手段、范围、时机；不要笼统套话)"}]}\n';
+    sysP += '【人物表达方式】必须用今天普通人听得懂的自然现代汉语直接陈事。人物仍保留陛下、臣、皇嫂等合适称谓和真实政治立场，但绝不使用圣躬万福、社稷之巨蠹、臣妾愚见、廓清玉宇等古文套语；不堆砌成语，不写大段戏曲腔。开场一般 100-220 字，动作旁白最多一句；说清你此刻真实目的。\n';
     sysP += '【suggestions 要求】\n';
     sysP += '  · 必须是 object 数组，每条含 topic(问题描述) + content(具体方案)\n';
     sysP += '  · topic 示例："针对辽东军饷拖欠之困"、"应对江南士绅抗税"、"关于太子人选之议"\n';
@@ -1425,7 +1426,7 @@ async function _wdNpcInitiateSpeak(name) {
       if (bubble) _wdPaintStreamBubble(chatEl, bubble, _wdVisibleReplyPreview(txt), false);
     };
     var reply = await callAIMessagesStream(msgs, (typeof _aiDialogueTok==='function'?_aiDialogueTok("wd", 1):800), {
-      tier: (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined,  // M3·问对走次 API
+      tier: _tmNpcDialogueAITier(),  // M3·问对走次 API
       onChunk: function(txt) {
         _wdInitPending = txt;
         if (_wdInitRaf) return;
@@ -2453,7 +2454,8 @@ async function sendWendui(){
       if (typeof _aiDialogueWordHint === 'function') sysP += '\n' + _aiDialogueWordHint("wd");
       // 根治(2026-06-26)：真机证实此模型常把问对回复写成沉浸式散文·不守 {reply,loyaltyDelta} JSON →
       // 改用末尾简单标记承载忠诚/压力(对这种模型远比 JSON 可靠)·顺带加「压力」维度(owner需求)。
-      sysP += '\n\n⚠【末尾硬性标记·务必输出】无论你以散文还是何种文体回话，回复的最末都必须另起一行，用此固定格式标出本次召对对你的真实影响：〔忠诚±N 压力±N〕（N为0-3整数）。判定：受重用/获理解/得偿所请→忠诚正；被冷落/受辱/失望/遭斥→忠诚负；被逼问/受责/惊惧→压力正；被安抚/宽慰/获赏→压力负；无波动填0。例：〔忠诚+2 压力-1〕。此行不可省略。';
+      sysP += '\n\n⚠【末尾硬性标记·务必输出】请先用自然现代口语直接回答，回复的最末另起一行，用此固定格式标出本次召对对你的真实影响：〔忠诚±N 压力±N〕（N为0-3整数）。判定：受重用/获理解/得偿所请→忠诚正；被冷落/受辱/失望/遭斥→忠诚负；被逼问/受责/惊惧→压力正；被安抚/宽慰/获赏→压力负；无波动填0。例：〔忠诚+2 压力-1〕。此行不可省略。';
+      sysP += '\n【最终问对文风】直接用现代汉语回答，历史称谓可以保留，但不写“臣妾（含泪跪拜）”式开场、不反复表忠、不堆成语和誓言；不因玩家提到前世就保证未来必然改变。先讲办事步骤、负责人、时限与风险；动作旁白一般不需要。前面历史中的古文语气仅作为事实参考，不要模仿。'; 
       var history=GM.wenduiHistory[name].slice(-10);
       var messages=[{role:'system',content:sysP}];
       history.forEach(function(h){
@@ -2481,7 +2483,7 @@ async function sendWendui(){
         if (streamBubble && streamBubble.isConnected !== false) _wdPaintStreamBubble(chat, streamBubble, _wdVisibleReplyPreview(txt), true);
       };
       var rawReply = await callAIMessagesStream(messages, (typeof _aiDialogueTok==='function'?_aiDialogueTok("wd", 1):800), {
-        tier: (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined,  // M3·问对走次 API
+        tier: _tmNpcDialogueAITier(),  // M3·问对走次 API
         onChunk: function(txt) {
           _wdStreamPending = txt;
           if (_wdStreamRaf) return;

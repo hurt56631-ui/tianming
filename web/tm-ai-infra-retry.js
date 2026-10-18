@@ -118,7 +118,11 @@ async function _aiWithStreamScope(opts, execute) {
 
 function _aiConfiguredCallOptions(opts) {
   var policy = globalThis.TM && globalThis.TM.CallRetryPolicy;
-  return policy ? policy.options(opts) : Object.assign({}, opts || {});
+  var out = policy ? policy.options(opts) : Object.assign({}, opts || {});
+  // Anonymous webpage route must never retry an HTTP 429, 403, soft block or timeout.
+  // This also disables configured streaming retry and paid-API secondary fallback.
+  if (out.tier === 'geminiweb') { out.maxRetries = 0; out._configuredRetries = true; out._turnRetriesResolved = true; }
+  return out;
 }
 async function _aiConfiguredStreamRetry(messages, maxTok, opts) {
   var policy = globalThis.TM.CallRetryPolicy, partial = false;
@@ -169,9 +173,10 @@ async function _aiBudgetedRetryWait(ms, signal, budget) {
   return _aiWaitForRetry(ms, signal);
 }
 async function _aiFetchWithRetry(url, body, signal, opts) {
-  var recovery = globalThis.TM && globalThis.TM.Endturn && globalThis.TM.Endturn.ResponseRecovery;
+  var recovery = globalThis.TM && TM.Endturn && TM.Endturn.ResponseRecovery;
   var execute = function(next) { return _aiFetchWithRetryUncached(url, body, signal, next); };
-  return recovery && !(opts && opts._recoveryValidationRetry) ? recovery.jsonRequest(url, body, signal, opts, execute) : execute(opts);
+  return await (recovery && !(opts && opts._recoveryValidationRetry)
+    ? recovery.jsonRequest(url, body, signal, opts, execute) : execute(opts));
 }
 async function _aiFetchWithRetryUncached(url, body, signal, opts) {
   if (globalThis.TM && TM.RecoveryAdapters) opts = TM.RecoveryAdapters.beginNormal(opts);
@@ -271,7 +276,19 @@ function _tmAINativePlatform() {
   var cap = typeof window !== 'undefined' && window.Capacitor;
   return !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
 }
+// Optional app-specific virtual model routes register here; a single HTTP
+// provider must own _tmAIFetch across game and authoring/editor pages.
+if (typeof window !== 'undefined') {
+  window.TM=window.TM||{};
+  window.TM.AITransportHooks=window.TM.AITransportHooks||{};
+}
 async function _tmAIFetch(resource, options) {
+  var hooks=globalThis.TM&&globalThis.TM.AITransportHooks;
+  var interceptor=hooks&&hooks['geminiWeb'];
+  if(typeof interceptor==='function'){
+    var result=interceptor(resource,options);
+    if(result!==null&&result!==undefined)return result;
+  }
   options = options || {};
   if (!_tmAINativePlatform()) return fetch(resource, options);
   var cap = window.Capacitor, headers = new Headers(options.headers || {});
@@ -412,7 +429,7 @@ async function _callAIMessagesStreamDirect(messages, maxTok, opts) {
     try {
       var _providerS = (typeof _detectAIProvider === 'function') ? _detectAIProvider() : '';
       var _isNativeS = (P.ai && P.ai.url && /api\.anthropic\.com/i.test(P.ai.url));
-      if (!_finalizedBody && _providerS === 'anthropic' && _isNativeS && messages && messages.length > 0) {
+      if (!_finalizedBody && opts.tier !== 'geminiweb' && _providerS === 'anthropic' && _isNativeS && messages && messages.length > 0) {
         var _firstS = messages[0];
         if (_firstS && _firstS.role === 'system' && typeof _firstS.content === 'string' && _firstS.content.length > 1500) {
           _msgsStream = messages.slice();

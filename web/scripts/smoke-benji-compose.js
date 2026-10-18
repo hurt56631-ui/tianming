@@ -61,7 +61,7 @@ Promise.all([
     var p1 = c1._prompts[0], p2 = c1._prompts[1], p3 = c1._prompts[2];
     assert(p1.indexOf('纳谏罢矿税') >= 0 && p1.indexOf('河南大旱') >= 0 && p1.indexOf('东林党争起') >= 0, '⑥ 首卷素材=窗内起居注+实录+编年');
     assert(p1.indexOf('流寇逼畿辅') < 0 && p1.indexOf('闯军围城') < 0, '⑦ 窗外素材不混入(12回合窗)');
-    assert(p1.indexOf('文言') >= 0 && p1.indexOf('编年直书') >= 0 && p1.indexOf('「上」') >= 0, '⑧ 体例钉死(文言/编年直书/称上)');
+    assert(p1.indexOf('现代白话') >= 0 && p1.indexOf('按时间顺序') >= 0 && p1.indexOf('不要现代语') < 0, '⑧ 体例钉死(现代白话/按时间顺序/保留本朝称谓)');
     assert(p1.indexOf('赞曰') < 0 || p1.indexOf('唯本卷为末卷') < 0, '⑨ 非末卷无赞曰指令');
     assert(p2.indexOf('前卷之末') >= 0 && p2.indexOf('第1段正文') >= 0, '⑩ 次卷带前卷末文衔接');
     assert(p3.indexOf('赞曰') >= 0 && p3.indexOf('上崩于乱军之中') >= 0, '⑪ 末卷并书身后事+赞曰');
