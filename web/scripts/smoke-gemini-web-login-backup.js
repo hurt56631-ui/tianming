@@ -40,7 +40,6 @@ function ctxForTest(){
   };
   vm.runInNewContext(read('tm-gemini-login-backup.js'),ctx);
   vm.runInNewContext(read('tm-gemini-web-adapter.js'),ctx);
-  vm.runInNewContext(read('tm-gemini-turn.js'),ctx);
   return {ctx,local,outbound,setAnon:x=>anon=x,setGateway:x=>gateway=x};
 }
 async function main(){
@@ -79,20 +78,19 @@ async function main(){
   assert(!outbound[0].options.headers.Cookie && !outbound[0].options.headers['X-Goog-AuthUser'],
     'Google credentials may not enter the app');
   assert.strictEqual(JSON.parse(outbound[0].options.body).model,'gemini-3.5-flash-lite');
-  // When the free END TURN is active, signed-in backup is the only authorized
-  // non-Google request; paid primary/secondary must remain blocked.
+  // A legacy saved "free endturn" flag is now intentionally inert. NPC
+  // fallback must not disable the player's official primary API.
   ctx.P.conf.geminiWebTurnEnabled=true;
   ctx.GM.busy=true;ctx.GM._endTurnBusy=true;
-  const freeTurn=ctx.TM.GeminiTurn;
-  freeTurn.begin();
   const beforeSignedTurn=outbound.length;
-  const signedTurn=await send();
-  assert.strictEqual((await signedTurn.json()).choices[0].message.content,'已登录网关回答');
-  assert.strictEqual(outbound.length,beforeSignedTurn+1,'explicit signed fallback must be allowed during free endturn');
-  await assert.rejects(ctx._tmAIFetch('https://paid-provider.example/v1/chat/completions',{
-    method:'POST',headers:{Authorization:'Bearer PAID_PRIMARY_KEY'},body:'{}'}),/禁止暗中使用付费 API/);
-  assert.strictEqual(outbound.length,beforeSignedTurn+1,'paid provider never gets called');
-  freeTurn.end();
+  const signedNpc=await send();
+  assert.strictEqual((await signedNpc.json()).choices[0].message.content,'已登录网关回答');
+  assert.strictEqual(outbound.length,beforeSignedTurn+1,'NPC authenticated fallback stays available');
+  const official=await ctx._tmAIFetch('https://paid-provider.example/v1/chat/completions',{
+    method:'POST',headers:{Authorization:'Bearer PAID_PRIMARY_KEY'},body:'{}'});
+  assert.strictEqual(official.status,200,'formal main API must no longer be hijacked by obsolete free-turn state');
+  assert.strictEqual(outbound.length,beforeSignedTurn+2,'official main API network request must be sent exactly once');
+  assert.strictEqual(outbound[outbound.length-1].options.headers.Authorization,'Bearer PAID_PRIMARY_KEY');
   ctx.GM.busy=false;ctx.GM._endTurnBusy=false;
   ctx.P.conf.geminiWebTurnEnabled=false;
   const sse=await ctx._tmAIFetch(URL_VIRTUAL,{body:JSON.stringify(Object.assign({},sample,{stream:true}))});
@@ -127,6 +125,6 @@ async function main(){
   assert(index.indexOf('tm-gemini-login-backup.js')<index.indexOf('tm-gemini-web-adapter.js'),
     'load capture of original fetch before free adapter');
   assert(!read('tm-endturn-core.js').includes('GeminiLoginBackup'),'formal turn must not reference NPC fallback');
-  console.log('[smoke-gemini-web-login-backup] PASS: opt-in, HTTPS/key isolation, no paid fallback, failover, SSE, 401 cooldown, abort and clear');
+  console.log('[smoke-gemini-web-login-backup] PASS: opt-in, HTTPS/key isolation, NPC failover, full-turn main API, SSE, 401 cooldown, abort and clear');
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});
