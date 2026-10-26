@@ -1374,6 +1374,7 @@ async function _wdNpcInitiateSpeak(name) {
   try {
     // 构建NPC主动开场的prompt
     var sysP = _wdBuildPrompt(ch, name);
+    if (window.TM && TM.DialogueGemini) sysP += '\n' + TM.DialogueGemini.stylePrompt(_wenduiMode);
     if (!ch._envoy && typeof _sovereignLanguagePromptLine === 'function') sysP = _sovereignLanguagePromptLine(typeof GM !== 'undefined' ? GM : null) + sysP;
     if (ch._envoy) {
       // 外藩使节：不走本朝官员的情绪分支，而是以外交使命为主
@@ -1424,7 +1425,7 @@ async function _wdNpcInitiateSpeak(name) {
       var bubble = _$('wd-init-bubble');
       if (bubble) _wdPaintStreamBubble(chatEl, bubble, _wdVisibleReplyPreview(txt), false);
     };
-    var reply = await callAIMessagesStream(msgs, (typeof _aiDialogueTok==='function'?_aiDialogueTok("wd", 1):800), {
+    var reply = await (window.TM && TM.DialogueGemini ? TM.DialogueGemini.stream : callAIMessagesStream)(msgs, (typeof _aiDialogueTok==='function'?_aiDialogueTok("wd", 1):800), {
       tier: (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined,  // M3·问对走次 API
       onChunk: function(txt) {
         _wdInitPending = txt;
@@ -2439,6 +2440,7 @@ async function sendWendui(){
 
     try{
       var sysP = _wdBuildPrompt(ch, name);
+      if (window.TM && TM.DialogueGemini) sysP += '\n' + TM.DialogueGemini.stylePrompt(_wenduiMode);
       if (!ch._envoy && typeof _sovereignLanguagePromptLine === 'function') sysP = _sovereignLanguagePromptLine(typeof GM !== 'undefined' ? GM : null) + sysP;
       // L4·a·若 mode === 'cedui'·prompt 顶段注入 archetype voice + paradigm context
       if (_wenduiMode === 'cedui' && typeof _kjpBuildCeduiPromptContext === 'function') {
@@ -2480,7 +2482,7 @@ async function sendWendui(){
         var txt = _wdStreamPending;
         if (streamBubble && streamBubble.isConnected !== false) _wdPaintStreamBubble(chat, streamBubble, _wdVisibleReplyPreview(txt), true);
       };
-      var rawReply = await callAIMessagesStream(messages, (typeof _aiDialogueTok==='function'?_aiDialogueTok("wd", 1):800), {
+      var rawReply = await (window.TM && TM.DialogueGemini ? TM.DialogueGemini.stream : callAIMessagesStream)(messages, (typeof _aiDialogueTok==='function'?_aiDialogueTok("wd", 1):800), {
         tier: (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined,  // M3·问对走次 API
         onChunk: function(txt) {
           _wdStreamPending = txt;
