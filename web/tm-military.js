@@ -897,7 +897,10 @@ var MilitarySystems = (function(global) {
         commander._battleFate = outcome;
         commander._battleFateTurn = G.turn || 0;
         if (outcome === 'killed' || outcome === 'dead') commander.alive = false;
-        else if (outcome === 'captured') commander.capturedBy = winner;
+        else if (outcome === 'captured') {
+          commander.capturedBy = winner;
+          if (global.TM && global.TM.WarCaptives) global.TM.WarCaptives.onCapture(commander, winner, G, {battleId:br.battleId||br.id||''});
+        }
         else if (outcome === 'fled') commander._fledTurn = G.turn || 0;
         else if (outcome === 'surrendered') commander.surrenderedTo = winner;
         else if (outcome === 'injured') commander._battleInjured = true;
@@ -1004,7 +1007,10 @@ var MilitarySystems = (function(global) {
         ch._battleFate = outcome;
         ch._battleFateTurn = G.turn || 0;
         if (outcome === 'killed' || outcome === 'dead') ch.alive = false;
-        else if (outcome === 'captured') ch.capturedBy = winner;
+        else if (outcome === 'captured') {
+          ch.capturedBy = winner;
+          if (global.TM && global.TM.WarCaptives) global.TM.WarCaptives.onCapture(ch, winner, G, {battleId:br.battleId||br.id||''});
+        }
         else if (outcome === 'fled') ch._fledTurn = G.turn || 0;
         else if (outcome === 'surrendered') ch.surrenderedTo = winner;
         _routePlayerCommanderFate(ch, outcome, winner, G); // 鼎革R1b·玩家主将命运岔口(顶层 commanderFate 路)
