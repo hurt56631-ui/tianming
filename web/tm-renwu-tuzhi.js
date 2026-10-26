@@ -753,7 +753,7 @@ function pcard(p){
   tags.push('<span class="ptag fac">'+esc(p.faction)+'</span>');
   return '<button class="pcard'+(p.name===state.sel?' active':'')+(p.alive===false?' dead':'')+(isPinned(p.name)?' pinned':'')+'" style="--fc:'+fc+'" onclick="TMZhi.selectP(\''+esc(p.name).replace(/'/g,"\\'")+'\')">'
     +'<span class="pc-face">'+faceHtml(p)+'</span>'
-    +'<span class="pc-body"><span class="pc-name">'+(isPinned(p.name)?'<span class="pc-star">★</span>':'')+'<b>'+esc(p.name)+'</b>'+(p.zi?'<span class="zi">字'+esc(p.zi)+'</span>':'')+'<span class="age">'+(p.age||'?')+'岁</span></span>'
+    +'<span class="pc-body"><span class="pc-name">'+(isPinned(p.name)?'<span class="pc-star">★</span>':'')+'<b>'+esc(p.displayName||p.name)+'</b>'+(p.zi?'<span class="zi">字'+esc(p.zi)+'</span>':'')+'<span class="age">'+(p.age||'?')+'岁</span></span>'
     +'<span class="pc-off">'+esc(_zhiOfficeLine(p))+(p.rank?' <span class="rk">'+esc(p.rank)+'</span>':'')+'</span>'
     +'<span class="pc-bars">'+bars.map(function(b){return '<span class="pc-bar">'+b[0]+'<i style="--v:'+clamp(b[1])+'%"></i></span>';}).join('')+'</span>'
     +'<span class="pc-tags">'+tags.join('')+'</span></span>'
