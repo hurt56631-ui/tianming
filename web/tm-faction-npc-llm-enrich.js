@@ -67,7 +67,7 @@
     var econ = fac.derivedEconomy || {};
     var era = (global.P && global.P.scenarioName) || '';
 
-    var sys = '你是一位古文笔法娴熟的史官。任务: 把简版 NPC 内政摘要润色成 80-120 字的史观文笔。';
+    var sys = '你是擅长现代白话的古代政务记录整理者。任务：把简版 NPC 内政摘要整理成 80-120 字的自然现代中文，保留官职称谓、事实与原有结论，不编造行动。';
     sys += '\n背景: ' + era + '·势力·' + fac.name + ' (' + paradigm + ')·主君·' + ruler;
     sys += '\n势力状态: 健康度 ' + (derived.overall || 50) + ' 财政压 ' + (econ.fiscalStress || 0);
 
@@ -75,10 +75,10 @@
     if (kind === 'memorial') {
       user = '请润色这条奏疏·保留人物 (' + (item.from || '') + ' 上奏 ' + (item.to || '') + ')·类型 (' + (item.type || '') + ')·状态 (' + (item.status || '') + ')。\n原内容: ' + (item.content || '');
       if (item.ruling) user += '\n朱批: ' + item.ruling;
-      user += '\n要求·古文文风·80-120 字·保留事实·只增文采。';
+      user += '\n要求：现代白话，80-120 字；保留人物立场、事实、结果与本朝称谓，只改善表达，不增加新事实。';
     } else if (kind === 'edict') {
       user = '请润色这条诏令·保留发出人 (' + (item.issuer || '') + ')·类型 (' + (item.type || '') + ')·触发原因 (' + (item.trigger || '') + ')。\n原诏: ' + (item.content || '');
-      user += '\n要求·诏书古文风格·80-120 字·保留事实·只增文采。';
+      user += '\n要求：诏书用现代白话，80-120 字；保持原有命令和条件、结果及本朝称谓，不补写不存在的政策。';
     }
     return { system: sys, user: user };
   }

@@ -652,7 +652,7 @@ function adaptChar(c){
     age:c.age, gender:c.gender||(isConsort(c)?'女':''), birthplace:c.birthplace, ethnicity:c.ethnicity, faith:c.faith, culture:c.culture, learning:c.learning, stance:c.stance, speechStyle:c.speechStyle,
     family:c.family, familyTier:c.familyTier, isPlayer:isP, alive:c.alive!==false&&c.dead!==true, deathReason:c.deathReason, deathTurn:c.deathTurn,
     appearance:c.appearance, bio:c.bio, personality:c.personality, personalGoal:c.personalGoal||c.goal,
-    portrait:c.portrait,
+    portrait:(window.TM&&TM.CharAppearance?TM.CharAppearance.portrait(c):c.portrait), displayName:(window.TM&&TM.CharAppearance?TM.CharAppearance.displayName(c):c.name),
     loyalty:num(c.loyalty,50), intelligence:effAttr(c,'intelligence'), valor:effAttr(c,'valor'), administration:effAttr(c,'administration'), management:effAttr(c,'management'), charisma:effAttr(c,'charisma'), diplomacy:effAttr(c,'diplomacy'), military:effAttr(c,'military'), benevolence:effAttr(c,'benevolence'),
     ambition:num(c.ambition,50), stress:num(c.stress,0), health:num(c.health,80), integrity:(c.integrity!=null?Math.round(c.integrity):null),
     mingwang:_mingwangOf(c), gongming:_gongmingOf(c).merit, gongmingTier:_gongmingOf(c).tier, gongmingOrigin:_gongmingOriginOf(c), meritLog:(c._meritLog||[]).slice(-6).reverse(),
@@ -753,7 +753,7 @@ function pcard(p){
   tags.push('<span class="ptag fac">'+esc(p.faction)+'</span>');
   return '<button class="pcard'+(p.name===state.sel?' active':'')+(p.alive===false?' dead':'')+(isPinned(p.name)?' pinned':'')+'" style="--fc:'+fc+'" onclick="TMZhi.selectP(\''+esc(p.name).replace(/'/g,"\\'")+'\')">'
     +'<span class="pc-face">'+faceHtml(p)+'</span>'
-    +'<span class="pc-body"><span class="pc-name">'+(isPinned(p.name)?'<span class="pc-star">★</span>':'')+'<b>'+esc(p.name)+'</b>'+(p.zi?'<span class="zi">字'+esc(p.zi)+'</span>':'')+'<span class="age">'+(p.age||'?')+'岁</span></span>'
+    +'<span class="pc-body"><span class="pc-name">'+(isPinned(p.name)?'<span class="pc-star">★</span>':'')+'<b>'+esc(p.displayName||p.name)+'</b>'+(p.zi?'<span class="zi">字'+esc(p.zi)+'</span>':'')+'<span class="age">'+(p.age||'?')+'岁</span></span>'
     +'<span class="pc-off">'+esc(_zhiOfficeLine(p))+(p.rank?' <span class="rk">'+esc(p.rank)+'</span>':'')+'</span>'
     +'<span class="pc-bars">'+bars.map(function(b){return '<span class="pc-bar">'+b[0]+'<i style="--v:'+clamp(b[1])+'%"></i></span>';}).join('')+'</span>'
     +'<span class="pc-tags">'+tags.join('')+'</span></span>'
@@ -787,12 +787,12 @@ function dossierHead(p){
   var hearts=[['忠诚',p.loyalty,false],['野心',p.ambition,p.ambition>=75],['压力',p.stress,p.stress>=65],['康健',p.health,p.health<40]];
   var colophon=esc((p.personality||p.stance||'').slice(0,20));
   return '<div class="dossier-head"><div class="dh-loy">'+loyRing(p.loyalty,74)+'<div class="lbl">忠诚</div></div>'
-    +'<div class="dh-mountwrap"><div class="dh-mount"><div class="dh-portrait">'+faceHtml(p)+'<span class="dh-seal-on">'+sealMark(p)+'</span></div><div class="dh-mount-cap">立 轴 · 立 绘</div></div>'+(colophon?'<div class="dh-colophon">'+colophon+'</div>':'')+'</div>'
-    +'<div class="dh-info"><div class="dh-titleline"><h2>'+esc(p.name)+'</h2>'+sealMark(p)+(p.zi?'<span class="zi">字 '+esc(p.zi)+'</span>':'')+'<span class="age">'+(p.age||'?')+'岁 · '+esc(p.gender||'')+'</span></div>'
+    +'<div class="dh-mountwrap"><div class="dh-mount"><div class="dh-portrait" title="点击更换头像" style="cursor:pointer" onclick="TM.CharAppearance.pick(TMZhi.selectedName())">'+faceHtml(p)+'<span class="dh-seal-on">'+sealMark(p)+'</span></div><div class="dh-mount-cap">点击头像更换立绘</div></div>'+(colophon?'<div class="dh-colophon">'+colophon+'</div>':'')+'</div>'
+    +'<div class="dh-info"><div class="dh-titleline"><h2>'+esc(p.displayName||p.name)+'</h2>'+sealMark(p)+(p.zi?'<span class="zi">字 '+esc(p.zi)+'</span>':'')+'<span class="age">'+(p.age||'?')+'岁 · '+esc(p.gender||'')+'</span></div>'
     +'<div class="dh-pills"><span class="dh-pill fac">'+esc(p.faction)+'</span>'+(p.party?'<span class="dh-pill">'+esc(p.party)+'</span>':'')+(p.rank?'<span class="dh-pill rank">'+esc(p.rank)+'</span>':'')+_zhiOfficePills(p)+_zhiHonoraryPills(p)+'</div>'
     +situationBanner(p)
     +'<div class="dh-hearts">'+hearts.map(function(h){return '<div class="dh-heart'+(h[2]?' warn':'')+'"><b>'+(h[1]==null?'—':Math.round(h[1]))+'</b><span>'+h[0]+'</span></div>';}).join('')+'</div>'
-    +'<div class="dh-acts">'+headActs(p)+'</div></div></div>';
+    +'<div class="dh-acts">'+headActs(p)+'<button class="dact" onclick="TM.CharAppearance.rename(TMZhi.selectedName())">修改显示名</button><button class="dact" onclick="TM.CharAppearance.clear(TMZhi.selectedName())">还原外观</button></div></div></div>';
 }
 function headActs(p){
   var _del='<button class="dact danger" onclick="TMZhi.deleteP(\''+esc(p.name).replace(/'/g,"\\'")+'\')">删除</button>';
@@ -1303,6 +1303,7 @@ function closePanel(){var ov=document.getElementById('tm-zhi-overlay');if(ov)ov.
 
 /* 交互 */
 var TMZhi={
+  selectedName:function(){return state.sel;},
   // 外部新增/移除人物后失效名册缓存·面板开着则就地刷新(2026-07-04 审查定罪:策名召入曾读死缓存)
   invalidatePeople:function(){_peopleCache=null;try{if(q('#tm-zhi-main')){renderChips();renderStatbar();renderRoster();renderMain();renderFolio();}}catch(_e){}},
   selectP:function(name){if(!findP(name))return;state.sel=name;state.tab=state.tab||'overview';state.view='liezhuan';state.compare=null;state.compare2=null;renderViewTabs();renderMain();renderFolio();renderRoster();var ms=q('#tm-zhi-main');if(ms)ms.scrollTop=0;},

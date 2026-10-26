@@ -2303,18 +2303,11 @@
       _narrativeGuide = _promptComposer.buildNarrativeGuide(_modeP, P.chronicleConfig);
       _narrativeGuideFromComposer = true;
     }
-    if (_narrativeGuideFromComposer) {
-      // PromptComposer 已包含 chronicleConfig.styleSample。
-    } else if (_modeP.narrativeStyle && _modeP.narrativeStyle.indexOf('\u8D44\u6CBB\u901A\u9274') >= 0) {
-      _narrativeGuide = '\n【叙事风格·严格文言】仿《资治通鉴》体例。用词典雅，句式简洁。禁用一切现代词汇（如：OK、搞定、给力、没问题、怎么说、不错、厉害）。对话用"曰""言""谓"引述。';
-    } else if (_modeP.narrativeStyle && _modeP.narrativeStyle.indexOf('\u534A\u6587\u8A00') >= 0) {
-      _narrativeGuide = '\n【叙事风格·半文言】融合文言与白话。叙事用文言，对话可用浅显白话。禁用网络用语和明显现代词汇。';
-    } else {
-      _narrativeGuide = '\n【叙事风格·演义体】仿《三国演义》章回体风格。叙事可白话，但保留古典韵味。禁用网络用语。';
-    }
-    // 编辑器配置的风格范文
-    if (!_narrativeGuideFromComposer && P.chronicleConfig && P.chronicleConfig.styleSample) {
-      _narrativeGuide += '\n\u3010\u98CE\u683C\u8303\u6587\uFF08\u53C2\u7167\u6B64\u6587\u98CE\uFF09\u3011' + P.chronicleConfig.styleSample;
+    if (!_narrativeGuideFromComposer) {
+      _narrativeGuide = '\n【现代白话表达】所有剧情、人物对话与历史记录均使用自然、准确的现代中文。历史模式影响史实推演，不要求文言文。官职、称谓、制度及必要的史料原文照旧。';
+      if (P.chronicleConfig && P.chronicleConfig.styleSample) {
+        _narrativeGuide += '\n【范文仅参考事实和结构，不模仿古文句法】' + P.chronicleConfig.styleSample;
+      }
     }
     sysP += _narrativeGuide;
 
@@ -2633,7 +2626,7 @@
       // 永久注入：核心摘要（每回合都有）
       sysP += '\n\n\u3010\u5267\u672C\u7EC8\u6781\u7406\u89E3\u3011' + _d.masterDigest;
       if (_d.worldAtmosphere) sysP += '\n\u4E16\u754C\u6C1B\u56F4\uFF1A' + _d.worldAtmosphere;
-      if (_d.narrativeStyle) sysP += '\n\u53D9\u4E8B\u98CE\u683C\uFF1A' + _d.narrativeStyle;
+      if (_d.narrativeStyle) sysP += '\n\u53D9\u4E8B\u7ED3\u6784\u53C2\u8003\uFF08\u6700\u7EC8\u7528\u73B0\u4EE3\u767D\u8BDD\uFF09\uFF1A' + _d.narrativeStyle;
       if (_d.worldRules) sysP += '\n\u4E16\u754C\u89C4\u5219\uFF1A' + _d.worldRules;
       if (_d.characterWeb) sysP += '\n\u89D2\u8272\u5173\u7CFB\u7F51\uFF1A' + _d.characterWeb;
       if (_d.factionBalance) sysP += '\n\u52BF\u529B\u6001\u52BF\uFF1A' + _d.factionBalance;
@@ -3330,7 +3323,7 @@
     sysP += '\n  from: 发信 NPC 名（必须不在京城）';
     sysP += '\n  type: report(军情汇报)/plea(陈情求助)/warning(预警告急)/personal(私人书信)/intelligence(情报密信)/thanks(谢恩)/recommend(荐才)/impeach(密告/弹劾)/condolence(吊唁)/greeting(节令问安)';
     sysP += '\n  urgency: normal(驿递)/urgent(加急)/extreme(八百里加急)';
-    sysP += '\n  content: 信件正文（100-200 字古典中文·以 NPC 口吻/身份/性格写成·称谓：臣/末将/罪臣/妾身）';
+    sysP += '\n  content: 信件正文（100-200 字现代白话·按 NPC 口吻/身份/性格写成并保留本朝称谓·称谓：臣/末将/罪臣/妾身）';
     sysP += '\n  suggestion: 可操作的建议摘要(1-2 句白话·personal 类可省)';
     sysP += '\n  replyExpected: true/false 是否期待皇帝回信';
     sysP += '\n  refersToEdict: (可选)若信件响应了玩家近期某条诏书·填该诏书简述·让回听系统能追踪影响';
@@ -3671,7 +3664,7 @@
     sysP += '\n- current_issues_update: 时局要务——AI对当前时政矛盾的总结，为玩家提供施政方向参考（玩家可据此撰写诏书、问对、朝议等）。';
     sysP += '\n    【定位】这是AI的时政分析摘要，为玩家提供施政方向参考。要务本身不直接改数值（实际影响来自玩家诏书与推演），但你【必须每回合维护它】——否则御案时政面板会停滞、与推演完全脱节（已解决的还显示待裁、推演出的新矛盾也不出现）。';
     sysP += '\n    【着眼点】聚焦"时局""时政"——当前朝廷面临的具体政务问题（如某镇兵饷拖欠、河道淤塞待修、某州刺史贪腐被劾），不要过于宏大空泛（如"天下大乱""国运衰微"）。';
-    sysP += '\n    add: 当推演中出现新的具体时政问题时，用半文言200-500字描述其来由、现状、涉及人物和潜在走向';
+    sysP += '\n    add: 当推演中出现新的具体时政问题时，用现代白话200-500字描述其来由、现状、涉及人物和潜在走向';
     sysP += '\n    resolve: 当某问题因推演进展（玩家诏书、官员施政、局势变化等）已解决或不再紧迫时标记（填id）';
     sysP += '\n    update: 当问题态势因推演发生变化时更新description（填id+新description）';
     sysP += '\n    同一时期待解决要务3-6个为宜。应是具体可操作的时政议题，不是笼统的国运判断';

@@ -1,0 +1,93 @@
+name: Tianming Gemini PR4 focused QA
+# Official API endturn, experimental free NPC, native manifests and safe Android release.
+on:
+  push:
+    branches:
+      - codex/gemini-web-free-desktop-20261017
+    paths:
+      - .github/workflows/gemini-pr4-focused-qa.yml
+      - web/**
+      - main-gemini-web.js
+      - preload-impl.js
+      - main-impl.js
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gemini-pr4-focused-qa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  free-turn-and-language:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Official API endturn, NPC Gemini, and modern Chinese regressions
+        run: |
+          set -e
+          node web/scripts/smoke-modern-chinese-prompts.js
+          node web/scripts/smoke-gemini-web-turn.js
+          node web/scripts/smoke-gemini-web-npc-routing.js
+          node web/scripts/smoke-gemini-web-login-backup.js
+          node web/scripts/smoke-gemini-web-desktop.js
+          node web/scripts/smoke-gemini-web-mobile.js
+      - name: Cross-check JavaScript parse and no source conflicts
+        run: |
+          node --check web/tm-endturn-core.js
+          node --check web/tm-endturn-ai-infer.js
+          node --check web/tm-prompt-composer.js
+          node --check web/tm-wendui-persona-views.js
+          node --check web/tm-ai-infra-retry.js
+          node --check web/tm-wendui.js
+  broad-smokes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked test dependencies
+        run: npm ci --ignore-scripts
+      - name: Restore ignored official scenario JSON from canonical tracked scenarios
+        run: |
+          node web/scripts/sync-official-scenarios.js
+          node web/scripts/sync-official-scenarios.js --check
+          git diff --exit-code
+      - name: Architecture lint on merged language/free-mode source
+        run: node web/scripts/lint-arch-all.js
+      - name: Verify byte-pinned native/startup inventories generated from this source
+        run: |
+          node web/scripts/lint-global-providers.js
+          node web/scripts/build-startup-phase-manifest.js --check
+          node scripts/build-native-preparation-manifest.cjs --check
+      - name: Full game smoke suite (no release publish)
+        run: node web/scripts/ci-smokes.js --jobs 2
+
+  targeted-legacy-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        smoke:
+          - smoke-agent-mode-d2d3
+          - smoke-edict-narrative-link
+          - smoke-endturn-fatal-boundary
+          - smoke-secondary-changchao-retries
+          - smoke-storage-desktop-unavailable
+          - smoke-startup-phase-observability
+          - smoke-native-start-preparation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run one isolated existing regression without test masking
+        run: node web/scripts/${{ matrix.smoke }}.js

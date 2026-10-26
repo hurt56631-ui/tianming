@@ -365,11 +365,11 @@ async function endTurn(){
   // ★[无密钥前置守卫·2026-06-14] 天命以 AI 为引擎，未配 API 密钥则过回合纯空转——
   //   旧行为：深层 if(P.ai.key) 无 else，回合数照变而世界毫无反应，新玩家误判为「游戏坏了」。
   //   此处在入口处一次性拦下：明确告知非故障 + 一键前往配置，绝不静默空转。
-  if (!P.ai || !P.ai.key || !String(P.ai.key).trim()) {
+  if (!P.ai || !P.ai.key || !String(P.ai.key).trim() || /gemini-web\.tianming\.invalid/.test(String(P.ai.url||''))) {
     try {
       if (typeof notifyUrgent === 'function') {
         notifyUrgent(
-          '尚未配置 AI 密钥 · 无法推演',
+          '尚未配置正式 AI API · 无法推演',
           '天命以 AI 为引擎推演世界，没有 API 密钥便无从落子——这不是卡顿或故障。确认后将为你打开「设置」，在「API 连接」处填入 服务商 / Key / 地址 / 模型 即可开始。需要获取密钥的指引，可在主页「帮助」查看「如何配置 AI 密钥」。',
           function(){ try { if (typeof openSettings === 'function') openSettings(); } catch(_){} }
         );
@@ -1629,12 +1629,12 @@ EndTurnHooks.registerFragment('scenario-style', function(ctx) {
   if (sc && sc.scnStyle) text += "\n本剧本文风: " + sc.scnStyle;
   if (sc && sc.scnStyleRule) text += "\n文风规则: " + sc.scnStyleRule;
   var _styleMap = {
-    '文学化': '文辞优美，善用比喻和意象，情感充沛',
-    '史书体': '仿《资治通鉴》纪事本末体，言简意赅，重事实轻渲染',
-    '戏剧化': '矛盾冲突尖锐，人物对话生动，善用悬念和反转',
-    '章回体': '仿《三国演义》章回体小说，每段开头可用对仗回目，文白夹杂',
-    '纪传体': '仿《史记》纪传体，以人物为中心，"太史公曰"式评论',
-    '白话文': '现代白话文风格，通俗易懂，节奏明快'
+    '文学化': '现代白话，描写细腻生动，但不堆砌古典辞藻',
+    '史书体': '现代白话，按事件先后和因果记录，简洁准确，重事实轻渲染',
+    '戏剧化': '现代白话，矛盾鲜明、对话生动，善用悬念和反转',
+    '章回体': '现代白话，以章节组织情节，保留古代背景但不要求古文回目',
+    '纪传体': '现代白话，以人物经历为中心，清楚说明行动、关系与结果',
+    '白话文': '自然现代白话，通俗易懂，节奏明快'
   };
   if (P.conf && P.conf.style && _styleMap[P.conf.style]) text += "\n叙事文风: " + _styleMap[P.conf.style];
   if (P.conf && P.conf.customStyle) text += "\n自定义文风: " + P.conf.customStyle;

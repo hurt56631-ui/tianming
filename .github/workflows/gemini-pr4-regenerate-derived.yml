@@ -1,0 +1,58 @@
+name: Tianming PR4 one-time derived manifest refresh
+# Regenerate startup and native byte inventories whenever source JS or index changes.
+# Deliberately excludes generated manifests, so the bot's own commit cannot loop.
+on:
+  push:
+    branches:
+      - codex/gemini-web-free-desktop-20261017
+    paths:
+      - .github/workflows/gemini-pr4-regenerate-derived.yml
+      - web/*.js
+      - web/index.html
+      - web/scripts/*.js
+      - '!web/startup-script-phases.json'
+      - '!web/tm-start-runtime-manifest.json'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: gemini-pr4-derived-commit
+  cancel-in-progress: false
+jobs:
+  refresh-derived:
+    if: github.ref == 'refs/heads/codex/gemini-web-free-desktop-20261017'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout full review branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Install pinned Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install test dependencies
+        run: npm ci --ignore-scripts
+      - name: Generate canonical runtime inventories (NOT release version/baseline)
+        run: |
+          set -euo pipefail
+          node web/scripts/lint-global-providers.js
+          node web/scripts/build-startup-phase-manifest.js
+          node scripts/build-native-preparation-manifest.cjs --write
+          node web/scripts/build-startup-phase-manifest.js --check
+          node scripts/build-native-preparation-manifest.cjs --check
+          git diff --check
+      - name: Commit only the two derived source inventories when changed
+        run: |
+          set -euo pipefail
+          git add web/startup-script-phases.json web/tm-start-runtime-manifest.json
+          if git diff --cached --quiet; then
+            echo 'Both generated manifests already match the test branch'
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'build: regenerate native and startup manifests for Gemini PR4'
+          git push origin HEAD:codex/gemini-web-free-desktop-20261017
+          echo 'Committed generated manifests to experiment branch only; official release baseline unchanged'

@@ -44,7 +44,17 @@ const response=data=>({ok:true,status:200,json:async()=>data});
  await test('model URL keeps custom prefixes and strips only the complete inference suffix',()=>{
   for(const suffix of ['/chat/completions','/responses','/models',''])assert.equal(M.endpoint({url:cfg.url+suffix}).url.href,cfg.url+'/models');
   assert.equal(M.endpoint({url:'https://api.anthropic.com/v1/messages'}).url.href,'https://api.anthropic.com/v1/models');
+  assert.equal(M.endpoint({url:'https://api.openai.com'}).url.href,'https://api.openai.com/v1/models');
+  assert.equal(M.endpoint({url:'https://api.openai.com/chat/completions'}).url.href,'https://api.openai.com/v1/models');
   assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'}).url.href,'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai'}).url.href,'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'}).mode,'openai');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai'}).listMode,'gemini');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai/'}).url.href,'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1/openai'}).url.href,'https://generativelanguage.googleapis.com/v1/models');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'}).url.href,'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.equal(M.endpoint({url:'https://generativelanguage.googleapis.com/v1beta/openai/'}).mode,'openai');
+  assert.throws(()=>M.endpoint({url:'http://generativelanguage.googleapis.com/v1beta/openai'}),/HTTPS/);
  });
  await test('format repair inherits the original thinking snapshot without changing its own output budget',()=>{
   const source=A.apply({...body,model:'gpt-5.2'},{...cfg,model:'gpt-5.2',thinking:true});
@@ -58,6 +68,12 @@ const response=data=>({ok:true,status:200,json:async()=>data});
   const calls=[],ids=['z',`\"><img src=x onerror=evil()>`,'z','a'];const r=await M.list(cfg,{fetch:async(url,opts)=>{calls.push({url,opts});return response({data:ids.map(id=>({id}))});}});
   assert.equal(calls.length,1);assert.equal(calls[0].url,cfg.url+'/models');assert.equal(calls[0].opts.headers.Authorization,'Bearer fixture-only');assert.equal(calls[0].opts.method,'GET');assert.equal(calls[0].opts.redirect,'error');assert.equal(calls[0].opts.cache,'no-store');assert.equal(calls[0].opts.credentials,'omit');assert.equal(r.models.length,3);assert(r.models.some(x=>x.id===ids[1]));
  });
+ await test('model pull shows actionable HTTP and network errors without printing secrets',async()=>{
+  for(const [status,hint] of [[401,'Key'],[403,'无权'],[404,'不提供'],[405,'不提供'],[429,'限流']]){
+    await assert.rejects(M.list(cfg,{fetch:async()=>({ok:false,status})}),e=>e.message.includes(hint)&&e.message.includes(String(status))&&!e.message.includes(cfg.key));
+  }
+  await assert.rejects(M.list(cfg,{fetch:async()=>{throw Error('PRIVATE-KEY:'+cfg.key)}}),e=>e.message.includes('CORS')&&!e.message.includes(cfg.key));
+ });
  await test('empty list remains honestly empty; HTTP, HTML and malformed envelopes invent no models',async()=>{
   assert.equal((await M.list(cfg,{fetch:async()=>response({data:[]})})).models.length,0);
   for(const resp of [{ok:false,status:401},{ok:true,json:async()=>{throw Error('raw-key-must-not-leak');}},response({error:'bad'})])await assert.rejects(M.list(cfg,{fetch:async()=>resp}),e=>!e.message.includes('raw-key'));
@@ -65,6 +81,43 @@ const response=data=>({ok:true,status:200,json:async()=>data});
  await test('native Gemini pagination filters non-chat models and uses header auth',async()=>{
   const calls=[];const r=await M.list({...cfg,url:'https://generativelanguage.googleapis.com/v1beta'},{fetch:async(url,opts)=>{calls.push({url,opts});return response(calls.length===1?{models:[{name:'models/gemini-2.5-flash',supportedGenerationMethods:['generateContent']},{name:'models/embedding',supportedGenerationMethods:['embedContent']}],nextPageToken:'page2'}:{models:[{name:'models/gemini-3-flash'}]});}});
   assert.equal(r.models.length,2);assert.equal(calls[0].opts.headers['x-goog-api-key'],cfg.key);assert.equal(calls[0].opts.headers.Authorization,undefined);assert(new URL(calls[1].url).searchParams.has('pageToken'));
+ });
+ await test('Google original API main/secondary preset lists models without mutating inference protocol',async()=>{
+  const calls=[];
+  const google={key:'real-looking-but-fixture-only',url:'https://generativelanguage.googleapis.com/v1beta/openai'};
+  for(const tier of ['primary','secondary']){
+    const out=await M.list({...google,tier},{fetch:async(url,opts)=>{
+      calls.push({tier,url,opts});
+      return response({models:[{name:'models/gemini-test-flash',supportedGenerationMethods:['generateContent']},
+        {name:'models/text-embedding-demo',supportedGenerationMethods:['embedContent']}]});
+    }});
+    assert.deepEqual(plain(out.models),[{id:'gemini-test-flash'}]);
+  }
+  assert.equal(calls.length,2);
+  assert(calls.every(c=>c.url==='https://generativelanguage.googleapis.com/v1beta/models'));
+  assert(calls.every(c=>c.opts.headers['x-goog-api-key']===google.key&&!c.opts.headers.Authorization));
+  assert.equal(M.endpoint(google).mode,'openai','Gemini OpenAI-compatible chat must keep its original thinking wire');
+ });
+ await test('Google official native list failure retries only on the same Google host through compatible route',async()=>{
+  const calls=[];
+  const out=await M.list({url:'https://generativelanguage.googleapis.com/v1beta/openai',key:'fixture-google'},{
+    fetch:async(url,opts)=>{
+      calls.push({url,headers:opts.headers});
+      return calls.length===1?{ok:false,status:404}:response({data:[{id:'gemini-compat'}]});
+    }
+  });
+  assert.deepEqual(plain(out.models),[{id:'gemini-compat'}]);
+  assert.equal(calls.length,2);
+  assert.equal(calls[0].url,'https://generativelanguage.googleapis.com/v1beta/models');
+  assert.equal(calls[1].url,'https://generativelanguage.googleapis.com/v1beta/openai/models');
+  assert.equal(calls[1].headers.Authorization,'Bearer fixture-google');
+ });
+ await test('Google API auth failure never leaks Key or redirects to arbitrary relay',async()=>{
+  let calls=0;
+  await assert.rejects(M.list({url:'https://generativelanguage.googleapis.com/v1beta/openai',key:'secret-google'},{
+    fetch:async()=>{calls++;return {ok:false,status:401};}
+  }),e=>e.message.includes('401')&&!e.message.includes('secret-google'));
+  assert.equal(calls,1,'no retry for a known invalid API key');
  });
  await test('native Claude pagination uses after_id and the native auth header',async()=>{
   const calls=[];const r=await M.list({...cfg,url:'https://api.anthropic.com/v1'},{fetch:async(url,opts)=>{calls.push({url,opts});return response({data:[{id:'claude-'+calls.length}],has_more:calls.length===1,last_id:'first'});}});

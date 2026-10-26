@@ -50,7 +50,7 @@
 
   ns.setupInfra = function(ctx) {
     ensureGroups(ctx);
-    var url = P.ai.url;
+    var url = String((P.ai&&P.ai.url)||'');
     if (url.indexOf("/chat/completions") < 0) url = url.replace(/\/+$/, "") + "/chat/completions";
 
     var _tokCp = (typeof getCompressionParams === "function") ? getCompressionParams() : { scale: 1.0, contextK: 32 };
@@ -273,7 +273,9 @@
       };
     }
     async function _parseOrRepairJsonResult(raw, data, label, opts) {
-      return global.TM && TM.RecoveryRuntime ? TM.RecoveryRuntime.parse(raw,data,label,opts,_parseOrRepairJsonResultNormal) : _parseOrRepairJsonResultNormal(raw,data,label,opts);
+      return await (global.TM && TM.RecoveryRuntime
+        ? TM.RecoveryRuntime.parse(raw,data,label,opts,_parseOrRepairJsonResultNormal)
+        : _parseOrRepairJsonResultNormal(raw,data,label,opts));
     }
     async function _parseOrRepairJsonResultNormal(raw, data, label, opts) {
       opts = opts || {};
@@ -2271,7 +2273,7 @@
       var _rsSpec = TM.Endturn.AI.prompt.recordSpecs(ctx);
       var tp1 = _sc1Prefix + tp + _preAnalysis + _hardConstraints + "\n请仅返回绝JSON，包含:\n"+
         "{\"turn_summary\":\""+_rsSpec.turnSummary+"\","+
-        // 实录：纯文言史官体，仿资治通鉴/历代实录
+        // 实录：现代白话实录体，保留史官记录事实的严谨结构
         "\"shilu_text\":\""+_rsSpec.shilu+"\","+
         // 时政记：朝政纪要体（副标题+总括+分领域因果链+总结）
         "\"szj_title\":\""+_rsSpec.szjTitle+"\","+
@@ -2488,11 +2490,11 @@
           "\"interventionOptions\":[\"加派干吏督办\",\"暂缓一州\",\"放弃\",\"更严苛执行\"],"+
           "\"narrativeSnippet\":\"30-80字本阶段叙事——体现程序感和阻力感\""+
         "}],"+
-        "\"npc_letters\":[{\"from\":\"\u89D2\u8272\u540D(\u5FC5\u987B\u662F\u4E0D\u5728\u4EAC\u57CE\u7684NPC)\",\"type\":\"report/plea/warning/personal/intelligence\",\"urgency\":\"normal/urgent/extreme\",\"content\":\"\u4FE1\u4EF6\u5185\u5BB9(100-200\u5B57\u53E4\u5178\u4E2D\u6587)\",\"suggestion\":\"\u53EF\u64CD\u4F5C\u7684\u5EFA\u8BAE\u6458\u8981(1-2\u53E5\u2014\u2014\u5982'\u8BF7\u6C42\u589E\u63F4\u4E09\u5343\u5175\u9A6C'\u3001'\u5EFA\u8BAE\u51CF\u514D\u6CB3\u5317\u8D4B\u7A0E'\u2014\u2014\u53EF\u9009\uFF0Cpersonal\u7C7B\u578B\u53EF\u4E0D\u586B)\",\"replyExpected\":true}],"+
+        "\"npc_letters\":[{\"from\":\"\u89D2\u8272\u540D(\u5FC5\u987B\u662F\u4E0D\u5728\u4EAC\u57CE\u7684NPC)\",\"type\":\"report/plea/warning/personal/intelligence\",\"urgency\":\"normal/urgent/extreme\",\"content\":\"\u4FE1\u4EF6\u5185\u5BB9(100-200\u5B57\u81EA\u7136\u73B0\u4EE3\u767D\u8BDD)\",\"suggestion\":\"\u53EF\u64CD\u4F5C\u7684\u5EFA\u8BAE\u6458\u8981(1-2\u53E5\u2014\u2014\u5982'\u8BF7\u6C42\u589E\u63F4\u4E09\u5343\u5175\u9A6C'\u3001'\u5EFA\u8BAE\u51CF\u514D\u6CB3\u5317\u8D4B\u7A0E'\u2014\u2014\u53EF\u9009\uFF0Cpersonal\u7C7B\u578B\u53EF\u4E0D\u586B)\",\"replyExpected\":true}],"+
         "\"npc_correspondence\":[{\"from\":\"\u53D1\u4FE1NPC\",\"to\":\"\u6536\u4FE1NPC\",\"content\":\"\u4FE1\u4EF6\u5185\u5BB9(50-150\u5B57)\",\"summary\":\"\u4E00\u53E5\u8BDD\u6982\u62EC\",\"implication\":\"\u5BF9\u5C40\u52BF\u7684\u6F5C\u5728\u5F71\u54CD\",\"type\":\"secret/alliance/conspiracy/routine\"}],"+
         "\"route_disruptions\":[{\"route\":\"\u8D77\u70B9-\u7EC8\u70B9\",\"reason\":\"\u963B\u65AD\u539F\u56E0(\u6218\u4E71/\u6D2A\u6C34/\u53DB\u519B\u5360\u636E)\",\"resolved\":false}],"+
         "\"foreshadowing\":[{\"action\":\"plant/resolve\",\"content\":\"\u4F0F\u7B14\u5185\u5BB9\",\"type\":\"threat/opportunity/mystery/romance\",\"resolveCondition\":\"\u56DE\u6536\u6761\u4EF6(plant\u65F6\u586B)\"}],"+
-        "\"current_issues_update\":[{\"action\":\"add/resolve/update\",\"title\":\"时政议题标题(如:河北兵饷拖欠、水利年久失修、某州刺史贪腐被劾)\",\"category\":\"军政/财赋/水利/吉凶/边防/形势/人事/民生\",\"description\":\"半文言200-500字，结合推演实际细化描述具体时政问题的来由、涉及人物、当前态势\",\"id\":\"更新/解决时填已有要务id\"}],"+
+        "\"current_issues_update\":[{\"action\":\"add/resolve/update\",\"title\":\"时政议题标题(如:河北兵饷拖欠、水利年久失修、某州刺史贪腐被劾)\",\"category\":\"军政/财赋/水利/吉凶/边防/形势/人事/民生\",\"description\":\"现代白话200-500字，结合推演实际细化描述具体时政问题的来由、涉及人物、当前态势\",\"id\":\"更新/解决时填已有要务id\"}],"+
         "\"character_memory_updates\":[{\"actor\":\"NPC name\",\"memory_type\":\"commitment/belief/relationship/preference/grudge/favor/fear/intention/reputation\",\"memory\":\"one concrete actor-scoped memory; no hard_state\",\"private\":false,\"confidence\":0.7,\"source_refs\":[{\"type\":\"jishiRecords/courtRecords/events/edictTracker\",\"id\":\"source id\"}]}],"+
         "\"map_changes\":{\"ownership_changes\":[],\"development_changes\":[]},"+
         // ═══ AI 至高权力·v2 新增语义通道（可选·按需使用）═══
@@ -4234,7 +4236,7 @@
 
         tp1b += '\u25C6 npc_letters\uFF08\u9E3F\u96C1\u4F20\u4E66\u00B7\u6BCF\u56DE\u5408 2-5 \u5C01\uFF09\u2014\u2014\n';
         tp1b += '  \u4E0D\u5728 ' + _capB + ' \u7684 NPC \u9047\u91CD\u5927\u4E8B\u4EF6\u4E3B\u52A8\u5199\u4FE1\u7ED9\u7687\u5E1D\u3002from \u5FC5\u987B\u662F\u4E0D\u5728\u9996\u90FD\u7684 NPC\u3002\n';
-        tp1b += '  字段：{from, type:"report奏告/plea求援/warning警报/personal私情/intelligence情报", urgency:"normal/urgent/extreme", content(100-200字古典中文), suggestion(1-2句可省), subjectLine:"信函题名·5-12字如《辽东告急疏》", replyExpected:true}\n';
+        tp1b += '  字段：{from, type:"report奏告/plea求援/warning警报/personal私情/intelligence情报", urgency:"normal/urgent/extreme", content(100-200字现代白话), suggestion(1-2句可省), subjectLine:"信函题名·5-12字如《辽东告急疏》", replyExpected:true}\n';
         tp1b += '  \u53C2\u8003\u4FE1\u4EF6\u6A21\u5F0F\uFF1A\u8FB9\u5C06\u544A\u6025\u00B7\u5730\u65B9\u5B98\u8BF7\u547D\u00B7\u6D41\u5B98\u8FF0\u60C5\u00B7\u51FA\u4F7F\u56DE\u62A5\u00B7\u79BB\u4EAC\u65E7\u81E3\u6000\u60F3\u00B7\u5BC6\u63A2\u5BC6\u62A5\u3002\n\n';
 
         tp1b += '\u25C6 npc_correspondence\uFF08NPC \u4E4B\u95F4\u5BC6\u4FE1\u00B72-5 \u6761\uFF09\u2014\u2014\n';
@@ -4470,7 +4472,7 @@
 
         tp1c += '\u25C6 fengwen_snippets\uFF08\u98CE\u95FB\u5F55\u4E8B\u00B7\u5E38\u6001 12-20 \u6761\uFF09\u2014\u2014\n';
         tp1c += '  人物和势力的活动风闻——源自坊间耳目、朝堂风议、往来密函等，通过起居注/耳报/邸报/坊间传闻报入。\n';
-        tp1c += '  字段：{type, text(30-60字古典中文风), credibility(0.3-0.95), actors:["人名或势力名"], source:"坊间/朝堂/耳目/邸报/密札/边关", mood?:"忧/喜/怒/恐/亲/仇(传递给 actors 记忆的主导情绪)"}\n';
+        tp1c += '  字段：{type, text(30-60字现代白话), credibility(0.3-0.95), actors:["人名或势力名"], source:"坊间/朝堂/耳目/邸报/密札/边关", mood?:"忧/喜/怒/恐/亲/仇(传递给 actors 记忆的主导情绪)"}\n';
         tp1c += '  type 分类：弹劾/荐举/奏议/结党/造谣/私访/宴饮/游宴/诗社/学论/求婚/母祭/丹道/药释/巡视/巡者/赑搜/司法/核查/捐俸/财行/家事/置产/居着/雅集/密联/战报/边报/和亲/质子/朝贡/互市/盟约/遣使/揭私\n';
         tp1c += '  \u4F8B\uFF1A{type:"\u8BD7\u793E", text:"\u897F\u6E56\u4E09\u96C5\u96C6\u4E8E\u5317\u5C71\uFF0C\u67D0\u7532\u8D4B\u300A\u79CB\u6C34\u300B\uFF0C\u67D0\u4E59\u6B21\u97F5\uFF0C\u67D0\u4E19\u7ACB\u5212\u70B9\u65AD\u53E5\u3002", credibility:0.75, actors:["\u67D0\u7532","\u67D0\u4E59"], source:"\u574A\u95F4", mood:"\u559C"}\n';
         tp1c += '  \u3010\u786C\u89C4\u5219\u00B7\u98CE\u95FB\u8986\u76D6\u8981\u6C42\u3011\n';

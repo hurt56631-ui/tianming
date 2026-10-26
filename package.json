@@ -43,6 +43,7 @@
     "files": [
       "main.js",
       "main-impl.js",
+      "main-gemini-web.js",
       "main-json-file.js",
       "main-image-file.js",
       "main-artifact-export.js",
