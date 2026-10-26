@@ -42,7 +42,7 @@
     var captorName=byFactionRef(captor,g),origin=byFactionRef(ch.factionId||ch.faction,g);
     if(!captorName||origin===captorName)return false;
     var old=ch._warCaptive||{};
-    if(old.status==='captured'&&old.by===captorName&&old.battleId===(meta&&meta.battleId||''))return false;
+    if(['captured','detained'].indexOf(old.status)>=0&&old.by===captorName&&old.battleId===(meta&&meta.battleId||''))return false;
     ch.capturedBy=captorName; // arch-ok: WarCaptives owns battle capture provenance, compatible with existing .capturedBy consumers.
     ch._warCaptive={status:'captured',by:captorName,origin:origin,turn:g.turn||0,battleId:meta&&meta.battleId||'',attemptTurn:-1}; // arch-ok: WarCaptives-owned character status.
     return true;
@@ -174,7 +174,6 @@
         if(row[0]==='release'&&!root.confirm('释放 '+ch.name+' 返回 '+v.origin+'？'))return;
         var outcome=adjudicate(entryChar,row[0]);
         result.textContent=outcome.reason||'处置完毕';
-        if(outcome.success||!owned(entryChar))actions.forEach(function(){});
         if(!owned(entryChar))Array.from(panel.querySelectorAll('button')).forEach(function(b){if(b!==close)b.disabled=true;});
         if(row[0]==='detain'&&outcome.ok)btn.disabled=true;
         if(row[0]==='recruit'&&outcome.ok)btn.disabled=true;
