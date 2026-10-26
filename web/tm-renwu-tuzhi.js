@@ -652,7 +652,7 @@ function adaptChar(c){
     age:c.age, gender:c.gender||(isConsort(c)?'女':''), birthplace:c.birthplace, ethnicity:c.ethnicity, faith:c.faith, culture:c.culture, learning:c.learning, stance:c.stance, speechStyle:c.speechStyle,
     family:c.family, familyTier:c.familyTier, isPlayer:isP, alive:c.alive!==false&&c.dead!==true, deathReason:c.deathReason, deathTurn:c.deathTurn,
     appearance:c.appearance, bio:c.bio, personality:c.personality, personalGoal:c.personalGoal||c.goal,
-    portrait:c.portrait,
+    portrait:c.portrait, capturedBy:c.capturedBy||'',
     loyalty:num(c.loyalty,50), intelligence:effAttr(c,'intelligence'), valor:effAttr(c,'valor'), administration:effAttr(c,'administration'), management:effAttr(c,'management'), charisma:effAttr(c,'charisma'), diplomacy:effAttr(c,'diplomacy'), military:effAttr(c,'military'), benevolence:effAttr(c,'benevolence'),
     ambition:num(c.ambition,50), stress:num(c.stress,0), health:num(c.health,80), integrity:(c.integrity!=null?Math.round(c.integrity):null),
     mingwang:_mingwangOf(c), gongming:_gongmingOf(c).merit, gongmingTier:_gongmingOf(c).tier, gongmingOrigin:_gongmingOriginOf(c), meritLog:(c._meritLog||[]).slice(-6).reverse(),
@@ -798,7 +798,7 @@ function headActs(p){
   var _del='<button class="dact danger" onclick="TMZhi.deleteP(\''+esc(p.name).replace(/'/g,"\\'")+'\')">删除</button>';
   if(p.isPlayer)return '<button class="dact primary" onclick="TMZhi.act(\'mind\')">御览心志</button>'; // 君上不可删
   if(p.alive===false)return '<button class="dact primary" onclick="TMZhi.act(\'works\')">阅其遗著</button><button class="dact" onclick="TMZhi.zhuizeng(\''+esc(p.name).replace(/'/g,"\\'")+'\')">追赠</button>'+_del;
-  return livingActions(p,false)+_del;
+  return livingActions(p,false)+(window.TM&&TM.WarCaptives&&TM.WarCaptives.canManage(p._sourceId||p.name)?'<button class="dact primary" onclick="TM.WarCaptives.open(TMZhi.selectedName())">战俘处置</button>':'')+_del;
 }
 function livingActions(p,folio){
   var cls=folio?'fact':'dact',pinned=isPinned(p.name);
@@ -1303,6 +1303,7 @@ function closePanel(){var ov=document.getElementById('tm-zhi-overlay');if(ov)ov.
 
 /* 交互 */
 var TMZhi={
+  selectedName:function(){return state.sel;},
   // 外部新增/移除人物后失效名册缓存·面板开着则就地刷新(2026-07-04 审查定罪:策名召入曾读死缓存)
   invalidatePeople:function(){_peopleCache=null;try{if(q('#tm-zhi-main')){renderChips();renderStatbar();renderRoster();renderMain();renderFolio();}}catch(_e){}},
   selectP:function(name){if(!findP(name))return;state.sel=name;state.tab=state.tab||'overview';state.view='liezhuan';state.compare=null;state.compare2=null;renderViewTabs();renderMain();renderFolio();renderRoster();var ms=q('#tm-zhi-main');if(ms)ms.scrollTop=0;},
