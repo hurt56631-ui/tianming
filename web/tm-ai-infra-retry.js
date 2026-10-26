@@ -18,6 +18,7 @@ function _aiWaitSetting(raw, label) {
 }
 function _aiWaitConfig(opts) {
   opts = opts || {};
+  if (opts.apiConfigOverride) return opts.apiConfigOverride;
   if (typeof _getAITier === 'function') return _getAITier(opts.tier) || {};
   var ai = typeof P !== 'undefined' && P.ai || {};
   return opts.tier === 'secondary' && ai.secondary && ai.secondary.key ? ai.secondary : ai;
@@ -389,8 +390,9 @@ async function _callAIMessagesStreamDirect(messages, maxTok, opts) {
   var _aiCfg = null;
   try { if (typeof _getAITier === 'function') _aiCfg = _getAITier(opts.tier); } catch(_){}
   if (!_aiCfg) _aiCfg = { key: (P.ai&&P.ai.key)||'', url: (P.ai&&P.ai.url)||'', model: (P.ai&&P.ai.model)||'gpt-4o', tier: 'primary' };
+  if (opts.apiConfigOverride) _aiCfg = opts.apiConfigOverride;
   var key = _aiCfg.key || (P.ai && P.ai.key) || ''; if (!key) throw new Error('API未配置');
-  var url = (typeof _buildAIUrlForTier === 'function') ? _buildAIUrlForTier(opts.tier) : _buildAIUrl();
+  var url = opts.apiConfigOverride ? opts.apiConfigOverride.url : ((typeof _buildAIUrlForTier === 'function') ? _buildAIUrlForTier(opts.tier) : _buildAIUrl());
   if (!url) throw new Error('API地址未配置');
   var ctrl = new AbortController();
   var streamReject, streamPhase = 'headers';
