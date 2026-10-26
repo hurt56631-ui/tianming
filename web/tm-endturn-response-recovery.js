@@ -183,6 +183,8 @@
   }
   function streamRequest(kind, payload, maxTokens, opts, execute) {
     opts = opts || {};
+    // Dedicated dialogue credentials must never enter the persisted response-recovery descriptor.
+    if (opts.apiConfigOverride) return execute(opts);
     if (!eligible()) return execute(opts);
     var receipt = {}, next = Object.assign({}, opts, { _recoveryStream: receipt });
     var expectedTier = typeof root._getAITier === 'function' ? (root._getAITier(opts.tier) || {}).tier : opts.tier;
