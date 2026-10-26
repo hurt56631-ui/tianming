@@ -6,7 +6,7 @@
   var ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
   var slots = Object.create(null);
   var cursor = 0;
-  var defaults = { enabled:false, model:'gemini-3.5-flash-lite', keys:[], minIntervalSec:10, style:'natural' };
+  var defaults = { enabled:false, model:'gemini-2.5-flash-lite', keys:[], minIntervalSec:10, style:'natural' };
   function clean(raw) {
     raw = raw && typeof raw === 'object' ? raw : {};
     var input = Array.isArray(raw.keys) ? raw.keys : String(raw.keys || '').split(/[\r\n,]+/);
@@ -95,7 +95,7 @@
     var cfg=read(), enable=el('input'), lab=el('label');enable.type='checkbox';enable.checked=cfg.enabled;
     lab.style.cssText='display:flex;align-items:center;gap:7px;margin-bottom:8px;';lab.append(enable,el('span','启用独立 Gemini 角色对话'));section.appendChild(lab);
     function field(title,control){var wrap=el('label');wrap.style.cssText='display:block;margin:8px 0;';var titleEl=el('span',title);titleEl.style.cssText='display:block;font-size:12px;';wrap.append(titleEl,control);section.appendChild(wrap);return control;}
-    var model=el('input');model.type='text';model.value=cfg.model;model.placeholder='gemini-3.5-flash-lite';model.style.width='100%';field('Gemini 模型名称',model);
+    var model=el('input');model.type='text';model.value=cfg.model;model.placeholder='gemini-2.5-flash-lite';model.style.width='100%';field('Gemini 模型名称',model);
     var keys=el('textarea');keys.rows=3;keys.value=cfg.keys.join('\n');keys.placeholder='每行一个 Google AI Studio API Key，最多 8 个';keys.style.cssText='width:100%;font-family:monospace;resize:vertical;-webkit-text-security:disc;';field('API Key 列表（每行一个）',keys);
     var visible=el('input'), showLabel=el('label');visible.type='checkbox';showLabel.style.cssText='display:flex;align-items:center;gap:7px;font-size:12px;';showLabel.append(visible,el('span','显示密钥'));section.append(showLabel);
     visible.addEventListener('change',function(){keys.style.webkitTextSecurity=visible.checked?'none':'disc';});
@@ -111,4 +111,13 @@
     host.parentElement.insertBefore(section,host.nextSibling);
   }
   root.TM.DialogueGemini={read:read,save:save,stream:stream,stylePrompt:stylePrompt,mount:mount,configured:function(){var c=read();return c.enabled && c.keys.length>0;}};
+  // Mount alongside the existing settings UI without changing its save owner.
+  var settings=root.document&&root.document.getElementById('settings-bg');
+  if(settings && typeof MutationObserver==='function'){
+    var observer=new MutationObserver(function(){
+      if(!settings.classList.contains('show'))return;
+      if(!root.document.getElementById('tm-dialogue-gemini-panel')) mount();
+    });
+    observer.observe(settings,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+  }
 })(window);
