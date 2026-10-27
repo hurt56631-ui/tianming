@@ -307,7 +307,7 @@
       +'<label>我方势力 <select id="tm-war-home">'+options(mine)+'</select></label> '
       +'<label>目标势力 <select id="tm-war-target">'+options(others)+'</select></label>'
       +'<p style="margin:12px 0">外交谈判已统一移到「诏令 → 外交」。<button type="button" class="bt" onclick="TM.WarDiplomacy.openEdictDiplomacy()">前往正式外交谈判</button></p>'
-      +'<fieldset style="margin-top:10px"><legend>宣战与战局</legend><div style="font-size:.85rem;opacity:.8;margin:5px 0">'+summary+'</div>'
+      +'<fieldset style="margin-top:10px"><legend>宣战与战局</legend><div style="font-size:small;opacity:.8;margin:5px 0">'+summary+'</div>'
       +'<label>宣战理由 <select id="tm-war-cb">'+options(casusChoices())+'</select></label> '
       +'<button type="button" class="bt" onclick="TM.WarDiplomacy.declare()">核准并正式宣战</button>'
       +'<small style="display:block;opacity:.7">没有宣战权限、停战尚在或目标不合法时必须拒绝，不改战争名册。</small></fieldset>'
