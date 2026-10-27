@@ -8,6 +8,10 @@ const vm = require('vm');
 const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
+// A standalone smoke run has no provider inventory until its generator executes.
+execFileSync(process.execPath, [path.join(__dirname, 'lint-global-providers.js')], {
+  cwd: path.resolve(ROOT, '..'), stdio: 'pipe'
+});
 execFileSync(process.execPath, [path.join(__dirname, 'build-startup-phase-manifest.js'), '--check'], {
   cwd: path.resolve(ROOT, '..'),
   stdio: 'pipe'
@@ -37,6 +41,14 @@ assert(scriptNames.indexOf(officeDutyModules[0])<scriptNames.indexOf(officeDutyM
 assert(scriptNames.indexOf(officeDutyModules[1])<scriptNames.indexOf('tm-office-system.js'),'shared office readers precede their consumers');
 const visualAdapters=['tm-shanhe-runtime.js'];
 const requestControls=['tm-call-retry-policy.js','tm-call-budget-settings.js'];
+const geminiModules=['tm-gemini-web-mobile.js','tm-gemini-login-backup.js','tm-gemini-web-adapter.js'];
+const npcAIModules=['tm-api-pool.js','tm-npc-speech.js'];
+npcAIModules.forEach(name=>assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads exactly once'));
+assert(scriptNames.indexOf('tm-npc-speech.js')>scriptNames.indexOf('tm-api-pool.js'),'modern dialogue guard follows official HTTP pool');
+assert(scriptNames.indexOf('tm-npc-speech.js')<scriptNames.indexOf('tm-wendui.js'),'NPC modern speech guard precedes dialogue');
+geminiModules.forEach(name=>assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once'));
+assert(scriptNames.indexOf('tm-gemini-web-adapter.js')>scriptNames.indexOf('tm-ai-infra-retry.js'),'Gemini hook requires the owned AI transport first');
+assert(!scriptNames.includes('tm-gemini-turn.js'),'retired free endturn must not load');
 const emergencyModules=['core','tools','adapters','runtime','edict','review','settings'].map(n=>'tm-emergency-recovery-'+n+'.js');
 emergencyModules.forEach(name=>{assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once');assert(scriptNames.indexOf(name)>scriptNames.indexOf('tm-agent-kernel.js'),'recovery needs existing AgentKernel first');});
 const enactedOrderModules=['tm-agent-world-editor.js','tm-social-formation.js','tm-imperial-orders.js','tm-personal-memory-recall.js','tm-live-context.js','tm-tax-policy.js'];
@@ -62,7 +74,11 @@ travelModules.forEach(name=>{assert.strictEqual(scriptNames.filter(src=>src===na
 const tenureModules=['tm-office-tenure.js'];
 tenureModules.forEach(name=>{assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once');assert(scriptNames.indexOf(name)>scriptNames.indexOf('tm-npc-decision-ai-driven.js'),'tenure adapter loads after the NPC registry');});
 assert(scriptNames.indexOf('tm-map-circuits.js')<scriptNames.indexOf('phase8-formal-map-dossier.js'),'circuit data layer precedes the map dossier that reads it');
-assert.strictEqual(manifest.scriptCount,417+dailyModules.length+politicalModules.length+officeDutyModules.length+exportModules.length+nativeModules.length+fiscalModules.length+recoveryModules.length+outputContractModules.length+visualAdapters.length+requestControls.length+enactedOrderModules.length+emergencyModules.length+edictEfficacyModules.length+mapDataModules.length+timeModules.length+travelModules.length+tenureModules.length,'retain every prior script and every explicitly registered runtime addition');
+const integratedGameplayModules=['tm-war-diplomacy-ui.js','tm-char-appearance.js','tm-war-captives.js','tm-living-core.js','tm-living-memory.js','tm-living-dynasty.js','tm-living-marriage.js','tm-living-diplomacy.js','tm-living-intrigue.js','tm-living-legions.js','tm-living-world.js'];
+integratedGameplayModules.forEach(name=>assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once'));
+assert(scriptNames.indexOf('tm-war-captives.js')<scriptNames.indexOf('tm-renwu-tuzhi.js'),'battle captive UI ordered after owner');
+assert(scriptNames.indexOf('tm-char-appearance.js')<scriptNames.indexOf('tm-renwu-tuzhi.js'),'portrait UI ordered after owner');
+assert.strictEqual(manifest.scriptCount,417+dailyModules.length+politicalModules.length+officeDutyModules.length+exportModules.length+nativeModules.length+fiscalModules.length+recoveryModules.length+outputContractModules.length+visualAdapters.length+requestControls.length+geminiModules.length+npcAIModules.length+enactedOrderModules.length+emergencyModules.length+edictEfficacyModules.length+mapDataModules.length+timeModules.length+travelModules.length+tenureModules.length+integratedGameplayModules.length,'retain every prior script and every explicitly registered runtime addition');
 fiscalModules.forEach(name=>assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once'));
 assert(scriptNames.indexOf('tm-fiscal-statements.js')<scriptNames.indexOf('tm-fiscal-engine.js'),'shared statements precede the fiscal engine');
 assert(scriptNames.indexOf('tm-public-treasury.js')<scriptNames.indexOf('tm-military-arrears.js'),'public treasury precedes army liabilities');
@@ -83,6 +99,7 @@ assert(scriptNames.indexOf('tm-api-models.js') < scriptNames.indexOf('tm-api-set
 assert(scriptNames.indexOf('tm-api-settings.js') < scriptNames.indexOf('tm-patches.js'), 'settings controls load before the settings renderer');
 assert.strictEqual(scriptNames.filter((name) => name === 'tm-ai-infra-retry.js').length, 1, 'retry helpers load exactly once');
 assert.strictEqual(scriptNames.indexOf('tm-ai-infra-retry.js') + 1, scriptNames.indexOf('tm-ai-infra.js'), 'retry helpers directly precede their consumer');
+assert(scriptNames.indexOf('tm-api-pool.js')>scriptNames.indexOf('tm-ai-infra-model-detect.js'),'pool loads after the complete AI infra family');
 assert(scriptNames.indexOf('tm-ai-request-options.js') < scriptNames.indexOf('tm-ai-infra.js'), 'thinking policy loads before its transport consumers');
 assert.strictEqual(scriptNames.filter((name) => name === 'tm-building-orders.js').length, 1, 'the building-order owner must be loaded exactly once');
 assert(scriptNames.indexOf('tm-building-orders.js') > scriptNames.indexOf('tm-custom-build-agent.js'), 'the order owner follows its actual construction provider');

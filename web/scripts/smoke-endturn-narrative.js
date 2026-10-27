@@ -71,7 +71,7 @@ assert(returnRe.test(src),
 //   readSource 的 ENDTURN_FAMILY 不含该文件·故此块单独读 record-specs 核体例。
 const recordSpecsSrc = fs.readFileSync(path.join(ROOT, 'tm-endturn-record-specs.js'), 'utf8');
 [
-  '崇祯朝政纪要',  // 范例朝代(record-specs 的"仿崇祯朝政纪要体"风格范例)
+  '用现代白话写政务纪要',  // 保留纪要结构，文字改为现代白话
   '【军事】',
   '【朝政】',
   '【经济】',

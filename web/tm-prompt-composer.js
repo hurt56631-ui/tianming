@@ -122,11 +122,16 @@
    * Base sysP·朝代 + 剧本 + 角色 + 难度 + 文风 + gameMode + historicalLimit
    * 多数 specialty subcall 都需要这段
    */
+  // 约束 AI 生成文字的表达，不改变史实模式、数值和 JSON 契约。
+  function buildLanguageGuide() {
+    return '\n【统一现代白话·适用于全部生成文字】剧情叙述、人物对白、朝议、奏报、诏书、书信、实录、时政记和人物传记，都用自然通顺的现代汉语，说清谁做了什么、为什么、有什么结果；不要文言句法、刻意堆砌古典套语或用“曰”“之乎者也”代替正常表达。人名、身份、官职、古代称谓、礼法、历法、制度和货币按当前朝代与剧本执行，不引入现代科技、社会制度或网络流行语。严格史实、轻度史实、演义只决定史实约束和演绎程度；史书体、章回体只决定文本结构与详略，均不要求古文。真实史料引文、诗词与专门术语可保留原文。人物说话要像真实的人交流：先回答对方的问题，再表达诉求、理由和态度，篇幅随问题复杂度变化；不要反复请安、长篇自诉功劳或连续堆砌‘圣躬万福’‘乾纲独揽’‘社稷之巨蠹’等古装剧套话。保留人物的私心、派系立场、紧张、怨恨和个人语气，不要让所有人变成同一位训话的史官。动作神态只在确有必要时简短点到，不要用大段括号舞台说明取代交谈。保留 JSON 字段名、数值、人物知情范围及已发生的事实。';
+  }
+
   function buildBase(ctx) {
     ctx = ctx || {};
     var sc = ctx.sc || {};
     var P = ctx.P || {};
-    if (P.ai && P.ai.prompt) return P.ai.prompt + agencyText(sc);
+    if (P.ai && P.ai.prompt) return P.ai.prompt + agencyText(sc) + buildLanguageGuide();
     var s = '你是历史模拟AI。剧本:' + _str(sc.name) +
             '时代:' + _str(sc.era) +
             '角色:' + _str(sc.role) +
@@ -134,7 +139,7 @@
             '文风:' + _str(P.conf && P.conf.style);
     if (ctx.gameModeDesc) s += ctx.gameModeDesc;
     if (ctx.historicalCharLimit) s += ctx.historicalCharLimit;
-    s += agencyText(sc);
+    s += agencyText(sc) + buildLanguageGuide();
     return s;
   }
 
@@ -164,18 +169,10 @@
    * 主 endturn / 多数 specialty 需要
    */
   function buildNarrativeGuide(modeParams, chronicleConfig) {
-    modeParams = modeParams || {};
-    var s = '';
-    var ns = modeParams.narrativeStyle || '半文言';  // default to the half-classical tier (not the weakest vernacular) when a scenario sets no style
-    if (ns.indexOf('资治通鉴') >= 0) {
-      s = '\n【叙事风格·严格文言】仿《资治通鉴》体例。用词典雅·句式简洁。禁用一切现代词汇 (如·OK / 搞定 / 给力)。对话用"曰""言""谓"引述。';
-    } else if (ns.indexOf('半文言') >= 0) {
-      s = '\n【叙事风格·半文言】融合文言与白话。叙事用文言·对话可用浅显白话。禁用网络用语和明显现代词汇。';
-    } else {
-      s = '\n【叙事风格·演义体】仿《三国演义》章回体风格。叙事可白话·但保留古典韵味。禁用网络用语。';
-    }
+    // 历史模式的约束属于史据和制度，不属于语言难度。
+    var s = '\n【剧情文风】用符合古代环境的现代白话叙事和对话，按人物、原因、行动、结果清楚展开。史书体按事实先后组织，演义体可强化场景和冲突，但都不用文言文。';
     if (chronicleConfig && chronicleConfig.styleSample) {
-      s += '\n【风格范文 (参照此文风)】' + chronicleConfig.styleSample;
+      s += '\n【剧本范文·仅参考事实、结构和氛围】若范文为古文，生成时改写为现代白话：' + chronicleConfig.styleSample;
     }
     return s;
   }
@@ -194,7 +191,7 @@
       biji: '笔记体 (仿《世说新语》)',
       custom: chronicleConfig.customStyleDesc || '自定义'
     };
-    return '\n叙事笔法：' + (styleNames[chronicleConfig.style] || chronicleConfig.style);
+    return '\n叙事结构：' + (styleNames[chronicleConfig.style] || chronicleConfig.style) + '。按此结构组织，但全文用现代白话。';
   }
 
   /**
@@ -382,6 +379,7 @@ function buildAiPersonaText(char, options) {
 
   TM.PromptComposer = {
     buildBase: buildBase,
+    buildLanguageGuide: buildLanguageGuide,
     buildPersonaExtra: buildPersonaExtra,
     buildBookExtra: buildBookExtra,
     buildNarrativeGuide: buildNarrativeGuide,

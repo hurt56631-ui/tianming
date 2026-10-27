@@ -27,7 +27,7 @@ function harness(){
   const c={document:doc,state:{pinnedPeople:['old-a','old-b','old-c','old-d','old-e','old-f']},GM:{_junqingBrief:[1,2,3]},
     esc:s=>String(s).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x])),syncFormalShellVisibility:()=>true,updateRailActive(){},
     getMemorials(){reads++;return Array.from({length:12},()=>({status:'pending'}));},getIssues(){reads++;return Array.from({length:6},()=>({status:'pending'}));},issueIsResolved:x=>x.status==='resolved',collectRecentEvents(){reads++;return[1,2,3,4];},TMPhase8FormalBridge:{openPanel:s=>calls.push(s)}};
-  c.window=c;vm.createContext(c);
+  c.window=c;c.TM={NPC:{DailyUI:{pendingForPlayer:()=>[],openPending:()=>calls.push('letter')}}};vm.createContext(c);
   c.GM.turn=2;c.GM.chars=[{id:'a',name:'甲',alive:true,location:'京师',stress:80,loyalty:60},{id:'b',name:'乙',alive:true,location:'京师',stress:0,loyalty:60}];
   c.GM._pendingAudiences=[{name:'使臣',isEnvoy:true,_qid:'envoy'},{name:'乙',_qid:'b'}];
   c.GM.letters=[];c.personKey=p=>String(p.id||p.name);c.findPerson=k=>(c.GM.chars||[]).find(p=>p.id===k||p.name===k);c.findCharByName=c.findPerson;
@@ -39,7 +39,7 @@ function harness(){
   // Load optional old dependencies only when present, so the same harness can
   // execute the actual pre-fix renderers as a red baseline (not replacement code).
   const legacy=source.match(/var RAIL_DYNAMIC_BADGE_SLOTS\s*=\s*\{[^}]*\};/);
-  const names=['updateRailBadges','ensureRail','ensurePreviewRail'];
+  const names=['railDailyCount','updateRailBadges','ensureRail','ensurePreviewRail'];
   for(const n of ['railAudienceCount','openRailPanel'])if(source.includes('function '+n+'('))names.push(n);
   if(legacy){vm.runInContext(legacy[0],c);names.unshift('railDynamicBadgeCount');}
   vm.runInContext(names.map(n=>selectedFn(source,n)).join('\n'),c);
@@ -48,10 +48,10 @@ function harness(){
 }
 for(const [fn,id]of [['ensureRail','tm-phase8-formal-rail'],['ensurePreviewRail','tm-right-rail']]){
   const h=harness();h.c[fn]();const html=h.elements.get(id).innerHTML;
-  check(fn+' counts three actual people, not six unrelated issues',()=>{assert.equal(h.live().length,1);assert.equal(h.live()[0].slot,'audience');assert.equal(h.live()[0].textContent,'3');});
-  check(fn+' preserves all nine actual navigation slots',()=>assert.deepEqual([...html.matchAll(/data-slot="([^"]+)"/g)].map(m=>m[1]),['ol','issue','policy','office','army','map','finance','rumor','archive']));
+  check(fn+' counts three actual people, not six unrelated issues',()=>{assert.equal(h.live().length,2);assert.equal(h.live()[0].slot,'audience');assert.equal(h.live()[0].textContent,'3');assert.equal(h.live()[1].slot,'daily');assert.equal(h.live()[1].textContent,'');});
+  check(fn+' preserves all nine actual navigation slots',()=>assert.deepEqual([...html.matchAll(/data-slot="([^"]+)"/g)].map(m=>m[1]),['ol','issue','letter','policy','office','army','map','finance','rumor','archive']));
   check(fn+' uses labels matching the actual drawer content',()=>{for(const label of ['阶层与党派','问对与朝议','钉选臣僚'])assert(html.includes(label));});
-  check(fn+' clicks retain their original destinations',()=>{for(const m of html.matchAll(/onclick="([^"]+)"/g))vm.runInContext(m[1],h.c);assert.deepEqual(h.calls,['ol','issue','policy','office','army','map','finance','rumor','archive']);});
+  check(fn+' clicks retain their original destinations',()=>{for(const m of html.matchAll(/onclick="([^"]+)"/g))vm.runInContext(m[1],h.c);assert.deepEqual(h.calls,['ol','issue','letter','policy','office','army','map','finance','rumor','archive']);});
   check(fn+' does not read or mutate memorial/event/issue data for badges',()=>assert.equal(h.reads(),0));
   check(fn+' repeated refresh and world switch hide zero without stale counts',()=>{h.c.GM={turn:2,chars:[],_junqingBrief:[]};h.c.state.pinnedPeople=[];h.c[fn]();h.c.updateRailBadges();assert(h.live().every(b=>b.style.display==='none'&&b.textContent===''));});
 }

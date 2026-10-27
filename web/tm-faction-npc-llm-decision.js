@@ -23,14 +23,14 @@
  *   "rationale": "ruler 此回合考量 (50-150 字·解释为什么这么决策)",
  *   "memorials": [
  *     { "from": "char.name", "type": "军务/政务/民生/经济/人事/密奏",
- *       "content": "奏疏内容 (60-120 字·古文)",
+ *       "content": "奏疏内容 (60-120 字·现代白话)",
  *       "rulerDecision": "approved/rejected/annotated/referred",
  *       "ruling": "朱批 (10-30 字)",
  *       "loyaltyDelta": -5..+5 }
  *   ],
  *   "edict": {
  *     "type": "催征/补饷/安抚/赏赐/巡抚/经略/...",
- *     "content": "诏令 (60-120 字·古文)",
+ *     "content": "诏令 (60-120 字·现代白话)",
  *     "trigger": "财政危/军权弱/...",
  *     "treasuryDelta": -500000..+500000,
  *     "loyaltyDeltas": { "court": -10..+10, "general": ..., "clan": ... }
@@ -1651,8 +1651,8 @@
     user += '\n}\n';
     user += '\n动作字段速查 (' + ((global.TM && global.TM.FactionActionEngine && typeof global.TM.FactionActionEngine.livingWorldOn === 'function' && global.TM.FactionActionEngine.livingWorldOn()) ? '基础 type·完整 required/optional 及总闸开启时可用的 declare_war/join_war 见 ACTION_CONTRACT 段' : '10 种 type·完整 required/optional 见 ACTION_CONTRACT 段') + '):';
     user += '\n  type ∈ {memorial|edict|court_alignment|office_change|fiscal_policy|military_order|diplomacy|province_policy|spy_or_intrigue|rebellion_policy' + ((global.TM && global.TM.FactionActionEngine && typeof global.TM.FactionActionEngine.livingWorldOn === 'function' && global.TM.FactionActionEngine.livingWorldOn()) ? '|declare_war|join_war' : '') + '}';
-    user += '\n  memorial         {from, type:"军务|政务|民生|经济|人事|密奏", content(60-120 字古文), rulerDecision:"approved|rejected|annotated|referred", ruling(10-30 字), loyaltyDelta:-5至5}';
-    user += '\n  edict            {type:"催征|减俸|补饷|整军|安抚|罢党争|怀柔|赏赐|巡抚|经略", content(60-120 字古文), trigger, treasuryDelta:-500000至500000, loyaltyDeltas:{court,general,clan}:-15至15}';
+    user += '\n  memorial         {from, type:"军务|政务|民生|经济|人事|密奏", content(60-120 字现代白话), rulerDecision:"approved|rejected|annotated|referred", ruling(10-30 字), loyaltyDelta:-5至5}';
+    user += '\n  edict            {type:"催征|减俸|补饷|整军|安抚|罢党争|怀柔|赏赐|巡抚|经略", content(60-120 字现代白话), trigger, treasuryDelta:-500000至500000, loyaltyDeltas:{court,general,clan}:-15至15}';
     user += '\n  court_alignment  {type:"cooperate|attack|compromise|infight", summary(20-50 字), partyImbalanceDelta:-0.2至0.2, loyaltyDeltaByParty:{partyName:-5至5}}';
     user += '\n  office_change    {kind:"promote|demote|appoint", target, newPosition(paradigm 头衔), loyaltyDelta:-10至10, reason}';
     user += '\n  fiscal_policy    {resource:"money|grain|cloth", treasuryDelta, incomeDelta, expenseDelta, reason}';
@@ -1661,7 +1661,7 @@
     user += '\n  province_policy  {province, policy:"transfer_owner|pacify|extract|reform", ownerFaction, minxinDelta, corruptionDelta, unrestDelta, taxDelta, reason}';
     user += '\n  spy_or_intrigue  {targetFaction, intrigue:"spread_rumor|bribe|sabotage", relationDelta, pressure, reason}';
     user += '\n  rebellion_policy {targetFaction, policy:"incite|sponsor|pacify", support, reason}';
-    user += '\n约束: 单轨 actions[]·不要再用 memorials/edict/chaoyi/office 顶层字段 (已废)·所有动作放 actions[]。type/enum 必须用给定值·content 必须中文古文风。';
+    user += '\n约束: 单轨 actions[]·不要再用 memorials/edict/chaoyi/office 顶层字段 (已废)·所有动作放 actions[]。type/enum 必须用给定值·所有叙述性字段（含 rationale、content、reason、terms）使用自然现代白话，保留本朝官职称谓与制度礼法，不用文言句法或现代网络用语。';
     user += '\nTARGET RULE: char/army/province/faction names must come from ACTION_CANDIDATES or the visible context above. Prefer concrete actions[] that operationalize SC16_WORLD_DIRECTIVE; do not invent invisible characters or armies.';
     user += '\nLIMITS: actions[] 长度 0-8·宁少勿多·空数组也允许。';
     if (global.P) {

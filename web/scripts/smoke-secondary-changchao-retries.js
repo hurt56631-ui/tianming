@@ -18,6 +18,9 @@ function fixture(retries = 1) {
   c._buildAIUrl = () => c._buildAIUrlForTier('primary');
   c._aiRetryDelay = () => 1;
   c.CHARS = { '臣甲': { title: '官员' } }; c.CY = { abortCtrl: new AbortController() };
+  // The production NPC router is a separate loaded script; this isolated
+  // retry fixture exercises the configured secondary-tier branch only.
+  c._tmNpcDialogueAITier = () => 'secondary';
   c._cc3_makeMessagesWithSystem = prompt => [{ role: 'user', content: prompt }];
   for (const name of ['_cc3_aiGenReact', '_cc3_callAI']) {
     const node = ast.body.find(n => n.type === 'FunctionDeclaration' && n.id.name === name);

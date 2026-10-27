@@ -17,6 +17,7 @@
     need('Pipeline.run', TM.Endturn.Pipeline && TM.Endturn.Pipeline.run);
     need('Pipeline.buildCtx', TM.Endturn.Pipeline && TM.Endturn.Pipeline.buildCtx);
     need('_buildSaveState', root._buildSaveState);
+    // Full endturn inference requires the configured official API key.
     if (p.ai && p.ai.key) {
       need('_aiFetchWithRetry', root._aiFetchWithRetry); need('_aiComputeTimeout', root._aiComputeTimeout);
       need('_aiErrorIsTerminal', root._aiErrorIsTerminal); need('_tmAIFetch', root._tmAIFetch);

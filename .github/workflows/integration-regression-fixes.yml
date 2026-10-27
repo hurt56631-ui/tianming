@@ -1,0 +1,27 @@
+name: Integration fixed regressions
+on:
+  push:
+    branches: [codex/integration-all-prs-20261027]
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Prepare derived startup manifest for the new merged script list
+        run: |
+          node web/scripts/lint-global-providers.js
+          node web/scripts/build-startup-phase-manifest.js
+      - name: Four formerly failing integrated smoke tests
+        run: |
+          node web/scripts/smoke-calendar-contract.js
+          node web/scripts/smoke-newui-routing.js
+          node web/scripts/smoke-right-rail-badge-semantics.js
+          node web/scripts/smoke-startup-phase-observability.js

@@ -2200,16 +2200,24 @@
     return rr.pendingAudiences().count;
   }
 
+  function railDailyCount(){
+    var npc = window.TM && TM.NPC && TM.NPC.DailyUI;
+    return npc && typeof npc.pendingForPlayer === 'function' ? npc.pendingForPlayer().length : 0;
+  }
   function updateRailBadges(){
     var badges = document.querySelectorAll('#tm-right-rail .tm-rc-count, #tm-phase8-formal-rail .tmf-rail-count');
     if (!badges.length) return;
-    var count = railAudienceCount();
+    var audience = railAudienceCount(), daily = railDailyCount();
     badges.forEach(function(el){
-      if (el.getAttribute('data-phase8-badge') !== 'audience') { el.remove(); return; }
+      var kind = el.getAttribute('data-phase8-badge');
+      if (kind !== 'audience' && kind !== 'daily') { el.remove(); return; }
+      var count = kind === 'daily' ? daily : audience;
       el.textContent = count ? String(count) : '';
       el.style.display = count ? '' : 'none';
       var button = el.parentNode;
-      var label = '问对与朝议' + (count ? ' · ' + count + ' 人请见待办' : '');
+      var label = kind === 'daily'
+        ? '鸿雁传书' + (count ? ' · ' + count + ' 项日常来往待处理' : '')
+        : '问对与朝议' + (count ? ' · ' + count + ' 人请见待办' : '');
       button.setAttribute('title', label);
       button.setAttribute('aria-label', label);
       button.setAttribute('data-tip', label);
@@ -2217,6 +2225,10 @@
   }
 
   function openRailPanel(slot){
+    if (slot === 'letter') {
+      var daily = window.TM && TM.NPC && TM.NPC.DailyUI;
+      return daily && typeof daily.openPending === 'function' ? daily.openPending() : openHongyanPreviewPanel();
+    }
     var panel = document.getElementById('rpanel');
     if (state.activeSlot === slot) {
       if (slot === 'archive' && document.body.classList.contains('tm-phase8-office-single')) { showHome(); return; }
@@ -2269,6 +2281,7 @@
     var buttons = [
       ['ol','纲','阶层与党派','hot'],
       ['issue','政','问对与朝议','hot'],
+      ['letter','函','鸿雁传书',''],
       ['policy','文','文事与科举',''],
       ['office','臣','钉选臣僚',''],
       ['army','军','军务边防','hot'],
@@ -2278,7 +2291,7 @@
       ['archive','制','官制衙门','']
     ];
     rail.innerHTML = '<div class="tmf-rail-cap">国事</div>' + buttons.map(function(b){
-      return '<button type="button" class="tmf-rail-btn ' + esc(b[3] || '') + '" data-slot="' + esc(b[0]) + '" title="' + esc(b[2]) + '" onclick="TMPhase8FormalBridge.openRailPanel(\'' + esc(b[0]) + '\')"><span>' + esc(b[1]) + '</span>' + (b[0] === 'issue' ? '<span class="tmf-rail-count" data-phase8-badge="audience" style="display:none"></span>' : '') + '</button>';
+      return '<button type="button" class="tmf-rail-btn ' + esc(b[3] || '') + '" data-slot="' + esc(b[0]) + '" title="' + esc(b[2]) + '" onclick="TMPhase8FormalBridge.openRailPanel(\'' + esc(b[0]) + '\')"><span>' + esc(b[1]) + '</span>' + (b[0] === 'issue' ? '<span class="tmf-rail-count" data-phase8-badge="audience" style="display:none"></span>' : b[0] === 'letter' ? '<span class="tmf-rail-count" data-phase8-badge="daily" style="display:none"></span>' : '') + '</button>';
     }).join('');
     updateRailBadges();
     updateRailActive();
@@ -2298,14 +2311,14 @@
       rail.setAttribute('aria-label', '国事侧栏');
       root.appendChild(rail);
     }
-    if (rail.dataset.formalRailBuilt === '1' && rail.querySelector('[data-slot="archive"]')) {
+    if (rail.dataset.formalRailBuilt === '1' && rail.querySelector('[data-slot="archive"]') && rail.querySelector('[data-slot="letter"]')) {
       updateRailBadges(); updateRailActive(); return;
     }
     // 2026-05-27·右侧栏图标 SVG 化·参见 web/preview/right-rail-icons-preview.html v4
     // 立意·司南罗盘 / 衙门殿宇 / 竹简卷 / 朝班一品紫 / 双半合符 / 鱼鳞图册 / 算盘 / 官制树
     // 第 2 参从汉字字符改 SVG raw string·esc(b[1]) 改 raw b[1]·不转义
     var SVG_OL = '<svg class="tm-rc-svg" viewBox="0 0 48 48"><rect x="5" y="5" width="38" height="38" rx="1" fill="none" stroke="#d4be7a" stroke-width="1.4"/><circle cx="24" cy="24" r="14" fill="rgba(60,42,24,.45)" stroke="#d4be7a" stroke-width=".9"/><g stroke="#d4be7a" stroke-width=".9"><line x1="24" y1="10" x2="24" y2="13"/><line x1="24" y1="35" x2="24" y2="38"/><line x1="10" y1="24" x2="13" y2="24"/><line x1="35" y1="24" x2="38" y2="24"/></g><ellipse cx="22" cy="26" rx="6.5" ry="3" fill="#d4be7a" transform="rotate(-32 22 26)"/><circle cx="24" cy="24" r="1.2" fill="#1c1914"/></svg>';
-    var SVG_ISSUE = '<svg class="tm-rc-svg" viewBox="0 0 48 48"><path d="M14 12 L34 12" stroke="#6b5010" stroke-width="1.6"/><path d="M14 12 Q12 9 13 6" stroke="#6b5010" stroke-width="1.4" fill="none"/><path d="M34 12 Q36 9 35 6" stroke="#6b5010" stroke-width="1.4" fill="none"/><path d="M14 12 L4 22 Q3 23 4 24 L44 24 Q45 23 44 22 L34 12 Z" fill="#d4be7a" stroke="#6b5010" stroke-width=".8"/><g fill="#8b2e25"><rect x="9" y="24" width="2.5" height="14"/><rect x="36.5" y="24" width="2.5" height="14"/><rect x="17" y="24" width="2.5" height="14"/><rect x="28.5" y="24" width="2.5" height="14"/></g><rect x="16" y="25" width="16" height="2.5" fill="#1c1914" stroke="#d4be7a" stroke-width=".4"/><path d="M20 38 L20 30 L28 30 L28 38" fill="#a32312"/><rect x="6" y="38" width="36" height="1.6" fill="#9d917d"/><rect x="4" y="40" width="40" height="1.6" fill="#9d917d"/></svg>';
+    var SVG_ISSUE = '<svg class="tm-rc-svg" viewBox="0 0 48 48"><path d="M14 12 L34 12" stroke="#6b5010" stroke-width="1.6"/><path d="M14 12 Q12 9 13 6" stroke="#6b5010" stroke-width="1.4" fill="none"/><path d="M34 12 Q36 9 35 6" stroke="#6b5010" stroke-width="1.4" fill="none"/><path d="M14 12 L4 22 Q3 23 4 24 L44 24 Q45 23 44 22 L34 12 Z" fill="var(--gold-300)" stroke="var(--color-foreground-muted)" stroke-width=".8"/><g fill="#8b2e25"><rect x="9" y="24" width="2.5" height="14"/><rect x="36.5" y="24" width="2.5" height="14"/><rect x="17" y="24" width="2.5" height="14"/><rect x="28.5" y="24" width="2.5" height="14"/></g><rect x="16" y="25" width="16" height="2.5" fill="#1c1914" stroke="#d4be7a" stroke-width=".4"/><path d="M20 38 L20 30 L28 30 L28 38" fill="#a32312"/><rect x="6" y="38" width="36" height="1.6" fill="#9d917d"/><rect x="4" y="40" width="40" height="1.6" fill="#9d917d"/></svg>';
     var SVG_POLICY = '<svg class="tm-rc-svg" viewBox="0 0 48 48"><g fill="#d4be7a" stroke="#6b5010" stroke-width=".4"><rect x="6.4" y="7" width="3.4" height="34" rx=".4"/><rect x="10.6" y="7" width="3.4" height="34" rx=".4"/><rect x="14.8" y="7" width="3.4" height="34" rx=".4"/><rect x="19" y="7" width="3.4" height="34" rx=".4"/><rect x="23.2" y="7" width="3.4" height="34" rx=".4"/><rect x="27.4" y="7" width="3.4" height="34" rx=".4"/><rect x="31.6" y="7" width="3.4" height="34" rx=".4"/><path d="M35.8 7 Q39 8 41 10 Q42 12 40 14 Q41 18 41 22 Q41 28 41 34 Q42 38 40 40 Q39 41 35.8 41 Z"/></g><rect x="4" y="9.5" width="38" height="2" fill="#a32312"/><rect x="4" y="37" width="38" height="2" fill="#a32312"/></svg>';
     var SVG_OFFICE = '<svg class="tm-rc-svg" viewBox="0 0 48 48"><rect x="2" y="42" width="44" height="2" fill="#3a3530"/><g opacity=".88"><path d="M5.5 42 L5 22 Q5 18 6 16 Q7 14 9.5 14 L10.5 14 Q13 14 14 16 Q15 18 15 22 L14.5 42 Z" fill="#5a8f7f"/><ellipse cx="10" cy="12" rx="2.6" ry="3" fill="#ede5d0"/><path d="M6.5 9.5 Q6.5 6 10 5 Q13.5 6 13.5 9.5 Z" fill="#1c1914"/><ellipse cx="4.5" cy="9" rx="2" ry=".8" fill="#1c1914"/><ellipse cx="15.5" cy="9" rx="2" ry=".8" fill="#1c1914"/></g><path d="M18 43 L17.5 21 Q17.5 17 18.5 14 Q19.5 11 23 11 L25 11 Q28.5 11 29.5 14 Q30.5 17 30.5 21 L30 43 Z" fill="#8e44ad"/><rect x="18" y="29" width="12" height="2.4" fill="#6b5010"/><ellipse cx="24" cy="9" rx="3" ry="3.4" fill="#f4ecd4"/><path d="M19 6 Q19 1.5 24 0.5 Q29 1.5 29 6 L29 7 L19 7 Z" fill="#1c1914"/><ellipse cx="13" cy="5.5" rx="3.5" ry="1.2" fill="#1c1914"/><ellipse cx="35" cy="5.5" rx="3.5" ry="1.2" fill="#1c1914"/><path d="M22.5 14 L25.5 14 L25.5 30 Q25 31 24 31 Q23 31 22.5 30 Z" fill="#f8f3e8"/><g opacity=".92"><path d="M33.5 42 L33 22 Q33 18 34 16 Q35 14 37.5 14 L38.5 14 Q41 14 42 16 Q43 18 43 22 L42.5 42 Z" fill="#8b2e25"/><ellipse cx="38" cy="12" rx="2.6" ry="3" fill="#ede5d0"/><path d="M34.5 9.5 Q34.5 6 38 5 Q41.5 6 41.5 9.5 Z" fill="#1c1914"/><ellipse cx="32.5" cy="9" rx="2" ry=".8" fill="#1c1914"/><ellipse cx="43.5" cy="9" rx="2" ry=".8" fill="#1c1914"/></g></svg>';
     var SVG_ARMY = '<svg class="tm-rc-svg" viewBox="0 0 48 48"><path d="M3 25 Q3 21 7 20 L13 18 Q18 16 22 17 Q23 18 23 21 L23 33 Q22 35 18 35 Q12 35 8 33 Q4 32 3 29 Z" fill="#caa05a" stroke="#2a1808" stroke-width=".7"/><path d="M25 17 Q26 16 30 17 L36 18 Q41 19 43 22 Q45 25 45 28 Q45 32 42 33 L36 35 Q30 35 27 33 Q25 32 25 30 Z" fill="#8a6d2b" stroke="#2a1808" stroke-width=".7"/><g stroke="#1c1914" stroke-width=".7" fill="none"><path d="M9 19 Q9 25 9 32"/><path d="M14 18 Q14 25 14 33"/><path d="M19 17 Q19 25 19 33"/><path d="M28 18 Q28 25 28 33"/><path d="M33 18 Q33 25 33 33"/><path d="M38 18 Q38 25 38 32"/></g><line x1="24" y1="14" x2="24" y2="35" stroke="#a32312" stroke-width=".8" stroke-dasharray="1.5,1.2"/><circle cx="24" cy="26" r=".9" fill="#a32312"/></svg>';
@@ -2318,6 +2331,7 @@
     var buttons = [
       ['ol',SVG_OL,'阶层与党派','hot'],
       ['issue',SVG_ISSUE,'问对与朝议','hot'],
+      ['letter','<svg class="tm-rc-svg" viewBox="0 0 48 48"><rect x="5" y="12" width="38" height="27" rx="2" fill="#d4be7a" stroke="#6b5010" stroke-width="1.5"/><path d="M6 15 L24 28 L42 15" stroke="var(--color-foreground-muted)" stroke-width="2" fill="none"/></svg>','鸿雁传书',''],
       ['policy',SVG_POLICY,'文事艺府',''],
       ['office',SVG_OFFICE,'钉选臣僚',''],
       ['army',SVG_ARMY,'军务边防','hot'],
@@ -2329,7 +2343,7 @@
     rail.innerHTML = '<div class="tm-rc-cap" aria-hidden="true">国事</div>' + buttons.map(function(b, i){
       var divider = (i === 0 || i === 3 || i === 6) ? '<div class="tm-rc-divider" aria-hidden="true"></div>' : '';
       // b[1] 是 raw SVG·不转义
-      return '<button type="button" class="tm-rc-icon ' + esc(b[3] || '') + '" aria-label="' + esc(b[2]) + '" data-slot="' + esc(b[0]) + '" data-tip="' + esc(b[2]) + '" onclick="TMPhase8FormalBridge.openRailPanel(\'' + esc(b[0]) + '\')">' + b[1] + (b[0] === 'issue' ? '<span class="tm-rc-count" data-phase8-badge="audience" style="display:none"></span>' : '') + '</button>' + divider;
+      return '<button type="button" class="tm-rc-icon ' + esc(b[3] || '') + '" aria-label="' + esc(b[2]) + '" data-slot="' + esc(b[0]) + '" data-tip="' + esc(b[2]) + '" onclick="TMPhase8FormalBridge.openRailPanel(\'' + esc(b[0]) + '\')">' + b[1] + (b[0] === 'issue' ? '<span class="tm-rc-count" data-phase8-badge="audience" style="display:none"></span>' : b[0] === 'letter' ? '<span class="tm-rc-count" data-phase8-badge="daily" style="display:none"></span>' : '') + '</button>' + divider;
     }).join('') + '<div class="tm-rc-spacer"></div>';
     rail.dataset.formalRailBuilt = '1';
     updateRailBadges();
