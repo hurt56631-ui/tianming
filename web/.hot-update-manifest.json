@@ -2,7 +2,7 @@
   "type": "tianming-hot-update",
   "version": "1.3.5.3",
   "entry": "index.html",
-  "generatedAt": "2026-10-27T01:39:23.252Z",
+  "generatedAt": "2026-10-27T02:04:31.256Z",
   "files": [
     {
       "path": "ARCHITECTURE.md",
@@ -3206,8 +3206,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "3928d7a667ce9972051425d35f087ea11df77734289a2725ae7088cc15a1dc21",
-      "size": 78739
+      "sha256": "b4f8f42684f72274c02e6bb20796513b6e883dd9fb064eaa76738eed41326d9f",
+      "size": 79026
     },
     {
       "path": "INDEX.md",
@@ -4406,8 +4406,8 @@
     },
     {
       "path": "startup-script-phases.json",
-      "sha256": "8c538683940572e6bd763a6e0e0fef93c28d853cdd681ffbf3c84245c4e6b8fd",
-      "size": 399784
+      "sha256": "b004fd4e6db4ca6e991f5fb309308cdd483b8573de918ba6f079d65a44beb063",
+      "size": 402007
     },
     {
       "path": "styles.css",
@@ -4635,6 +4635,11 @@
       "size": 4236
     },
     {
+      "path": "tm-campaign-world.js",
+      "sha256": "28bbb75a80d1ce27fc5b39d66466649608f8a4b245012385cc20d9ea7b073b54",
+      "size": 3878
+    },
+    {
       "path": "tm-capacitor-boot.js",
       "sha256": "f9c65ba9af91e8162acb4491e3875a32747a5d71734f0c722ce022085d287e93",
       "size": 27836
@@ -4828,6 +4833,11 @@
       "path": "tm-circuit-governor-effects.js",
       "sha256": "52e70d8441fa90309866f3b069608e54cec8b4b63d22a264a975fbd82eee8d15",
       "size": 8174
+    },
+    {
+      "path": "tm-civil-world.js",
+      "sha256": "1c973907dfc3f29f2605da6acaa96173f65dbc2ff53e31abf6b6fe09e3a8fe0b",
+      "size": 5539
     },
     {
       "path": "tm-class-character-relations.js",
@@ -5236,8 +5246,8 @@
     },
     {
       "path": "tm-endturn-systems.js",
-      "sha256": "eee28a6035316d27c5ba15c834ddaf68e0c8c96891939cdccb1d99fa0d90da9f",
-      "size": 40576
+      "sha256": "f81bdb764264c7c34668170cda659744a333e63e459f95784c1695779444a9ed",
+      "size": 40771
     },
     {
       "path": "tm-endturn-timing-ledger.js",
@@ -6440,6 +6450,16 @@
       "size": 42329
     },
     {
+      "path": "tm-political-war-world.js",
+      "sha256": "2cbd73c9c18566e87a5262435144fc4c5251d665f43f7c6d308a582ca2cfa112",
+      "size": 992
+    },
+    {
+      "path": "tm-political-world.js",
+      "sha256": "a9f2b7e266f2a2d230900d146416c07be08f502dca8c6c6c648a3f5b9d40d3d5",
+      "size": 4906
+    },
+    {
       "path": "tm-post-turn-jobs.js",
       "sha256": "efcad561a913125f83db4a1467749841f9cd40133e119277842b0d74b115542f",
       "size": 35443
@@ -6661,8 +6681,8 @@
     },
     {
       "path": "tm-start-runtime-manifest.json",
-      "sha256": "b892be41126491487826d26acc69843a9a5a73a8faa714dae3085d58be8aa2c8",
-      "size": 142137
+      "sha256": "0b07fa3093489af7ef53e749af6d50257c3cd7e8fd69eb528e1b717f0550d4d0",
+      "size": 142890
     },
     {
       "path": "tm-start-selector.js",
