@@ -1,5 +1,5 @@
 name: One-time PR integration and release contract verification
-# 2026-10-27 review: editor deps, cache-family stamp and design-token fixes on integration branch.
+# 2026-10-27 review: editor deps, cache-family stamps, theme tokens and release asset hashes verified in progressive audit.
 on:
   push:
     branches: [codex/integration-all-prs-20261027]
