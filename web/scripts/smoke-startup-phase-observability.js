@@ -74,7 +74,7 @@ travelModules.forEach(name=>{assert.strictEqual(scriptNames.filter(src=>src===na
 const tenureModules=['tm-office-tenure.js'];
 tenureModules.forEach(name=>{assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once');assert(scriptNames.indexOf(name)>scriptNames.indexOf('tm-npc-decision-ai-driven.js'),'tenure adapter loads after the NPC registry');});
 assert(scriptNames.indexOf('tm-map-circuits.js')<scriptNames.indexOf('phase8-formal-map-dossier.js'),'circuit data layer precedes the map dossier that reads it');
-const integratedGameplayModules=['tm-war-diplomacy-ui.js','tm-char-appearance.js','tm-war-captives.js','tm-living-core.js','tm-living-memory.js','tm-living-dynasty.js','tm-living-marriage.js','tm-living-diplomacy.js','tm-living-intrigue.js','tm-living-legions.js','tm-living-world.js'];
+const integratedGameplayModules=['tm-war-diplomacy-ui.js','tm-char-appearance.js','tm-war-captives.js','tm-living-core.js','tm-living-memory.js','tm-living-dynasty.js','tm-living-marriage.js','tm-living-diplomacy.js','tm-living-intrigue.js','tm-living-legions.js','tm-living-world.js','tm-political-world.js','tm-campaign-world.js','tm-civil-world.js','tm-political-war-world.js'];
 integratedGameplayModules.forEach(name=>assert.strictEqual(scriptNames.filter(src=>src===name).length,1,name+' loads once'));
 assert(scriptNames.indexOf('tm-war-captives.js')<scriptNames.indexOf('tm-renwu-tuzhi.js'),'battle captive UI ordered after owner');
 assert(scriptNames.indexOf('tm-char-appearance.js')<scriptNames.indexOf('tm-renwu-tuzhi.js'),'portrait UI ordered after owner');
