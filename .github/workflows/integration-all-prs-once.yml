@@ -134,8 +134,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/verify-release-contract.js
-          node web/scripts/lint-arch-all.js
-          node web/scripts/ci-smokes.js --jobs 2
+          (cd web && node scripts/lint-arch-all.js && node scripts/ci-smokes.js --jobs 2)
       - name: Commit merged tree and validated inventories to integration branch only
         run: |
           set -euo pipefail
