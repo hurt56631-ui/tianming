@@ -56,6 +56,16 @@ jobs:
                   fi
                 done
               fi
+              if [[ "$ref" == "codex/fix-npc-silence-api-pool-20261018" ]]; then
+                # Both files are byte-derived runtime manifests, never source of truth.
+                for file in web/startup-script-phases.json web/tm-start-runtime-manifest.json; do
+                  if git ls-files -u -- "$file" | grep -q .; then
+                    git checkout --theirs -- "$file"
+                    git add "$file"
+                    echo "Temporarily selected latest derived manifest $file; regenerate from final combined source below"
+                  fi
+                done
+              fi
               unresolved="$(git diff --name-only --diff-filter=U)"
               if [[ -n "$unresolved" ]]; then
                 echo "::error::Unreviewed conflicts in $ref; refusing to overwrite"
