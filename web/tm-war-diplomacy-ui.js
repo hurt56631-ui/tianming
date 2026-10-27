@@ -160,7 +160,7 @@
       var giftLabel=gift&&row.status==='accepted'
         ?(unpaid?' · 已签约待付款':payments.length&&payments.every(function(o){return o.status==='fulfilled';})?' · 已实际付清':' · 尚待履约'):'';
       var subNote=row.terms&&row.terms.purpose==='submission_talks'?' · 尚未改变主权及城军归属':'';
-      return '<div style="padding:5px 0;border-bottom:1px solid var(--color-border-subtle);font-size:12px">'
+      return '<div style="padding:5px 0;border-bottom:1px solid var(--color-border-subtle);font-size:var(--tm-text-sm,0.75rem)">'
         +'<b>'+esc(type)+'</b> · '+esc(source&&source.name||'未知势力')+' → '+esc(dest&&dest.name||'未知势力')
         +' · <span>'+esc(state+giftLabel+subNote)+'</span>'
         +(terms?'<div style="opacity:.75">'+esc(terms.slice(0,88))+'</div>':'')
@@ -176,25 +176,25 @@
       return f&&f.id&&f.name&&!f.hidden&&!f._hidden&&!own.some(function(x){return x.id===f.id;});
     });
     var base='<details id="tm-dip-edict-ops" aria-label="外交谈判正式操作" style="margin-top:10px;padding:10px;border:1px solid var(--color-border-subtle);background:var(--color-elevated);border-radius:4px">'
-      +'<summary style="font-size:13px;cursor:pointer;font-weight:bold">展开正式外交谈判与回执</summary>'
-      +'<p style="font-size:12px;opacity:.75;margin:6px 0">原文字栏为外交诏令草稿，正式递交才会创建外交文书。亲善须双方签约才改善关系；赠礼须先签约、后真实付款。劝降／臣属先协商条件，不会直接转移城池军队；策反与和亲尚未实现。</p>';
+      +'<summary style="font-size:var(--tm-text-md,0.8125rem);cursor:pointer;font-weight:bold">展开正式外交谈判与回执</summary>'
+      +'<p style="font-size:var(--tm-text-sm,0.75rem);opacity:.75;margin:6px 0">原文字栏为外交诏令草稿，正式递交才会创建外交文书。亲善须双方签约才改善关系；赠礼须先签约、后真实付款。劝降／臣属先协商条件，不会直接转移城池军队；策反与和亲尚未实现。</p>';
     if(!home||!available.length||!domain||typeof domain.recordPlayerProposal!=='function'){
-      return base+'<p style="font-size:12px">本存档暂无可核实的我方势力、其他势力或外交系统。</p></details>';
+      return base+'<p style="font-size:var(--tm-text-sm,0.75rem)">本存档暂无可核实的我方势力、其他势力或外交系统。</p></details>';
     }
     var types=DIP_MODES.map(function(mode){return '<option value="'+esc(mode.id)+'">'+esc(mode.name)+'</option>';}).join('');
     base+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
-      +'<label style="font-size:12px">我方：<b>'+esc(home.name)+'</b></label>'
-      +'<label style="font-size:12px">对象 <select id="tm-dip-target">'+options(available)+'</select></label>'
-      +'<label style="font-size:12px">方式 <select id="tm-dip-mode">'+types+'</select></label></div>'
-      +'<label style="display:block;font-size:12px;margin-top:6px">赠礼银两（仅选择赠礼时使用） <input id="tm-dip-gift-money" type="number" min="1" max="100000" step="100" value="1000" style="width:110px" title="必须有双方真实公库账户，签约后才能付款"></label>'
-      +'<label style="display:block;font-size:12px;margin-top:6px">谈判条款（双方同意后才生效）'
+      +'<label style="font-size:var(--tm-text-sm,0.75rem)">我方：<b>'+esc(home.name)+'</b></label>'
+      +'<label style="font-size:var(--tm-text-sm,0.75rem)">对象 <select id="tm-dip-target">'+options(available)+'</select></label>'
+      +'<label style="font-size:var(--tm-text-sm,0.75rem)">方式 <select id="tm-dip-mode">'+types+'</select></label></div>'
+      +'<label style="display:block;font-size:var(--tm-text-sm,0.75rem);margin-top:6px">赠礼银两（仅选择赠礼时使用） <input id="tm-dip-gift-money" type="number" min="1" max="100000" step="100" value="1000" style="width:110px" title="必须有双方真实公库账户，签约后才能付款"></label>'
+      +'<label style="display:block;font-size:var(--tm-text-sm,0.75rem);margin-top:6px">谈判条款（双方同意后才生效）'
       +'<textarea id="tm-dip-terms" rows="3" style="display:block;width:100%;box-sizing:border-box;margin-top:4px" placeholder="写明期限、义务、底线、能否接受割地或赔款等。"></textarea></label>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin:7px 0">'
       +'<button type="button" class="bt bsm" onclick="TM.WarDiplomacy.applyEdictExample()">填入示例条款</button>'
       +'<button type="button" class="bt bsm" onclick="TM.WarDiplomacy.draftEdictDiplomacy()">仅起草诏令</button>'
       +'<button type="button" class="bt bsm" onclick="TM.WarDiplomacy.proposeEdictDiplomacy()">正式递交外交提案</button></div>'
-      +'<p id="tm-dip-action-status" role="status" aria-live="polite" style="font-size:12px"></p>'
-      +'<details style="margin-top:5px"><summary style="font-size:12px;cursor:pointer">外交来往记录（仅当前人物已知）</summary>'
+      +'<p id="tm-dip-action-status" role="status" aria-live="polite" style="font-size:var(--tm-text-sm,0.75rem)"></p>'
+      +'<details style="margin-top:5px"><summary style="font-size:var(--tm-text-sm,0.75rem);cursor:pointer">外交来往记录（仅当前人物已知）</summary>'
       +'<div id="tm-dip-receipts">'+statusContent()+'</div></details></details>';
     return base;
   }
