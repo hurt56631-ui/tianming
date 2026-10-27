@@ -157,13 +157,13 @@
     var cover=root.document.createElement('div');cover.id='tm-war-captive-modal';
     cover.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100100;display:flex;align-items:center;justify-content:center;padding:16px;';
     var panel=root.document.createElement('section');
-    panel.style.cssText='background:#201911;color:#e5d1ad;border:1px solid #97774c;border-radius:10px;padding:18px;max-width:430px;width:100%;display:grid;gap:10px;max-height:85vh;overflow:auto;';
+    panel.style.cssText='background:var(--color-elevated);color:var(--color-foreground);border:1px solid var(--color-border-subtle);border-radius:10px;padding:18px;max-width:430px;width:100%;display:grid;gap:10px;max-height:85vh;overflow:auto;';
     function line(tag,msg){var e=root.document.createElement(tag);e.textContent=msg;panel.appendChild(e);return e;}
     line('h3','战俘处置 · '+ch.name);
     line('p','原属 '+v.origin+'　｜　现被 '+v.ours+' 俘获');
     line('p','忠诚 '+(ch.loyalty==null?'未知':ch.loyalty)+'　｜　招降成功机会约 '+chance(ch)+'%（同一回合不可重复尝试）');
     var result=line('p','选择处置方式。');
-    result.style.cssText='font-size:13px;color:#b3a180;';
+    result.style.cssText='font-size:small;color:var(--color-foreground-muted);';
     var actions=[['recruit','劝降登用'],['detain','继续关押'],['release','释放归还'],['execute','处决战俘']];
     var entryWorld=g,entryChar=ch;
     actions.forEach(function(row){
