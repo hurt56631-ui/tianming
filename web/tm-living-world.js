@@ -28,7 +28,7 @@ function panel(){
  var C=TM.LivingCore,g=C.world();if(!g)return false;
  var previous=root.document.getElementById('tm-living-world-panel');if(previous)previous.remove();
  var backdrop=root.document.createElement('div');backdrop.id='tm-living-world-panel';
- backdrop.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100200;display:flex;align-items:center;justify-content:center;padding:15px;';
+ backdrop.style.cssText='position:fixed;inset:0;background:var(--color-overlay);z-index:100200;display:flex;align-items:center;justify-content:center;padding:15px;';
  var body=root.document.createElement('section');body.style.cssText='background:var(--color-elevated);color:var(--color-foreground);border:1px solid var(--color-border-subtle);border-radius:8px;padding:16px;max-width:530px;width:100%;max-height:84vh;overflow:auto;';
  function line(tag,value){var el=root.document.createElement(tag);el.textContent=value;body.appendChild(el);return el;}
  line('h3','世局 · 自主外交与家族');
