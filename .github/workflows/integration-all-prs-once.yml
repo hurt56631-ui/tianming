@@ -75,25 +75,25 @@ jobs:
                   fi
                 done
                 node - <<'NODE'
-                const fs=require('fs');
-                const a='web/index.html',b='web/tm-renwu-tuzhi.js';
-                let html=fs.readFileSync(a,'utf8');
-                const script='<script src="tm-war-captives.js?v=20261026-war-captives"></script>';
-                const anchor='<script src="tm-renwu-tuzhi.js?v=20260928-release1353"></script>';
-                if (!html.includes(script)) {
-                 if (!html.includes(anchor)) throw Error('dossier script anchor missing');
-                 html=html.replace(anchor,script+'\n'+anchor);
-                 fs.writeFileSync(a,html);
-                }
-                let js=fs.readFileSync(b,'utf8');
-                const old="  return livingActions(p,false)+_del;";
-                const next="  return livingActions(p,false)+(window.TM&&TM.WarCaptives&&TM.WarCaptives.canManage(p.name)?'<button class=\"dact primary\" onclick=\"TM.WarCaptives.open(TMZhi.selectedName())\">战俘处置</button>':'')+_del;";
-                if (!js.includes('TM.WarCaptives.canManage(p.name)')) {
-                 if(!js.includes(old))throw Error('headActs source anchor missing');
-                 js=js.replace(old,next);
-                }
-                fs.writeFileSync(b,js);
-                NODE
+          const fs=require('fs');
+          const a='web/index.html',b='web/tm-renwu-tuzhi.js';
+          let html=fs.readFileSync(a,'utf8');
+          const script='<script src="tm-war-captives.js?v=20261026-war-captives"></script>';
+          const anchor='<script src="tm-renwu-tuzhi.js?v=20260928-release1353"></script>';
+          if (!html.includes(script)) {
+          if (!html.includes(anchor)) throw Error('dossier script anchor missing');
+          html=html.replace(anchor,script+'\n'+anchor);
+          fs.writeFileSync(a,html);
+          }
+          let js=fs.readFileSync(b,'utf8');
+          const old="  return livingActions(p,false)+_del;";
+          const next="  return livingActions(p,false)+(window.TM&&TM.WarCaptives&&TM.WarCaptives.canManage(p.name)?'<button class=\"dact primary\" onclick=\"TM.WarCaptives.open(TMZhi.selectedName())\">战俘处置</button>':'')+_del;";
+          if (!js.includes('TM.WarCaptives.canManage(p.name)')) {
+          if(!js.includes(old))throw Error('headActs source anchor missing');
+          js=js.replace(old,next);
+          }
+          fs.writeFileSync(b,js);
+          NODE
                 git add web/index.html web/tm-renwu-tuzhi.js
               fi
               unresolved="$(git diff --name-only --diff-filter=U)"
