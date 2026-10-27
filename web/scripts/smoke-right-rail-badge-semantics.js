@@ -27,7 +27,7 @@ function harness(){
   const c={document:doc,state:{pinnedPeople:['old-a','old-b','old-c','old-d','old-e','old-f']},GM:{_junqingBrief:[1,2,3]},
     esc:s=>String(s).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x])),syncFormalShellVisibility:()=>true,updateRailActive(){},
     getMemorials(){reads++;return Array.from({length:12},()=>({status:'pending'}));},getIssues(){reads++;return Array.from({length:6},()=>({status:'pending'}));},issueIsResolved:x=>x.status==='resolved',collectRecentEvents(){reads++;return[1,2,3,4];},TMPhase8FormalBridge:{openPanel:s=>calls.push(s)}};
-  c.window=c;c.TM={NPC:{DailyUI:{pendingForPlayer:()=>[]}}};vm.createContext(c);
+  c.window=c;c.TM={NPC:{DailyUI:{pendingForPlayer:()=>[],openPending:()=>calls.push('letter')}}};vm.createContext(c);
   c.GM.turn=2;c.GM.chars=[{id:'a',name:'甲',alive:true,location:'京师',stress:80,loyalty:60},{id:'b',name:'乙',alive:true,location:'京师',stress:0,loyalty:60}];
   c.GM._pendingAudiences=[{name:'使臣',isEnvoy:true,_qid:'envoy'},{name:'乙',_qid:'b'}];
   c.GM.letters=[];c.personKey=p=>String(p.id||p.name);c.findPerson=k=>(c.GM.chars||[]).find(p=>p.id===k||p.name===k);c.findCharByName=c.findPerson;
