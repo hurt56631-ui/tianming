@@ -60,7 +60,7 @@
   function pendingSummary(items) {
     if (!items.length) return '';
     var kinds = { greeting: '通问', introduction: '引见', meeting: '约见', consultation: '请益', assistance: '协助' };
-    var html = '<section data-daily-pending aria-label="日常往来待回应" style="padding:10px;border:1px solid var(--color-border-subtle);border-left:3px solid var(--gold-500,#c9a045);margin-bottom:10px;">'
+    var html = '<section data-daily-pending aria-label="日常往来待回应" style="padding:10px;border:1px solid var(--color-border-subtle);border-left:3px solid var(--gold-500);margin-bottom:10px;">'
       + '<strong>人物来往 · 待你处理 ' + items.length + ' 项</strong><p>只有已送达、现在能由你选择的事项才会出现在这里。</p>';
     html += items.slice(0, 4).map(function (item) {
       var label = item.incoming ? '对方主动联系' : '往来需要回应';
