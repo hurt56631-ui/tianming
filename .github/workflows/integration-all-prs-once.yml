@@ -1,0 +1,76 @@
+name: One-time PR integration and release contract verification
+on:
+  push:
+    branches: [codex/integration-all-prs-20261027]
+    paths:
+      - .github/workflows/integration-all-prs-once.yml
+permissions:
+  contents: write
+concurrency:
+  group: tianming-integration-all-prs-20261027
+  cancel-in-progress: false
+jobs:
+  integrate-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Merge all requested branches without hidden conflict resolution
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for ref in \
+            codex/modern-chinese-prompts-20261016 \
+            codex/npc-daily-inbox-20261016 \
+            codex/diplomacy-war-actions-20261016 \
+            codex/gemini-web-free-desktop-20261017 \
+            codex/fix-npc-silence-api-pool-20261018 \
+            codex/war-captives-20261026 \
+            codex/modular-living-world-20261027
+          do
+            echo "::group::Merge $ref"
+            git fetch origin "refs/heads/$ref:refs/remotes/origin/$ref"
+            if ! git merge --no-ff --no-edit "origin/$ref"; then
+              echo "::error::Merge conflict in $ref (must resolve manually, never -X theirs)"
+              git diff --name-only --diff-filter=U
+              exit 1
+            fi
+            echo "::endgroup::"
+          done
+          git log -8 --oneline
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Regenerate canonical tracked inventories on combined source tree
+        run: |
+          set -euo pipefail
+          node web/scripts/sync-official-scenarios.js
+          node web/scripts/build-startup-phase-manifest.js
+          node scripts/build-native-preparation-manifest.cjs --write
+          node scripts/sync-hot-baseline.js --write
+          node web/scripts/build-startup-phase-manifest.js --check
+          node scripts/build-native-preparation-manifest.cjs --check
+          node scripts/sync-hot-baseline.js --check
+          git diff --check
+      - name: Validate merged source with original repository contracts
+        run: |
+          set -euo pipefail
+          node scripts/verify-release-contract.js
+          node web/scripts/lint-arch-all.js
+          node web/scripts/ci-smokes.js --jobs 2
+      - name: Commit merged tree and validated inventories to integration branch only
+        run: |
+          set -euo pipefail
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'test: synchronize official tracked inventories for combined PRs'
+          fi
+          git push origin HEAD:codex/integration-all-prs-20261027
+          echo 'Validated integration branch only; main not modified'
