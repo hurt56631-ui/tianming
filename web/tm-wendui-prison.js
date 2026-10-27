@@ -314,6 +314,7 @@
         ch._imprisoned = false;
         ch._releasedTurn = GM.turn || 0;
         ch._releaseReason = action.clearReason || '陛下狱中释放';
+        if (global.TM && global.TM.WarCaptives) global.TM.WarCaptives.onPrisonRelease(ch);
       } else {
         ch._imprisoned = false;
       }

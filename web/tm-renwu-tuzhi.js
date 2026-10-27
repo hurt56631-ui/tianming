@@ -798,7 +798,7 @@ function headActs(p){
   var _del='<button class="dact danger" onclick="TMZhi.deleteP(\''+esc(p.name).replace(/'/g,"\\'")+'\')">删除</button>';
   if(p.isPlayer)return '<button class="dact primary" onclick="TMZhi.act(\'mind\')">御览心志</button>'; // 君上不可删
   if(p.alive===false)return '<button class="dact primary" onclick="TMZhi.act(\'works\')">阅其遗著</button><button class="dact" onclick="TMZhi.zhuizeng(\''+esc(p.name).replace(/'/g,"\\'")+'\')">追赠</button>'+_del;
-  return livingActions(p,false)+_del;
+  return livingActions(p,false)+(window.TM&&TM.WarCaptives&&TM.WarCaptives.canManage(p.name)?'<button class="dact primary" onclick="TM.WarCaptives.open(TMZhi.selectedName())">战俘处置</button>':'')+_del;
 }
 function livingActions(p,folio){
   var cls=folio?'fact':'dact',pinned=isPinned(p.name);
