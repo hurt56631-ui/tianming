@@ -65,12 +65,14 @@ async function _endTurn_updateSystems(timeRatio, zhengwen) {
 
   // 6. 推进回合
   GM.turn++;
+  if (window.TM && TM.PoliticalWarWorld) TM.PoliticalWarWorld.tick(GM);
   if (window.TM && TM.SimTime && _tmTimeInterval) TM.SimTime.commit(GM, _tmTimeInterval);
   // 同步旧子系统读取的年月日镜像；不得另算第二套时钟。
   try { if (typeof _tmSyncGMCalendar === 'function') _tmSyncGMCalendar(GM, GM.turn); }
   catch (_calendarSyncE) { try { console.warn('[endTurn] calendar sync failed:', _calendarSyncE); } catch (_) {} throw _calendarSyncE; }
   // Update NPC family/diplomacy only after the canonical calendar has advanced.
   if (window.TM && TM.LivingWorld && typeof TM.LivingWorld.tick === 'function') TM.LivingWorld.tick(GM);
+  if (window.TM && TM.PoliticalWarWorld && typeof TM.PoliticalWarWorld.tick === 'function') TM.PoliticalWarWorld.tick(GM);
   if (GM._reliefPilot && GM._reliefPilot.enabled) {
     if (!TM.ReliefGovernance) await TM.Features.ensureRecoverable('reliefGovernance');
     var reliefClock = TM.ReliefGovernance.tick(GM, { days: monthRatio * 30, turn: GM.turn });
