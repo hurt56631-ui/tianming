@@ -155,7 +155,7 @@
     if(!root.document||!root.document.body)return false;
     var old=root.document.getElementById('tm-war-captive-modal');if(old)old.remove();
     var cover=root.document.createElement('div');cover.id='tm-war-captive-modal';
-    cover.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100100;display:flex;align-items:center;justify-content:center;padding:16px;';
+    cover.style.cssText='position:fixed;inset:0;background:var(--color-overlay);z-index:100100;display:flex;align-items:center;justify-content:center;padding:16px;';
     var panel=root.document.createElement('section');
     panel.style.cssText='background:var(--color-elevated);color:var(--color-foreground);border:1px solid var(--color-border-subtle);border-radius:10px;padding:18px;max-width:430px;width:100%;display:grid;gap:10px;max-height:85vh;overflow:auto;';
     function line(tag,msg){var e=root.document.createElement(tag);e.textContent=msg;panel.appendChild(e);return e;}
