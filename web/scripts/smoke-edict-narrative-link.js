@@ -29,7 +29,7 @@ function world(){
  ok(G.vars['堤工进度'].value===17,'narration cannot apply another numeric change');
  ok(prompt.includes('"before":10')&&prompt.includes('"after":17'),'SC1d receives actual before and after values');
  ok(prompt.includes('首段完成，余段因雨停工'),'SC1d sees the actual execution process');
- ok(prompt.includes('现代白话实录体')&&prompt.includes('记事不评论'),'SC1d retains annals role');
+ ok(prompt.includes('现代白话实录体')&&prompt.includes('不评议'),'SC1d retains annals role');
  ok(prompt.includes('执行过程')&&prompt.includes('遗留隐患')&&prompt.includes('信息源'),'SC1d retains political process and sources');
  ok(prompt.includes('不向玩家直接揭露未知真相'),'narration preserves information asymmetry');
  ok(c.ctx.record.shiluText==='上命督修河堤，首段告竣。','final record receives post-settlement annals');

@@ -623,6 +623,17 @@ function createTrustedIpcMain(rawIpcMain) {
 // Every registered IPC entry point goes through the same sender-frame gate.
 const ipcMain = createTrustedIpcMain(electronIpcMain);
 
+// Desktop-only Gemini Web anonymous bridge; existing IPC sender trust gate applies.
+const _geminiWebAnonymous = require('./main-gemini-web').createGeminiWebTransport();
+ipcMain.handle('gemini-web-chat', async (_event, payload) => {
+  try { const value = await _geminiWebAnonymous.generate(payload);
+    return { ok: true, text: value.text, model: value.model }; }
+  catch (e) { return { ok: false, status: Number(e && e.status) || 503,
+    code: String(e && e.code || 'GEMINI_WEB_FAILED'),
+    message: String(e && e.message || 'Gemini Web unavailable').slice(0, 300),
+    retryAfterMs: Number(e && e.retryAfterMs) || 0 }; }
+});
+
 function safeRmDir(target, root) {
   if (!isInsideDir(root, target)) throw new Error('Refuse to remove path outside managed directory');
   fs.rmSync(target, { recursive: true, force: true });

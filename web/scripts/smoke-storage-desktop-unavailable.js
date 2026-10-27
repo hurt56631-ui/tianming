@@ -30,6 +30,9 @@ function loadFunctions(context, file, names) {
   }
   check(f.api.writeStatus().blocked, 'failed database open is not an empty healthy database');
   const toasts = []; f.c.toast = text => toasts.push(text);
+  // In the real settings page _$ is installed by the DOM bootstrap. The
+  // storage-failure sandbox has no DOM; return absent controls, not ReferenceError.
+  f.c._$ = () => null;
   f.c.P = { ai: { key: 'old-memory-key' }, conf: { retained: true }, gameState: { retained: true } };
   loadFunctions(f.c, 'tm-patches.js', ['_sDeviceSettingsReady', '_sApplyPrimaryApiFields', 'sSaveAPI', 'sSaveAll', 'sSaveSecondaryAPI', 'sClearSecondaryAPI']);
   loadFunctions(f.c, 'tm-player-settings.js', ['_saveSecondaryAPI']);

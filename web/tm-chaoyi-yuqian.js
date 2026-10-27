@@ -280,7 +280,7 @@ async function _yq2_oneAdvisorSpeak(name, roundNum) {
   if (roundNum >= 2 && CY._yq2.opinions[name] && CY._yq2.opinions[name].line) {
     prompt += '\n你上轮已陈言：' + CY._yq2.opinions[name].line.slice(0, 120) + '\n此轮可据他人之言修订或坚持。';
   }
-  prompt += '\n请用符合本朝礼节的现代白话给出答复。' + (typeof _aiDialogueWordHint === 'function' ? _aiDialogueWordHint('cy') + '（发言必须达到此字数范围）' : '') + '\n';
+  prompt += '\n请用符合本朝礼节的自然现代白话给出答复，不要文言和古装剧腔。' + (typeof _aiDialogueWordHint === 'function' ? _aiDialogueWordHint('cy') + '（发言必须达到此字数范围）' : '') + '\n';
   prompt += '返回 JSON：{"line":"...","stance":"支持/反对/保留/另提/推诿","inwardThought":"真实内心(10-30字)"}';
 
   // A2: 流式化——建占位气泡·onChunk 渐进显示 "line" 字段
@@ -304,7 +304,7 @@ async function _yq2_oneAdvisorSpeak(name, roundNum) {
       [{role:'user', content: prompt}],
       (typeof _aiDialogueTok==='function'?_aiDialogueTok("cy", 1):700),
       { signal: CY.abortCtrl.signal,
-        tier: (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined,  // M3·御前走次 API
+        tier: _tmNpcDialogueAITier(),  // M3·御前走次 API
         onChunk: function(txt) {
           if (!_yqBubble || _yqRaf) return;
           _yqRaf = true;
@@ -393,7 +393,7 @@ async function _yq2_doAskAdvisor(name, question) {
       [{role:'user', content: prompt}],
       (typeof _aiDialogueTok==='function'?_aiDialogueTok("cy", 1):500),
       { signal: _dqCtrl ? _dqCtrl.signal : undefined,
-        tier: (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined,  // M3·御前走次 API
+        tier: _tmNpcDialogueAITier(),  // M3·御前走次 API
         onChunk: function(txt) {
           if (!_dqBubble || _dqRaf) return;
           _dqRaf = true;

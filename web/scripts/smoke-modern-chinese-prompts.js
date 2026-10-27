@@ -8,7 +8,14 @@ assert(composer.includes('function buildLanguageGuide()'), 'shared modern-langua
 assert(composer.includes('保留 JSON 字段名') || composer.includes('JSON 字段名'), 'structured output contract missing');
 assert(!composer.includes('叙事风格·严格文言'), 'composer still requests classical text');
 assert(read('tm-utils.js').includes("narrativeStyle: '现代白话'"), 'mode still dictates classical text');
-assert(read('tm-wendui-persona-views.js').includes('buildLanguageGuide()'), 'wendui guide missing');
+// The split-family contract requires mentioning tm-wendui.js before persona-views.
+const dialogue=read('tm-wendui.js'), persona=read('tm-wendui-persona-views.js');
+assert(persona.includes('buildLanguageGuide()'), 'wendui guide missing');
+assert(persona.includes('【最终对白验收') && persona.includes('慈宁宫的人我会先核查'), 'final NPC style needs a modern actionable example');
+assert(persona.indexOf('【最终对白验收') > persona.indexOf('buildLanguageGuide()'), 'modern speech directive must be after era examples');
+assert(!persona.includes('言辞用"妾""臣妾""贱妾"'), 'queen still mandates archaic speech');
+assert(!persona.includes('动作和神态用括号标注'), 'NPC still requires long stage directions');
+assert(dialogue.includes('【最终问对文风】') && dialogue.includes('历史中的古文语气仅作为事实参考'), 'historical NPC turns must not dictate new writing style');
 assert(!read('tm-chaoyi-changchao-adapter.js').includes('不可用现代汉语'), 'court forbids modern language');
 assert(!read('tm-chaoyi-tinyi.js').includes('文言/半文言'), 'tingyi still requests classical speech');
 assert(!read('tm-chaoyi-yuqian.js').includes('文言/半文言'), 'yuqian still requests classical speech');
@@ -16,6 +23,7 @@ assert(read('tm-endturn-record-specs.js').includes('现代白话实录体'), 'sh
 assert(read('tm-benji.js').includes('现代白话'), 'biography still classical');
 assert(read('tm-hongyan-office.js').includes('现代白话写回信'), 'letter still classical');
 assert(read('tm-endturn-prompt.js').includes('现代白话'), 'endturn guide missing');
+assert(!/半文言200-500字|古典中文|纯文言史官体/.test(read('tm-endturn-ai.js')), 'endturn subsidiary response schemas still demand classical language');
 // Key safety check: no newly added romance mechanics or coupling in this change.
 assert(!composer.includes('buildRomanceContext'), 'unexpected romance coupling');
 

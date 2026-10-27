@@ -1589,7 +1589,7 @@ function _generateLetterReply(letter) {
     }
     prompt += '\n\n收到来自京城天子的' + typeLabel + '('+cipherLabel+')：\n「' + letter.content + '」';
     prompt += '\n\n【回信要求】';
-    prompt += '\n1. 用符合该角色身份与性格的现代白话写回信，100-200字，清楚自然但保留本朝称谓';
+    prompt += '\n1. 用符合该角色身份与性格的现代白话写回信，100-200字，清楚自然但保留本朝称谓；不堆砌古文套语';
     prompt += '\n2. 称谓恰当(臣/末将/罪臣/妾身/草民等)';
     prompt += '\n3. 必须针对来信具体内容回应·不得套话空泛';
     prompt += '\n4. 若来信问及某事·直接给答复或说明缘由';
@@ -1598,7 +1598,7 @@ function _generateLetterReply(letter) {
     prompt += '\n7. 语气与当前境/情绪/好感一致·不割裂';
     prompt += '\n8. 不要提及未在当前游戏时间之前发生的未来史实';
     prompt += '\n\n直接输出回信正文·无前言无解释。';
-    callAI(prompt, 600, null, (typeof _useSecondaryTier === 'function' && _useSecondaryTier()) ? 'secondary' : undefined).then(function(reply) {  // 【降本2026-06-19】回信生成(机械对话)走次 API
+    callAI(prompt, 600, null, _tmNpcDialogueAITier()).then(function(reply) {  // 【降本2026-06-19】回信生成(机械对话)走次 API
       letter.reply = (reply || '').trim() || '臣叩首拜读·容臣三思后详禀。';
       // 不在此置 returned——回信须待 _ltReplyArrivalDay 到期由结算分支(status==='replying')落地：
       // 核实揭伪(_forgedRevealed 唯一写点)/军令无虎符拒从/回信到达邸报都在那。即时 returned 曾令

@@ -160,6 +160,8 @@ contextBridge.exposeInMainWorld('tianming', {
   // === 标识：告诉网页"我在桌面环境中运行" ===
   isDesktop: true,
   platform: process.platform,  // 'win32' / 'darwin' / 'linux'
+  // No Google login cookies are exposed through this trusted Electron IPC.
+  geminiWebChat: (payload) => ipcRenderer.invoke('gemini-web-chat', payload),
 
   // === 存档功能 ===
   saveProject: (filename, data) =>
