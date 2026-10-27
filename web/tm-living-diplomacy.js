@@ -15,7 +15,7 @@ function addAudience(g,p,from){if(!Array.isArray(g._pendingAudiences))g._pending
   g._pendingAudiences.push({name:from.name+'使节',reason:p.terms,turn:g.turn||0,isEnvoy:true,fromFaction:from.name,interactionType:'living_world_offer',
     _lwDiplomaticOfferId:p.id});
 }
-function decide(g,p,accept){var s=C.state(g),a=C.fac(g,p.fromId),b=C.fac(g,p.toId);
+function decide(g,p,accept){var s=C.state(g).diplomacy,a=C.fac(g,p.fromId),b=C.fac(g,p.toId);
   if(!a||!b||p.status!=='pending')return {ok:false,reason:'提案已失效'};
   if(p.deliverTurn>g.turn)return {ok:false,reason:'使节尚未送达'};
   if(playerSide(g,b)&&typeof accept!=='boolean')return {ok:false,reason:'等待玩家答复'};
@@ -40,7 +40,7 @@ function decide(g,p,accept){var s=C.state(g),a=C.fac(g,p.fromId),b=C.fac(g,p.toI
   p.status='accepted';p.resolvedTurn=g.turn||0;
   C.put(g,'外交','accepted',p.fromId,p.toId,b.name+'同意'+a.name+'的'+p.type+'请求');return {ok:true,accepted:true};
 }
-function tick(g){var s=C.state(g),f=C.arr(g.facs),turn=g.turn||0,player=C.playerFac(g);
+function tick(g){var s=C.state(g).diplomacy,f=C.arr(g.facs),turn=g.turn||0,player=C.playerFac(g);
   s.offers.filter(function(o){return o.status==='pending'&&o.deliverTurn<=turn;}).forEach(function(o){
     var from=C.fac(g,o.fromId),to=C.fac(g,o.toId);if(!from||!to){o.status='lapsed';return;}
     if(player&&to.id===player.id){addAudience(g,o,from);return;}decide(g,o);
