@@ -120,6 +120,7 @@ jobs:
         run: |
           set -euo pipefail
           node web/scripts/sync-official-scenarios.js
+          node web/scripts/lint-global-providers.js
           node web/scripts/build-startup-phase-manifest.js
           node scripts/build-native-preparation-manifest.cjs --write
           node scripts/sync-hot-baseline.js --write
