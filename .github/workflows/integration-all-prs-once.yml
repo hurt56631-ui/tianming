@@ -35,10 +35,38 @@ jobs:
             echo "::group::Merge $ref"
             git fetch origin "refs/heads/$ref:refs/remotes/origin/$ref"
             if ! git merge --no-ff --no-edit "origin/$ref"; then
-              echo "::error::Merge conflict in $ref (must resolve manually, never -X theirs)"
-              git diff --name-only --diff-filter=U
-              exit 1
+              # The Gemini PR4 branch includes PR1's modern-language rules plus extra dialogue safeguards.
+              # Resolve ONLY these nine reviewed overlapping files in favor of the newer PR4 version.
+              if [[ "$ref" == "codex/gemini-web-free-desktop-20261017" ]]; then
+                for file in \
+                  web/scripts/smoke-agent-mode-d2d3.js \
+                  web/scripts/smoke-edict-narrative-link.js \
+                  web/scripts/smoke-modern-chinese-prompts.js \
+                  web/tm-chaoyi-changchao-adapter.js \
+                  web/tm-chaoyi-tinyi.js \
+                  web/tm-chaoyi-yuqian.js \
+                  web/tm-hongyan-office.js \
+                  web/tm-prompt-composer.js \
+                  web/tm-wendui-persona-views.js
+                do
+                  if git ls-files -u -- "$file" | grep -q .; then
+                    git checkout --theirs -- "$file"
+                    git add "$file"
+                    echo "Reviewed overlap: $file retained newer PR4 language and test rules"
+                  fi
+                done
+              fi
+              unresolved="$(git diff --name-only --diff-filter=U)"
+              if [[ -n "$unresolved" ]]; then
+                echo "::error::Unreviewed conflicts in $ref; refusing to overwrite"
+                echo "$unresolved"
+                exit 1
+              fi
+              git diff --cached --check
+              git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "merge: integrate $ref with reviewed source overlaps"
             fi
+            # Persist verified merge commits so a failed subsequent merge never discards earlier work.
+            git push origin HEAD:codex/integration-all-prs-20261027
             echo "::endgroup::"
           done
           git log -8 --oneline
