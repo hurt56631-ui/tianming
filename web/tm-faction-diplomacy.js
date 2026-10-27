@@ -21,7 +21,17 @@
   function terms(raw){
     var text=S(raw.terms!=null?raw.terms:raw.treaty||raw.treatyName||raw.content),n=raw.durationTurns;
     if(!text.trim()||text.length>12000||raw.obligations!=null&&!Array.isArray(raw.obligations)||A(raw.obligations).length>20||n!=null&&(!Number.isInteger(n)||n<0||n>1200))return null;
-    return {text:text,durationTurns:n==null?36:n,effectiveRule:'both_signatures',obligations:copy(raw.obligations||[])};
+    var purpose=S(raw.diplomacyPurpose||raw.purpose||'');
+    if(['','goodwill','gift','submission_talks'].indexOf(purpose)<0)return null;
+    // Gift payments are real typed obligations; arbitrary amounts and private accounts
+    // supplied in prose or model output cannot become executable treasury debits.
+    if(purpose==='gift'){
+      var obs=A(raw.obligations),o=obs[0],a=o&&o.amounts;
+      if(obs.length!==1||!o||o.kind!=='public_transfer'||!o.fromAccount||!o.toAccount||o.fromAccount===o.toAccount||
+        !a||!Number.isSafeInteger(a.money)||a.money<1||a.money>100000||
+        (a.grain!=null&&a.grain!==0)||(a.cloth!=null&&a.cloth!==0))return null;
+    }
+    return {text:text,durationTurns:n==null?36:n,effectiveRule:'both_signatures',purpose:purpose,obligations:copy(raw.obligations||[])};
   }
   function hasPower(ch,org,power,ref){return P().authority(ch,Object.assign({},ref||{},{organizationId:org.id}),power);}
   function representative(org,explicit,requireSign){
@@ -97,8 +107,24 @@
   }
   function create(org,ch,d){
     var target=fac({id:d.toFactionId||d.targetOrganizationId||d.targetId,name:d.toFaction||d.targetFaction||d.target}),t=terms(d),type=d.proposalType||d.treatyType||(TYPES[d.type]?d.type:d.relationType);
-    if(!target||target===org||!TYPES[type]||!t)return result('blocked','specific_parties_type_and_terms_required');
+    if(!target||target===org||!TYPES[type]||!t||t.purpose&&type!=='deal')return result('blocked','specific_parties_type_and_terms_required');
+    if(t.purpose==='gift'){
+      var treasury=TM.PublicTreasury,o=t.obligations[0];
+      var payer=treasury&&treasury.getFactionAccountRef&&treasury.getFactionAccountRef({game:G(),factionId:org.id,kind:'central'});
+      var payee=treasury&&treasury.getFactionAccountRef&&treasury.getFactionAccountRef({game:G(),factionId:target.id,kind:'central'});
+      if(!payer||!payee||payer===payee||o.fromAccount!==payer||o.toAccount!==payee)
+        return result('blocked','gift_public_account_parties_mismatch');
+      var source=treasury.getAccountView&&treasury.getAccountView({game:G(),ref:payer});
+      var destination=treasury.getAccountView&&treasury.getAccountView({game:G(),ref:payee});
+      if(!source||!destination||!source.exists||!destination.exists||!source.resources||
+        !source.resources.money||!source.resources.money.known||!destination.resources||
+        !destination.resources.money||!destination.resources.money.known)
+        return result('blocked','gift_public_account_balance_unknown');
+    }
     d.treatyType=type;var negotiating=role(ch,org,d,false),receiver=representative(negotiating?target:org,d.recipientId,!negotiating);
+    // No legal recipient means the letter cannot be delivered: fail before
+    // creating a misleading "submitted" proposal with toId="".
+    if(!receiver)return result('blocked','eligible_diplomatic_representative_required');
     var p={schemaVersion:2,id:'dp:'+ (++L().state(G()).sequence),from:org.name,fromId:org.id,to:target.name,toId:target.id,type:type,terms:t.text,
       version:1,versions:[{version:1,fromId:org.id,toId:target.id,terms:t,createdTurn:G().turn}],turn:G().turn,status:negotiating?'in_transit':'draft',
       initiatorId:ch.id,recipientOrganizationId:negotiating?target.id:org.id,decisions:[],messages:[],history:[],knowledge:{}};
@@ -117,6 +143,8 @@
     var sa=signed(p,a.id),sb=signed(p,b.id),sig=P().signature(v.terms);
     if(!sa||!sb||sa.termsSignature!==sig||sb.termsSignature!==sig)return result('blocked','both_current_terms_signatures_required');
     if(!global.TreatySystem||typeof global.TreatySystem.createTreaty!=='function')return result('blocked','treaty_domain_unavailable');
+    if(v.terms.purpose==='goodwill'&&typeof global.setFactionRelation!=='function')
+      return result('blocked','faction_relation_domain_unavailable');
     var type=p.type==='peace'?'truce':p.type,treaty=global.TreatySystem.createTreaty(type,{id:a.id,name:a.name},{id:b.id,name:b.name},copy(v.terms));
     if(!treaty)return result('blocked','treaty_type_not_supported');
     Object.assign(treaty,{from:a.name,to:b.name,fromId:a.id,toId:b.id,status:'active',active:true,startTurn:G().turn,effectiveTurn:G().turn,
@@ -128,6 +156,11 @@
     }
     p.status='accepted';p.effectiveTurn=G().turn;p.treatyId=treaty.id;
     p.obligations=copy(v.terms.obligations).map(function(o,i){return Object.assign({},o,{id:p.id+':obligation:'+i,status:'unfulfilled'});});
+    if(v.terms.purpose==='goodwill'&&!treaty._goodwillRelationApplied){
+      // A proposed visit never changes relations; only verified signatures do.
+      global.setFactionRelation(a.name,b.name,{delta:4,desc:'双方正式签署亲善互访协议：'+p.id},{mirror:true});
+      treaty._goodwillRelationApplied=true;
+    }
     entry(p,d,'effective',{treatyId:treaty.id});
     var otherOrg=fac({id:d.organizationId===p.fromId?p.toId:p.fromId}),receiver=representative(otherOrg);
     enqueue(p,person(d.actorId),receiver,'effective');
@@ -236,6 +269,68 @@
     return {ok:true,obligation:o};
   }
   function fulfillResourceObligation(d,ref){var p=get(d.proposalId),o=p&&A(p.obligations).find(function(o){return o.id===d.obligationId;});if(!o||o.status!=='unfulfilled')throw Error('obligation_changed_during_transfer');o.status='fulfilled';o.fulfilledTurn=G().turn;o.fulfilledActionId=d.actionId;o.operationRefs=[copy(ref)];}
+
+  // After both parties have signed a gift obligation, the controlled ruler may
+  // settle it ONLY through the canonical public treasury transfer receipt.
+  // A completed gift is never replayed for money or diplomatic relations.
+  function fulfillPlayerGift(orgRef,proposalId,obligationId){
+    var g=G(),politics=P(),treasury=TM.PublicTreasury,from=fac(orgRef);
+    if(!g||g.busy||g._endTurnCommitPending||!politics||!treasury||
+      typeof treasury.transfer!=='function'||typeof treasury.getFactionAccountRef!=='function')
+      return result('blocked','world_or_treasury_unavailable');
+    var players=A(g.chars).filter(function(ch){return politics.controlled(ch,g)&&politics.live(ch);});
+    if(players.length!==1||!from)return result('blocked','single_live_player_and_faction_required');
+    var actor=players[0],p=get(proposalId,g),o=p&&A(p.obligations).find(function(x){return x&&x.id===obligationId;});
+    var recipient=p&&fac({id:p.toId},g);
+    if(!p||p.schemaVersion!==2||p.status!=='accepted'||!recipient||
+      !A(g.treaties).some(function(t){return t&&t.id===p.treatyId&&t.active!==false;})||
+      p.fromId!==from.id||p.type!=='deal'||!version(p)||version(p).terms.purpose!=='gift'||!o||
+      o.kind!=='public_transfer')return result('blocked','signed_gift_and_current_party_required');
+    if(p.knowledge[actor.id]!==p.version)return result('blocked','gift_agreement_not_yet_known');
+    var a=o.amounts,amount=a&&a.money;
+    if(!Number.isSafeInteger(amount)||amount<1||amount>100000||a.grain!=null&&a.grain!==0||
+      a.cloth!=null&&a.cloth!==0)return result('blocked','gift_amount_invalid');
+    var payFrom=treasury.getFactionAccountRef({game:g,factionId:from.id,kind:'central'});
+    var payTo=treasury.getFactionAccountRef({game:g,factionId:recipient.id,kind:'central'});
+    if(!payFrom||!payTo||payFrom===payTo||o.fromAccount!==payFrom||o.toAccount!==payTo)
+      return result('blocked','public_faction_accounts_required');
+    var scope={organizationId:from.id,targetOrganizationId:recipient.id};
+    var auth=politics.authority(actor,scope,'treasurySpend');
+    if(!auth)return result('blocked','current_treasury_spend_authority_required');
+    var binding=(auth.pos&&auth.pos.treasuryBinding)||
+      (auth.nativeAuthority&&auth.nativeAuthority.treasuryBinding);
+    var refs=binding&&(binding.accountRefs||(binding.accountRef?[binding.accountRef]:[]));
+    if(refs&&refs.length&&refs.indexOf(payFrom)<0)return result('blocked','treasury_account_not_delegated');
+    var ledgerId='diplomatic-gift:'+p.id+':'+o.id;
+    if(o.status==='fulfilled'){
+      if(!o.relationApplied&&typeof global.setFactionRelation==='function'){
+        var pendingDelta=Math.max(1,Math.min(8,Math.floor(amount/1000)+1));
+        global.setFactionRelation(from.name,recipient.name,{delta:pendingDelta,desc:'外交赠礼实际交割：'+p.id},{mirror:true});
+        o.relationApplied=true;o.relationDelta=pendingDelta;
+      }
+      return result('noop','gift_already_paid',[],{duplicate:true,proposalId:p.id});
+    }
+    if(typeof global.setFactionRelation!=='function')return result('blocked','faction_relation_domain_unavailable');
+    var gift={proposalId:p.id,proposalVersion:p.version,obligationId:o.id,
+      fromAccount:payFrom,toAccount:payTo,amounts:copy(o.amounts)};
+    var checked=resourceObligation(gift,actor,g);
+    if(!checked.ok)return result('blocked',checked.reason||'gift_obligation_changed');
+    var receipt=treasury.transfer({game:g,from:payFrom,to:payTo,amounts:copy(o.amounts),
+      transactionId:ledgerId,reason:'双方协议外交赠礼：'+p.id,allowPartial:false});
+    function sumMoney(rows){return Math.round(A(rows).reduce(function(n,x){return n+(x&&x.resource==='money'?Number(x.amount)||0:0);},0)*10000)/10000;}
+    if(!receipt||!receipt.ok||!receipt.paid||receipt.paid.money!==amount||
+      sumMoney(receipt.debits)!==amount||sumMoney(receipt.credits)!==amount)
+      return result('blocked',receipt&&receipt.reason||'gift_transfer_unverified');
+    fulfillResourceObligation(gift,{kind:'public_transfer',id:ledgerId});
+    var delta=Math.max(1,Math.min(8,Math.floor(amount/1000)+1));
+    global.setFactionRelation(from.name,recipient.name,
+      {delta:delta,desc:'外交赠礼实际交割：'+p.id},{mirror:true});
+    o.relationApplied=true;o.relationDelta=delta;
+    log({id:ledgerId,kind:'paid_gift',turn:g.turn,fromId:from.id,toId:recipient.id,
+      proposalId:p.id,amount:amount,relationDelta:delta,sourceKind:'verified_public_transfer'});
+    return result('completed','公库交割成功，关系按实际赠礼改善',
+      [{kind:'public_transfer',id:ledgerId}],{proposalId:p.id,transferId:ledgerId,paid:amount,relationDelta:delta});
+  }
   function recordPlayerProposal(org,raw,origin){
     var players=A(G().chars).filter(function(c){return P().controlled(c,G());});org=fac(org);
     if(!org||players.length!==1||!origin)return result('blocked','player_and_stable_source_required');
@@ -269,6 +364,6 @@
   if(global.TreatySystem)global.TreatySystem.onChange=function(){refreshCaches(G());};
   function diplomacyLog(g){return A((g||G())._factionDiplomacyLog);}
   TM.FactionDiplomacy={recordProposals:recordProposals,applyResponses:applyResponses,submit:submit,advance:advance,visible:visible,inputView:inputView,due:due,get:get,verifyEvidence:verify,migrate:migrate,refreshCaches:refreshCaches,
-    resourceObligation:resourceObligation,fulfillResourceObligation:fulfillResourceObligation,recordPlayerProposal:recordPlayerProposal,recordPlayerResponse:recordPlayerResponse,formatIncomingProposals:formatIncomingProposals,formatPlayerProposalOutcomes:function(org,turn,actor){return actor?visible(actor,org).filter(function(p){return /^(accepted|rejected|cancelled)$/.test(p.status);}).map(function(p){return JSON.stringify(p);}):[];},diplomacyLog:diplomacyLog,
+    resourceObligation:resourceObligation,fulfillResourceObligation:fulfillResourceObligation,fulfillPlayerGift:fulfillPlayerGift,recordPlayerProposal:recordPlayerProposal,recordPlayerResponse:recordPlayerResponse,formatIncomingProposals:formatIncomingProposals,formatPlayerProposalOutcomes:function(org,turn,actor){return actor?visible(actor,org).filter(function(p){return /^(accepted|rejected|cancelled)$/.test(p.status);}).map(function(p){return JSON.stringify(p);}):[];},diplomacyLog:diplomacyLog,
     summarize:function(g){return {recentEvents:diplomacyLog(g).length,pending:all(g).filter(function(p){return !terminal(p);}).length};},TYPE_CN:TYPE_CN};
 })(typeof window!=='undefined'?window:globalThis);
