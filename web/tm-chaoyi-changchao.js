@@ -1641,7 +1641,7 @@ function buildNpcPrompt(name, item, playerText, stance, intent, isMentioned) {
   // 字数走 v2 朝议字数设置
   const wordHint = (typeof _aiDialogueWordHint === 'function') ? _aiDialogueWordHint('cy') : '约 50-120 字';
   p += '要求：\n';
-  p += '· 半文言·朝堂奏对体·「臣……」开头·体现你的性格（' + (personality || '一般文官') + '）\n';
+  p += '· 自然的现代白话朝堂奏对，尊重本朝礼制和身份，体现你的性格（' + (personality || '一般文官') + '）\n';
   p += '· 字数' + wordHint + '·一句话足矣·不超过两句\n';
   p += '· 立场鲜明·体现派系倾向与品级口吻\n';
   p += '· 紧扣陛下话的具体内容（不要空泛附和"陛下圣明"）\n';
@@ -1706,7 +1706,7 @@ function showAIConfigModal() {
     $('ai-cfg-result').textContent = '调用中…';
     $('ai-cfg-result').style.color = 'var(--ink-500)';
     try {
-      const r = await callAIPreview('请用半文言一句话（不超过 30 字）回答：「君何以治国？」');
+      const r = await callAIPreview('请用现代白话一句话（不超过 30 字）回答：「君何以治国？」');
       $('ai-cfg-result').style.color = 'var(--celadon-400)';
       $('ai-cfg-result').textContent = '✓ 调用成功：' + (r || '').slice(0, 100);
     } catch (e) {

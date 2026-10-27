@@ -280,7 +280,7 @@ async function _yq2_oneAdvisorSpeak(name, roundNum) {
   if (roundNum >= 2 && CY._yq2.opinions[name] && CY._yq2.opinions[name].line) {
     prompt += '\n你上轮已陈言：' + CY._yq2.opinions[name].line.slice(0, 120) + '\n此轮可据他人之言修订或坚持。';
   }
-  prompt += '\n请给出你的答复（文言/半文言）。' + (typeof _aiDialogueWordHint === 'function' ? _aiDialogueWordHint('cy') + '（发言必须达到此字数范围）' : '') + '\n';
+  prompt += '\n请用符合本朝礼节的现代白话给出答复。' + (typeof _aiDialogueWordHint === 'function' ? _aiDialogueWordHint('cy') + '（发言必须达到此字数范围）' : '') + '\n';
   prompt += '返回 JSON：{"line":"...","stance":"支持/反对/保留/另提/推诿","inwardThought":"真实内心(10-30字)"}';
 
   // A2: 流式化——建占位气泡·onChunk 渐进显示 "line" 字段

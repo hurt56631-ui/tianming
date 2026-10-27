@@ -1629,15 +1629,16 @@ EndTurnHooks.registerFragment('scenario-style', function(ctx) {
   if (sc && sc.scnStyle) text += "\n本剧本文风: " + sc.scnStyle;
   if (sc && sc.scnStyleRule) text += "\n文风规则: " + sc.scnStyleRule;
   var _styleMap = {
-    '文学化': '文辞优美，善用比喻和意象，情感充沛',
-    '史书体': '仿《资治通鉴》纪事本末体，言简意赅，重事实轻渲染',
-    '戏剧化': '矛盾冲突尖锐，人物对话生动，善用悬念和反转',
-    '章回体': '仿《三国演义》章回体小说，每段开头可用对仗回目，文白夹杂',
-    '纪传体': '仿《史记》纪传体，以人物为中心，"太史公曰"式评论',
-    '白话文': '现代白话文风格，通俗易懂，节奏明快'
+    '文学化': '现代白话，描写细腻生动，但不堆砌古典辞藻',
+    '史书体': '现代白话，按事件先后和因果记录，简洁准确，重事实轻渲染',
+    '戏剧化': '现代白话，矛盾鲜明、对话生动，善用悬念和反转',
+    '章回体': '现代白话，以章节组织情节，保留古代背景但不要求古文回目',
+    '纪传体': '现代白话，以人物经历为中心，清楚说明行动、关系与结果',
+    '白话文': '自然现代白话，通俗易懂，节奏明快'
   };
   if (P.conf && P.conf.style && _styleMap[P.conf.style]) text += "\n叙事文风: " + _styleMap[P.conf.style];
   if (P.conf && P.conf.customStyle) text += "\n自定义文风: " + P.conf.customStyle;
+  text += "\n【文字要求】上述文风与范文只约束文本结构、详略和氛围；人物对白和生成正文都使用现代白话，称谓与制度仍遵本朝。";
   if (sc && sc.refText) text += "\n参考: " + sc.refText;
   if (P.conf && P.conf.refText) text += "\n全局参考: " + P.conf.refText;
   if (P.world && P.world.entries && P.world.entries.length > 0) {
