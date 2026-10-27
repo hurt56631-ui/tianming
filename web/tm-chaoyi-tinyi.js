@@ -581,7 +581,7 @@ async function _ty2_phaseInitialRound() {
 /** 生成一位与议者的一轮发言 */
 async function _ty2_genOneSpeech(name, roundNum, prevSpeeches) {
   if (CY._ty2) CY._ty2._lastSpeaker = name;  // 记上一发言者·供玩家插言"卿/你说"代词消解
-  if (!P.ai || !P.ai.key) {
+  if ((!P.ai || !P.ai.key) && !(P.conf && P.conf.geminiWebNpcEnabled===true)) {
     addCYBubble(name, '（臣以为……）', false);
     _cy_jishiAdd('tinyi', CY._ty2.topic, name, '（臣以为……）', { round: roundNum });
     return { stance: '中立' };

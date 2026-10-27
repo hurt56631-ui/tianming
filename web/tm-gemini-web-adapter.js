@@ -47,12 +47,31 @@ async function _geminiVirtualResponse(url,options){
         result={ok:true,text:signed.text,model:signed.model,route:'login-gateway'};
       }catch(backupErr){
         if(backupErr&&(backupErr.code==='AI_ABORTED'||backupErr.name==='AbortError'))throw backupErr;
-        var backupStatus=Number(backupErr&&backupErr.status)||503;
-        return failure(backupStatus,'匿名失败；'+String(backupErr&&backupErr.message||'登录态备用失败').slice(0,130));
+        status=Number(backupErr&&backupErr.status)||503;
+        result={ok:false,status:status,message:'匿名 Gemini 和登录态备用均未连接'};
       }
-    } else {
+    }
+    if(!result||result.ok!==true||!result.text){
+      // Paid fallback is NEVER implicit: only the explicit settings opt-in
+      // authorizes sending this dialogue to the configured official API.
+      var settings=global.P&&global.P.ai,conf=global.P&&global.P.conf;
+      var primaryUrl=settings&&settings.url;
+      if(conf&&conf.geminiWebNpcFallbackPrimary===true&&settings&&settings.key&&
+         primaryUrl&&!/gemini-web\.tianming\.invalid/.test(primaryUrl)&&!input.tools?.length) {
+        var official=(typeof global._buildAIUrlForTier==='function')
+          ? global._buildAIUrlForTier('primary')
+          : String(primaryUrl).replace(/\/+$/,'')+'/chat/completions';
+        if(/^https:\/\//.test(official)) {
+          var body=Object.assign({},input,{model:settings.model||input.model});
+          var reply=await global._tmAIFetch(official,{method:'POST',headers:{
+            Authorization:'Bearer '+settings.key,'Content-Type':'application/json'},
+            body:JSON.stringify(body),signal:options.signal});
+          return reply; // Original status/response is reported by the normal AI stream handler.
+        }
+      }
       if(![400,401,403,405,413,422,429,500,502,503,504].includes(status))status=503;
-      return failure(status,result&&result.message||'匿名 Gemini 没有可读回复',result&&result.retryAfterMs);
+      return failure(status,(result&&result.message||'匿名 Gemini 没有可读回复')+
+        '；可关闭免费人物对话或启用“失败后允许使用主 API”',result&&result.retryAfterMs);
     }
   }
   if(result.route !== 'login-gateway' && global.TM && global.TM.GeminiLoginBackup &&

@@ -838,7 +838,7 @@ function _cc3_makeMessagesWithSystem(userPrompt, tier) {
  */
 async function _cc3_aiGenReact(name, item, role, onChunk) {
   if (typeof callAI !== 'function') return null;
-  if (!(P && P.ai && P.ai.key && P.ai.url)) return null;
+  if (!(P && ((P.ai && P.ai.key && P.ai.url) || (P.conf && P.conf.geminiWebNpcEnabled===true)))) return null;
 
   const ch = CHARS[name] || {};
   let gmCh = null;
@@ -1232,7 +1232,8 @@ async function _cc3_callAI(prompt, onChunk) {
 // 兼容 preview 的全局名（preview JS 仍引用 callAIPreview / aiEnabled）
 function _cc3_aiEnabled() {
   // v3 总是启用 AI（v2 主项目本来就要求 AI 配置）
-  return (typeof P !== "undefined") && P.ai && P.ai.key && P.ai.url;
+  return (typeof P !== "undefined") && !!((P.ai && P.ai.key && P.ai.url) ||
+    (P.conf && P.conf.geminiWebNpcEnabled===true));
 }
 
 // ─── 朝代配置·scenario.chaoyi schema·全朝代适应 ───
