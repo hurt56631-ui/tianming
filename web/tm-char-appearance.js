@@ -38,7 +38,7 @@
           var k=Math.min(1,384/Math.max(w,h)),canvas=document.createElement('canvas');
           canvas.width=Math.max(1,Math.round(w*k));canvas.height=Math.max(1,Math.round(h*k));
           var ctx=canvas.getContext('2d');if(!ctx)return reject(new Error('当前设备不支持图片压缩'));
-          ctx.fillStyle='#eee5d5';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
+          ctx.fillStyle=(getComputedStyle(document.documentElement).getPropertyValue('--color-elevated').trim()||'white');ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
           resolve(canvas.toDataURL('image/jpeg',0.79));
         };image.src=reader.result;
       };reader.readAsDataURL(file);
