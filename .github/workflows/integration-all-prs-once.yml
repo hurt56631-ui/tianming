@@ -125,7 +125,7 @@ jobs:
           node scripts/build-native-preparation-manifest.cjs --write
           cp web/.hot-update-manifest.json /tmp/tianming-original-canonical-manifest.json
           node scripts/sync-hot-baseline.js --write
-          node -e 'const fs=require("fs");const old=JSON.parse(fs.readFileSync("/tmp/tianming-original-canonical-manifest.json","utf8"));const current=JSON.parse(fs.readFileSync("web/.hot-update-manifest.json","utf8"));const ids=new Set(current.files.map(f=>f.path));const untouched=old.files.filter(f=>!ids.has(f.path)&&!fs.existsSync("web/"+f.path));current.files=current.files.concat(untouched).sort((a,b)=>a.path.localeCompare(b.path));fs.writeFileSync("web/.hot-update-manifest.json",JSON.stringify(current,null,2)+"\\n");console.log("Preserved",untouched.length,"official untracked asset manifest entries");'
+          node -e 'const fs=require("fs");const old=JSON.parse(fs.readFileSync("/tmp/tianming-original-canonical-manifest.json","utf8"));const current=JSON.parse(fs.readFileSync("web/.hot-update-manifest.json","utf8"));const ids=new Set(current.files.map(f=>f.path));const untouched=old.files.filter(f=>!ids.has(f.path)&&!fs.existsSync("web/"+f.path));current.files=current.files.concat(untouched).sort((a,b)=>a.path.localeCompare(b.path));fs.writeFileSync("web/.hot-update-manifest.json",JSON.stringify(current,null,2)+String.fromCharCode(10));console.log("Preserved",untouched.length,"official untracked asset manifest entries");'
           node web/scripts/build-startup-phase-manifest.js --check
           node scripts/build-native-preparation-manifest.cjs --check
           node scripts/sync-hot-baseline.js --check
