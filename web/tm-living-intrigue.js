@@ -46,7 +46,7 @@ function tick(g){var s=C.state(g),completed=0;s.intrigue.plots.filter(function(p
  });return {completed:completed};
 }
 function initiative(g){var facs=C.arr(g.facs);if(facs.length<2||g.turn%4!==0)return;
- var selected=facs.filter(function(f){return f&&C.chance(g,'intrigue-ai:'+f.id,14);}).slice(0,2);
+ var player=C.playerFac(g),selected=facs.filter(function(f){return f&&(!player||f.id!==player.id)&&C.chance(g,'intrigue-ai:'+f.id,14);}).slice(0,2);
  selected.forEach(function(f){
   var targets=C.arr(g.chars).filter(function(c){return C.live(c)&&!c.isPlayer&&c.faction!==f.name&&Number(c.loyalty||55)<55&&Number(c.age||20)>=18;});
   if(targets.length)start(g,f,targets[C.roll(g,'intrigue-target:'+f.id)%targets.length]);
