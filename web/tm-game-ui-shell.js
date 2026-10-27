@@ -192,7 +192,7 @@ function renderGameState(options){
       var diplomaticUI=window.TM&&TM.WarDiplomacy;
       edictHTML += diplomaticUI&&typeof diplomaticUI.renderEdictDiplomacy==='function'
         ? diplomaticUI.renderEdictDiplomacy()
-        : '<p style="font-size:12px">外交谈判模块就绪后可在此签发国书；自由诏令文字不会自动建立条约。</p>';
+        : '<p style="font-size:small">外交谈判模块就绪后可在此签发国书；自由诏令文字不会自动建立条约。</p>';
     }
     edictHTML += '</div>';
   });
