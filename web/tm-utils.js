@@ -985,7 +985,7 @@ function _getModeParams() {
     echoDelay: mode === 'strict_hist' ? 2.0 : mode === 'light_hist' ? 1.0 : 0.5,
     eventIntensity: mode === 'strict_hist' ? 0.7 : mode === 'light_hist' ? 1.0 : 1.5,
     playerDeathProtection: mode === 'yanyi',
-    narrativeStyle: mode === 'strict_hist' ? '仿《资治通鉴》纪事体文言' : mode === 'light_hist' ? '半文言半白话' : '仿《三国演义》章回体'
+    narrativeStyle: '现代白话'
   };
 }
 
@@ -2253,6 +2253,8 @@ function _useSecondaryTier() {
 // M3·按 tier 获取 AI 配置·secondary 未配时回退 primary
 // tier: 'primary'|'secondary'·默认 primary
 function _getAITier(tier) {
+  // This virtual tier never writes a placeholder key to P.ai.
+  if (tier === 'geminiweb') return {key:'LOCAL_GEMINI_WEB_NO_API_KEY',url:'https://gemini-web.tianming.invalid/v1',model:'gemini-3.5-flash-lite',tier:'geminiweb'};
   var _s = P.ai && P.ai.secondary;
   if (tier === 'secondary' && _s && _s.key && _s.url) {
     return {

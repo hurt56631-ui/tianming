@@ -137,7 +137,7 @@ ok(!!r2b.toasted && r2b.opened === 'letter', '返②ㆍdrafts 缺席·openHongya
 const { functionSource } = require('./lib-perf-round1');
 const oldBadges = [{ removed:false, getAttribute(){return 'ol';}, remove(){this.removed=true;} }, { removed:false, getAttribute(){return 'pinned';}, remove(){this.removed=true;} }];
 let cleanedSelector = '';
-const clean = new Function('document', 'railAudienceCount', functionSource(bridgeSrc, 'updateRailBadges') + '\nreturn updateRailBadges;')({querySelectorAll(selector){cleanedSelector=selector;return oldBadges;}},()=>0);
+const clean = new Function('document', 'railAudienceCount', 'railDailyCount', functionSource(bridgeSrc, 'updateRailBadges') + '\nreturn updateRailBadges;')({querySelectorAll(selector){cleanedSelector=selector;return oldBadges;}},()=>0,()=>0);
 clean();clean();
 ok(oldBadges.every(b=>b.removed) && cleanedSelector === '#tm-right-rail .tm-rc-count, #tm-phase8-formal-rail .tmf-rail-count', '返③ㆍ兼容清理幂等且仅限两种右栏；不清真实奏疏/信件提醒');
 

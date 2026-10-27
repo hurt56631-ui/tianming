@@ -1,0 +1,67 @@
+name: Combine Sengoku domains with verified seven-PR integration
+# 2026-10-27 follow-up: enforce complete combined 15-module startup inventory contract.
+on:
+  push:
+    branches: [codex/politics-on-verified-integration-20261027]
+    paths: [.github/workflows/politics-integrated-qa.yml]
+permissions:
+  contents: write
+concurrency:
+  group: politics-on-verified-integration-20261027
+  cancel-in-progress: false
+jobs:
+  combine-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Merge PR9 without discarding PR10 browser/person rules
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin refs/heads/codex/politics-war-world-20261027:refs/remotes/origin/codex/politics-war-world-20261027
+          if ! git merge --no-ff --no-edit origin/codex/politics-war-world-20261027; then
+            python3 scripts/merge-politics-reviewed-conflicts.py
+            git commit -m 'merge: integrate approved political domains with existing living world'
+          fi
+          python3 scripts/merge-politics-reviewed-conflicts.py
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git status --short
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Regenerate tracked authoritative inventories while preserving distributed assets
+        run: |
+          set -euo pipefail
+          cp web/.hot-update-manifest.json /tmp/tianming-official-hot-manifest.json
+          node web/scripts/sync-official-scenarios.js
+          node web/scripts/lint-global-providers.js
+          node web/scripts/build-startup-phase-manifest.js
+          node scripts/build-native-preparation-manifest.cjs --write
+          node scripts/sync-hot-baseline.js --write
+          node -e 'const fs=require("fs");const old=JSON.parse(fs.readFileSync("/tmp/tianming-official-hot-manifest.json","utf8"));const cur=JSON.parse(fs.readFileSync("web/.hot-update-manifest.json","utf8"));const present=new Set(cur.files.map(x=>x.path));const missing=old.files.filter(x=>!present.has(x.path)&&!fs.existsSync("web/"+x.path));cur.files=cur.files.concat(missing).sort((a,b)=>a.path.localeCompare(b.path));fs.writeFileSync("web/.hot-update-manifest.json",JSON.stringify(cur,null,2)+String.fromCharCode(10));console.log("Retained",missing.length,"official unavailable assets");'
+          node web/scripts/build-startup-phase-manifest.js --check
+          node scripts/build-native-preparation-manifest.cjs --check
+          node scripts/sync-hot-baseline.js --check
+      - name: Validate political modules and full merged production contracts
+        run: |
+          set -euo pipefail
+          node web/scripts/smoke-political-war-world.js
+          node web/scripts/smoke-living-world.js
+          node scripts/verify-release-contract.js
+          (cd web && node scripts/lint-arch-all.js && node scripts/ci-smokes.js --jobs 4)
+      - name: Push verified combined code only to staged branch
+        run: |
+          set -euo pipefail
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'ci: synchronize approved combined political-world production inventories'
+          fi
+          git push origin HEAD:codex/politics-on-verified-integration-20261027
+          echo "Verified staged branch only; main not modified"

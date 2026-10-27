@@ -450,6 +450,7 @@
     <div class="gs-status-item"><span class="k">回合</span><span class="v" id="gs-status-turn">—</span></div>
   </div>
   <div class="gs-status-tip" id="gs-status-tip">〘 提示 〙 按 F1 查看帮助</div>
+  <button type="button" class="bt bs bsm" style="margin-left:12px;white-space:nowrap;" onclick="TM.LivingWorld.openPanel()">世局 · 外交</button>
   <div class="gs-status-right">
     <div class="gs-status-shortcut"><kbd>Ctrl</kbd>+<kbd>1..9</kbd> 切 tab</div>
     <div class="gs-status-shortcut"><kbd>Ctrl</kbd>+<kbd>S</kbd> 存档</div>
@@ -542,6 +543,12 @@ console.log('天命游戏脚本开始加载...');
 <script src="tm-ai-infra.js?v=20260930-context-detection"></script>
 <!-- 勿动位置·第二十三拆：json → infra → model-detect 必须连续按序装载(顶层函数型保序切割) -->
 <script src="tm-ai-infra-model-detect.js?v=20260930-context-detection"></script>
+<script src="tm-api-pool.js?v=20261018-multi-api-safe"></script>
+<script src="tm-npc-speech.js?v=20261018-modern-spoken"></script>
+<!-- Desktop-only Gemini Web adapter; after tm-ai-infra-retry.js -->
+<script src="tm-gemini-web-mobile.js?v=20261017-geminiweb35"></script>
+<script src="tm-gemini-login-backup.js?v=20261017-login-backup"></script>
+<script src="tm-gemini-web-adapter.js?v=20261017-login-backup"></script>
 <script src="tm-memory-trace.js?v=20260928-release1353"></script>
 <script src="tm-memory-evidence-registry.js?v=20260928-release1353"></script>
 <script src="tm-memory-source-bound.js?v=20260928-release1353"></script>
@@ -652,10 +659,10 @@ console.log('天命游戏脚本开始加载...');
 <script src="tm-npc-decision.js?v=20260929-local-npc"></script>
 <script src="tm-npc-decision-ai-driven.js?v=20260929-local-npc"></script>
 <script src="tm-office-tenure.js?v=20261002-office-tenure"></script>
-<script src="tm-political-actions.js?v=20260929-political-actions"></script>
+<script src="tm-political-actions.js?v=20261016-war-diplomacy"></script>
   <script src="tm-npc-daily-activities.js?v=20260929-local-npc"></script>
   <script src="tm-npc-local-ai.js?v=20260929-local-npc"></script>
-  <script src="tm-npc-daily-ui.js?v=20260929-local-npc"></script>
+  <script src="tm-npc-daily-ui.js?v=20261016-daily-inbox"></script>
 <!-- R111+R127 拆分 tm-game-engine.js → launch + player-settings + player-core + hongyan-office + game-loop -->
 <script src="tm-promotion.js?v=20260928-release1353"></script>
 <script src="tm-gongming.js?v=20260928-release1353"></script>
@@ -663,11 +670,11 @@ console.log('天命游戏脚本开始加载...');
 <script src="tm-launch.js?v=20260928-release1353"></script>
 <script src="tm-player-settings.js?v=20260930-context-detection"></script>
 <script src="tm-player-core.js?v=20260928-release1353"></script>
-<script src="tm-hongyan-office.js?v=20260929-local-npc"></script>
-<script src="tm-game-ui-shell.js?v=20260929-local-npc"></script>
-<script src="tm-hongyan-edict-ui.js?v=20260929-local-npc"></script>
-<script src="tm-game-loop.js?v=20260928-release1353"></script>
-<script src="tm-game-loop-wentian-hardchange.js?v=20260928-release1353"></script>
+<script src="tm-hongyan-office.js?v=20261016-edict-diplomacy"></script>
+<script src="tm-game-ui-shell.js?v=20261016-edict-diplomacy"></script>
+<script src="tm-hongyan-edict-ui.js?v=20261016-edict-diplomacy"></script>
+<script src="tm-game-loop.js?v=20261016-edict-diplomacy"></script>
+<script src="tm-game-loop-wentian-hardchange.js?v=20261016-edict-diplomacy"></script>
 <script src="tm-map-system.js?v=20260928-release1353"></script>
 <script src="tm-map-locations.js?v=20260928-release1353"></script>
 <!-- R134 (2026-04-25) tm-dynamic-systems 拆分 → dynamic + save-manager + help-social -->
@@ -815,7 +822,8 @@ console.log('天命游戏脚本开始加载...');
 <script src="tm-faction-npc-llm-enrich.js?v=20260928-release1353"></script>
 <!-- 2026-05-10·Phase G·NPC LLM 决策接管·真改机制·替代模板 -->
 <script src="tm-faction-npc-llm-decision.js?v=20260929-political-actions"></script>
-<script src="tm-faction-diplomacy.js?v=20260929-political-actions"></script>
+<script src="tm-faction-diplomacy.js?v=20261016-diplo-relations"></script>
+<script src="tm-war-diplomacy-ui.js?v=20261016-diplo-relations"></script>
 <script src="tm-negotiation.js?v=20260929-political-actions"></script><!-- 批己·谈判多轮会话引擎·招抚/议和/势力外交共用状态机·玩家可回价续谈·flag negotiationSessionsEnabled 默认ON -->
 <script src="tm-faction-decision-tools.js?v=20260928-release1353"></script>
 <!-- 2026-05-10 Phase H3: in-turn NPC background LLM driver -->
@@ -842,6 +850,19 @@ console.log('天命游戏脚本开始加载...');
 <script src="tm-faction-npc-guoku.js?v=20260929-political-actions"></script>
 <!-- 2026-05-10·Slice D 势力归属单一 mutator·依赖 index + derived (内部 refresh) -->
 <script src="tm-faction-membership.js?v=20260928-release1353"></script>
+<script src="tm-political-world.js?v=20261027-politics-world"></script>
+<script src="tm-campaign-world.js?v=20261027-politics-world"></script>
+<script src="tm-civil-world.js?v=20261027-politics-world"></script>
+<script src="tm-political-war-world.js?v=20261027-politics-world"></script>
+<!-- Living world: data owners only; no additional AI/API calls -->
+<script src="tm-living-core.js?v=20261027-living-world"></script>
+<script src="tm-living-memory.js?v=20261027-living-world"></script>
+<script src="tm-living-dynasty.js?v=20261027-living-world"></script>
+<script src="tm-living-marriage.js?v=20261027-living-world"></script>
+<script src="tm-living-diplomacy.js?v=20261027-living-world"></script>
+<script src="tm-living-intrigue.js?v=20261027-living-world"></script>
+<script src="tm-living-legions.js?v=20261027-living-world"></script>
+<script src="tm-living-world.js?v=20261027-living-world"></script>
 <script src="tm-three-systems-ui.js?v=20260928-release1353"></script>
 <script src="tm-char-arcs.js?v=20260929-local-npc"></script>
 <!-- R112+R125+Phase3 (2026-05-03)·tm-chaoyi-keju 拆分链·朝议 4 文件 (chaoyi 入口·changchao 常朝·tinyi 廷议·yuqian 御前)·misc 已 redistribute 到 office-panel/launch/map-system -->
@@ -1031,8 +1052,8 @@ console.log('天命游戏脚本开始加载...');
 <script src="tm-content-manager-community.js?v=20260928-release1353"></script><!-- 第二十拆·community须紧随origin(origin装载期导出bucket→community捕获·错序即崩)·勿动位置 -->
 <script src="preview/img/east-asia-basemap-data.js?v=20260928-release1353"></script>
 <!-- 勿动位置·第二十七拆：phase8-formal-bridge-styles.js 必须紧接 phase8-formal-bridge.js【之前】装载(②a alias/bucket·装载期填 TM.__p8BridgeParts→origin 顶部 alias 回绑·错序即 installStyles=undefined·installFormalShell 同步调用崩) -->
-<script src="phase8-formal-bridge-styles.js?v=20260928-release1353"></script>
-<script src="phase8-formal-bridge.js?v=20260928-release1353"></script>
+<script src="phase8-formal-bridge-styles.js?v=20261016-daily-inbox"></script>
+<script src="phase8-formal-bridge.js?v=20261016-daily-inbox"></script>
 <!-- phase8-formal·按 surface family 拆 6 module·主 bridge 必先 load·skeleton + alias 块·body 0 改动·2026-05-26 -->
 <script src="phase8-formal-topbar.js?v=20260928-release1353"></script>
 <!-- 省道（通志）数据层：纯函数，供地图册页取省道分组、档案与汇总；须在 phase8-formal-map-dossier.js 之前装载 -->
@@ -1053,6 +1074,8 @@ console.log('天命游戏脚本开始加载...');
 <!-- 勿动位置·第二十六拆：phase8-formal-drafts-message-panels.js 必须【紧随】phase8-formal-drafts.js 装载(origin-first 双向 bucket·装载于 origin 之后回填) -->
 <script src="phase8-formal-drafts-message-panels.js?v=20260929-local-npc"></script>
 <script src="phase8-formal-records.js?v=20260928-release1353"></script>
+<script src="tm-char-appearance.js?v=20261026-character-look"></script>
+<script src="tm-war-captives.js?v=20261026-war-captives"></script>
 <script src="tm-renwu-tuzhi.js?v=20260928-release1353"></script>
 <script src="phase8-formal-rightrail.js?v=20260929-political-actions"></script>
 <!-- 勿动位置·第二十四拆：social 分片须紧随 origin 之后(②b origin-first 双向 bucket TM.__p8RailParts·错序=捕获 undefined 立崩)·契约见 scripts/lint-split-contracts.js -->

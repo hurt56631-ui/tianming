@@ -36,6 +36,44 @@
   function escape(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
   function player() { var found = (root.GM && root.GM.chars || []).filter(function (c) { return D().controlled(c); }); return found.length === 1 ? found[0] : null; }
   function who(key) { var c = NPC.ActionLedger.findChar({ id: key }, root.GM); return c ? c.name : '对象未详'; }
+
+  // Read only the participant-specific projection: never turn undelivered or private NPC matters into notifications.
+  function pendingForPlayer() {
+    if (!D() || !root.GM || !NPC.ActionLedger) return [];
+    var ch = player(); if (!ch) return [];
+    var ownId = String(ch.id), out = [];
+    D().plans().forEach(function (p) {
+      if (!p || !p.localActivity) return;
+      if (![p.actorId, p.targetId, p.localActivity.thirdPartyId].some(function (key) { return key != null && String(key) === ownId; })) return;
+      var v = D().view(p, ch);
+      if (!v || !v.nextPhase || v.nextPhase === 'cancel') return;
+      var delivered = (v.messages || []).filter(function (m) { return String(m.toId) === ownId && m.status === 'delivered'; });
+      var last = delivered.length ? delivered[delivered.length - 1] : null;
+      var incoming = String(v.actorId) !== ownId, other = incoming ? v.actorId : v.targetId;
+      out.push({ id: v.id, incoming: incoming, name: who(other), kind: v.kind,
+        stage: stages[v.stage] || '需要你的回应', preview: last ? String(last.content || '').slice(0, 96) : '',
+        updatedTurn: Number(p.updatedTurn || p.createdTurn || 0) });
+    });
+    out.sort(function (a, b) { return Number(b.incoming) - Number(a.incoming) || b.updatedTurn - a.updatedTurn || String(a.id).localeCompare(String(b.id)); });
+    return out;
+  }
+  function pendingSummary(items) {
+    if (!items.length) return '';
+    var kinds = { greeting: '通问', introduction: '引见', meeting: '约见', consultation: '请益', assistance: '协助' };
+    var html = '<section data-daily-pending aria-label="日常往来待回应" style="padding:10px;border:1px solid var(--color-border-subtle);border-left:3px solid var(--gold-500);margin-bottom:10px;">'
+      + '<strong>人物来往 · 待你处理 ' + items.length + ' 项</strong><p>只有已送达、现在能由你选择的事项才会出现在这里。</p>';
+    html += items.slice(0, 4).map(function (item) {
+      var label = item.incoming ? '对方主动联系' : '往来需要回应';
+      return '<button type="button" class="hy-filter-btn lc-btn" data-daily-open="' + escape(item.id)
+        + '" style="display:block;text-align:left;width:100%;margin:5px 0;padding:8px;">'
+        + '<strong>' + escape(item.name) + ' · ' + escape(kinds[item.kind] || '往来') + '</strong>'
+        + ' <small>[' + label + ' · ' + escape(item.stage) + ']</small>'
+        + (item.preview ? '<span style="display:block;opacity:.85;white-space:normal">' + escape(item.preview) + '</span>' : '')
+        + '</button>';
+    }).join('');
+    if (items.length > 4) html += '<p>另有 ' + (items.length - 4) + ' 项；展开下方列表查看。</p>';
+    return html + '</section>';
+  }
   function formMaterials(material, key) {
     return '<details><summary>选择可使用的材料（最多' + D().config.maxMaterials + '份）</summary>' + material.map(function (m, n) {
       return '<label style="display:block;margin:var(--space-1,4px) 0"><input type="checkbox" data-daily-material="' + escape(key) + '" value="' + n + '"> ' + escape(m.label + '：' + m.content) + '</label>';
@@ -101,6 +139,8 @@
   }
   function render(targetPanel) {
     if (!root.document || !D() || !root.GM) return;
+    var bridge = root.TMPhase8FormalBridge;
+    if (bridge && typeof bridge._updateRailBadges === 'function') bridge._updateRailBadges();
     var panel = targetPanel || document.querySelector('#tm-action-letter-overlay [data-npc-daily-panel]') || document.getElementById('npc-daily-panel'), ch = player(); if (!panel || !ch) return;
     D().revokeTickets();
     D().withIndex(function () {
@@ -109,7 +149,8 @@
       var options = '<option value="">请选择已知人物</option>' + people.map(function (c) { return '<option value="' + escape(c.id) + '">' + escape(c.name) + '</option>'; }).join('');
       var budget = D().budget(ch), views = D().plans().filter(function (p) { return D().view(p, ch); }), materials = D().materialOptions(ch).slice(0, 18);
       var waiting = views.filter(function (p) { return !!D().view(p, ch).nextPhase; }).length;
-      var html = '<details style="font-size:calc(13 * var(--tm-px,1px));line-height:1.7"' + (collapsed ? '' : ' open') + '><summary><strong>日常往来 · 本地办理' + (waiting ? ' · 待回应 ' + waiting : '') + '</strong></summary><p>通问、引见和材料协助沿同一事项办理；约见须按已知地点和路线真实赴约。多日工作须等待正式时间推进，自由信函仍使用原推演。</p>';
+      var html = pendingSummary(pendingForPlayer());
+      html += '<details style="font-size:calc(13 * var(--tm-px,1px));line-height:1.7"' + (collapsed ? '' : ' open') + '><summary><strong>日常往来 · 本地办理' + (waiting ? ' · 待回应 ' + waiting : '') + '</strong></summary><p>通问、引见和材料协助沿同一事项办理；约见须按已知地点和路线真实赴约。多日工作须等待正式时间推进，自由信函仍使用原推演。</p>';
       html += '<p>当日已新发起 ' + budget.starts + ' / ' + D().config.dailyStarts + ' 项，可回应已送达事项。</p><div data-daily-compose>';
       html += '<label>联系对象 <select id="daily-target" aria-label="日常往来对象">' + options + '</select></label> ';
       html += '<label>希望引见的人 <select id="daily-third" aria-label="希望引见的人">' + options + '</select></label>';
@@ -124,7 +165,9 @@
       panel.querySelectorAll('button.hy-filter-btn').forEach(function (button) { button.classList.add('lc-btn'); });
       var composeLease = NPC.ActionLedger.capture();
       panel.onclick = function (event) {
-        var button = event.target.closest('button'); if (!button || !panel.contains(button) || !panel.querySelector('details').open) return;
+        var button = event.target.closest('button'); if (!button || !panel.contains(button)) return;
+        if (button.dataset.dailyOpen) { open(button.dataset.dailyOpen); return; }
+        if (!panel.querySelector('details').open) return;
         var receipt, planRow = button.closest('[data-daily-plan]');
         if (button.dataset.dailyNew) {
           if (!composeLease || !NPC.ActionLedger.current(composeLease)) { render(); return; }
@@ -157,11 +200,22 @@
   function letterCard(letter) {
     return '<div class="hy-letter-card"><strong>' + escape(letter.subjectLine || '日常往来') + '</strong><p style="white-space:pre-wrap">' + escape(letter.content) + '</p><p>此信属于上方「日常往来」的同一事项，请在当前事项内回应。</p></div>';
   }
-  function open(planId) {
-    collapsed = false; render();
-    var panel = document.querySelector('#tm-action-letter-overlay [data-npc-daily-panel]') || document.getElementById('npc-daily-panel');
-    var item = panel && Array.from(panel.querySelectorAll('[data-daily-plan]')).find(function (el) { return el.dataset.dailyPlan === planId; });
-    if (item) item.scrollIntoView({ block: 'center' });
+  function dailyPanel() {
+    return root.document.querySelector('#tm-action-letter-overlay [data-npc-daily-panel]') || root.document.getElementById('npc-daily-panel');
   }
-  NPC.DailyUI = { render: render, open: open, letterCard: letterCard, close: function () { if (D()) D().revokeTickets(); } };
+  function open(planId) {
+    if (!root.document || !D() || !root.GM) return false;
+    var panel = dailyPanel();
+    if (!panel && root.TMPhase8FormalBridge && typeof root.TMPhase8FormalBridge.openHongyan === 'function') {
+      root.TMPhase8FormalBridge.openHongyan();
+      panel = dailyPanel();
+    }
+    if (!panel) return false;
+    collapsed = false; render(panel);
+    var item = planId && Array.from(panel.querySelectorAll('[data-daily-plan]')).find(function (el) { return el.dataset.dailyPlan === planId; });
+    if (item && typeof item.scrollIntoView === 'function') item.scrollIntoView({ block: 'center' });
+    return !!item || !planId;
+  }
+  function openPending() { var first = pendingForPlayer()[0]; return open(first && first.id); }
+  NPC.DailyUI = { render: render, open: open, openPending: openPending, pendingForPlayer: pendingForPlayer, letterCard: letterCard, close: function () { if (D()) D().revokeTickets(); } };
 })(typeof window !== 'undefined' ? window : globalThis);
