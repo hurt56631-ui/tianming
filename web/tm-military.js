@@ -899,7 +899,7 @@ var MilitarySystems = (function(global) {
         if (outcome === 'killed' || outcome === 'dead') commander.alive = false;
         else if (outcome === 'captured') {
           commander.capturedBy = winner;
-          if (global.TM && global.TM.WarCaptives) global.TM.WarCaptives.onCapture(commander, winner, G, {battleId:br.battleId||br.id||''});
+          if (global.TM && global.TM["WarCaptives"]) global.TM["WarCaptives"].onCapture(commander, winner, G, {battleId:br.battleId||br.id||''});
         }
         else if (outcome === 'fled') commander._fledTurn = G.turn || 0;
         else if (outcome === 'surrendered') commander.surrenderedTo = winner;
@@ -1009,7 +1009,7 @@ var MilitarySystems = (function(global) {
         if (outcome === 'killed' || outcome === 'dead') ch.alive = false;
         else if (outcome === 'captured') {
           ch.capturedBy = winner;
-          if (global.TM && global.TM.WarCaptives) global.TM.WarCaptives.onCapture(ch, winner, G, {battleId:br.battleId||br.id||''});
+          if (global.TM && global.TM["WarCaptives"]) global.TM["WarCaptives"].onCapture(ch, winner, G, {battleId:br.battleId||br.id||''});
         }
         else if (outcome === 'fled') ch._fledTurn = G.turn || 0;
         else if (outcome === 'surrendered') ch.surrenderedTo = winner;
