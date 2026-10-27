@@ -4,7 +4,7 @@ function A(x){return Array.isArray(x)?x:[];}function G(){return root.GM;}
 function S(g){if(!g._campaignWorld)g._campaignWorld={version:1,turn:-1,rights:[],incidents:[],supplies:[],pendingBattles:[]};return g._campaignWorld;}
 function access(g,from,to,region,turns){var a=A(g.facs).find(function(f){return f&&[f.id,f.name].includes(from);}),b=A(g.facs).find(function(f){return f&&[f.id,f.name].includes(to);});
  if(!a||!b||a===b||!region)return {ok:false,reason:'借道双方或地块不存在'};
- var r={from:a.id||a.name,to:b.id||b.name,region:String(region),start:g.turn,end:g.turn+Math.max(1,Math.min(70,Number(turns)||6)),status:'granted'};
+ var r={from:a.name,to:b.name,region:String(region),start:g.turn,end:g.turn+Math.max(1,Math.min(70,Number(turns)||6)),status:'granted'};
  S(g).rights.push(r);if(S(g).rights.length>100)S(g).rights.shift();return {ok:true,permission:r};}
 function canCross(g,faction,region){var map=g.mapData||g.map||{},entry=A(map.regions).find(function(r){return r&&[r.name,r.id].includes(region);});
  if(!entry)return {ok:false,reason:'目标地块不存在，禁止推断路线'};
