@@ -1,0 +1,22 @@
+name: Political War World Focused QA
+on:
+  push:
+    branches: [codex/politics-war-world-20261027]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run independent political, military and civic checks
+        run: |
+          node web/scripts/smoke-political-war-world.js
+          node --check web/tm-political-world.js
+          node --check web/tm-campaign-world.js
+          node --check web/tm-civil-world.js
+          node --check web/tm-political-war-world.js

@@ -65,6 +65,7 @@ async function _endTurn_updateSystems(timeRatio, zhengwen) {
 
   // 6. 推进回合
   GM.turn++;
+  if (window.TM && TM.PoliticalWarWorld) TM.PoliticalWarWorld.tick(GM);
   if (window.TM && TM.SimTime && _tmTimeInterval) TM.SimTime.commit(GM, _tmTimeInterval);
   // 同步旧子系统读取的年月日镜像；不得另算第二套时钟。
   try { if (typeof _tmSyncGMCalendar === 'function') _tmSyncGMCalendar(GM, GM.turn); }
