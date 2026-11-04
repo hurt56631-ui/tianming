@@ -273,6 +273,9 @@ function _tmAINativePlatform() {
 }
 async function _tmAIFetch(resource, options) {
   options = options || {};
+  if (typeof window !== 'undefined' && window.TM && TM.DeepSeekWeb && TM.DeepSeekWeb.isEndpoint(resource)) {
+    return TM.DeepSeekWeb.fetch(resource, options);
+  }
   if (!_tmAINativePlatform()) return fetch(resource, options);
   var cap = window.Capacitor, headers = new Headers(options.headers || {});
   function failure(code, message) { var e = new Error(message); e.code = code; e._tmNativeTransport = true; return e; }
