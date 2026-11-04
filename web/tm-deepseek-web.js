@@ -115,9 +115,13 @@
             throw errorWithCode('旧版 APK 缺少 DeepSeek 长提示词分块插件，请更新安装包', 'WEB_NATIVE_UPGRADE');
           }
           await native.beginPrompt({ requestId: requestId });
-          for (var offset = 0; offset < prompt.length; offset += 12000) {
+          for (var offset = 0; offset < prompt.length;) {
             if (signal && signal.aborted) throw abortError();
-            await native.appendPrompt({ requestId: requestId, chunk: prompt.slice(offset, offset + 12000) });
+            var end = Math.min(prompt.length, offset + 12000);
+            var previous = prompt.charCodeAt(end - 1), next = prompt.charCodeAt(end);
+            if (end < prompt.length && previous >= 0xD800 && previous <= 0xDBFF && next >= 0xDC00 && next <= 0xDFFF) end--;
+            await native.appendPrompt({ requestId: requestId, chunk: prompt.slice(offset, end) });
+            offset = end;
           }
           reply = await native.generateBuffered({ requestId: requestId, timeoutMs: 600000 });
         } else {
