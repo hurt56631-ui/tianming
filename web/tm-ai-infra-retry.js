@@ -118,7 +118,18 @@ async function _aiWithStreamScope(opts, execute) {
 
 function _aiConfiguredCallOptions(opts) {
   var policy = globalThis.TM && globalThis.TM.CallRetryPolicy;
-  return policy ? policy.options(opts) : Object.assign({}, opts || {});
+  var resolved = policy ? policy.options(opts) : Object.assign({}, opts || {});
+  // DeepSeek's free webpage is not an idempotent API. A retry could submit the
+  // same emperor command twice after the first request is already accepted.
+  try {
+    var cfg = typeof _getAITier === 'function' ? _getAITier(resolved.tier) : null;
+    if (cfg && typeof cfg.url === 'string' && /^https:\/\/tm-deepseek-web\.invalid\//.test(cfg.url)) {
+      resolved.maxRetries = 0;
+      resolved._configuredRetries = true;
+      resolved._turnRetriesResolved = true;
+    }
+  } catch (_) {}
+  return resolved;
 }
 async function _aiConfiguredStreamRetry(messages, maxTok, opts) {
   var policy = globalThis.TM.CallRetryPolicy, partial = false;
