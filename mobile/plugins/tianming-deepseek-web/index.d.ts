@@ -3,6 +3,8 @@ export interface TianmingDeepSeekWebPlugin {
   openLogin(): Promise<{ closed: boolean }>;
   /** One visible browser generation at a time. Never exposes session cookies. */
   generate(options: { prompt: string; requestId: string; timeoutMs?: number }): Promise<{ text: string }>;
+  /** Read-only check of logged-in website structure; never exports cookies or message text. */
+  inspectPage(): Promise<{ officialSite: boolean; loginVisible: boolean; composer: boolean; sendControl: boolean; assistantCount: number; copyControl: boolean }>;
   /** Buffers large prompts in small Capacitor messages to avoid Android IPC limits. */
   beginPrompt(options: { requestId: string }): Promise<{ started: boolean }>;
   appendPrompt(options: { requestId: string; chunk: string }): Promise<{ length: number }>;
