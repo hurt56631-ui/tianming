@@ -62,6 +62,7 @@ public final class TianmingDeepSeekWebPlugin extends Plugin {
         ui.post(() -> {
             if (activeCall != null || dialog != null) { call.reject("DeepSeek 网页窗口正在使用", "WEB_BUSY"); return; }
             createWindow("登录 DeepSeek · 登录后关闭返回设置", false);
+            if (page == null || dialog == null) { call.reject("无法打开 Android WebView", "WEB_NO_ACTIVITY"); return; }
             dialog.setOnDismissListener(d -> {
                 destroyWindow();
                 JSObject out = new JSObject();
@@ -70,6 +71,70 @@ public final class TianmingDeepSeekWebPlugin extends Plugin {
             });
             page.loadUrl(CHAT_URL);
         });
+    }
+
+    /**
+     * Read-only DOM diagnostic from the user's own logged-in official page.
+     * Returns booleans and counts only: never cookies, prompts or message text.
+     */
+    @PluginMethod
+    public void inspectPage(PluginCall call) {
+        ui.post(() -> {
+            if (activeCall != null || dialog != null || bufferedRequestId != null) {
+                call.reject("请先完成当前 DeepSeek 请求", "WEB_BUSY");
+                return;
+            }
+            createWindow("DeepSeek 网页结构检查 · 不会发送消息", false);
+            if (page == null || dialog == null) {
+                call.reject("无法打开 Android WebView", "WEB_NO_ACTIVITY");
+                return;
+            }
+            final WebView inspected = page;
+            final java.util.concurrent.atomic.AtomicBoolean ended = new java.util.concurrent.atomic.AtomicBoolean(false);
+            dialog.setOnDismissListener(d -> {
+                if (ended.compareAndSet(false, true)) call.reject("已关闭网页结构检查", "WEB_INSPECT_CANCELLED");
+                destroyWindow();
+            });
+            inspected.loadUrl(CHAT_URL);
+            schedule(() -> {
+                if (ended.get() || page != inspected) return;
+                inspected.evaluateJavascript(inspectJs(), value -> {
+                    if (!ended.compareAndSet(false, true)) return;
+                    try {
+                        JSONObject detected = new JSONObject(jsValue(value));
+                        JSObject info = new JSObject();
+                        info.put("officialSite", detected.optBoolean("officialSite", false));
+                        info.put("loginVisible", detected.optBoolean("loginVisible", false));
+                        info.put("composer", detected.optBoolean("composer", false));
+                        info.put("sendControl", detected.optBoolean("sendControl", false));
+                        info.put("assistantCount", detected.optInt("assistantCount", 0));
+                        info.put("copyControl", detected.optBoolean("copyControl", false));
+                        call.resolve(info);
+                    } catch (Exception e) {
+                        call.reject("网页 DOM 检查无法解析，可能是页面未加载完成", "WEB_INSPECT_PARSE");
+                    }
+                    destroyWindow();
+                });
+            }, 7000);
+            schedule(() -> {
+                if (page != inspected || !ended.compareAndSet(false, true)) return;
+                call.reject("网页结构检查超时", "WEB_INSPECT_TIMEOUT");
+                destroyWindow();
+            }, 20000);
+        });
+    }
+
+    private String inspectJs() {
+        return "(function(){try{"
+            + "function vis(e){if(!e)return false;let r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden';}"
+            + "let login=/\\/(login|signin|register|signup)(\\/|$)/.test(location.pathname)||[...document.querySelectorAll('input[type=password]')].some(vis);"
+            + "let composer=[...document.querySelectorAll('#chat-input,textarea[name=search],textarea[placeholder*=DeepSeek],textarea,[contenteditable=true]')].some(vis);"
+            + "let buttons=[...document.querySelectorAll('button,[role=button]')].filter(vis);"
+            + "let send=buttons.some(b=>{let label=((b.getAttribute('aria-label')||'')+' '+(b.title||'')).toLowerCase().trim();if(/^(send|send message|发送|发送消息)$/.test(label))return true;return [...b.querySelectorAll('svg path')].some(p=>(p.getAttribute('d')||'').startsWith('M8.3125 0.981587C8.66767'));});"
+            + "let roots=document.querySelectorAll('.ds-assistant-message-main-content,[data-message-author-role=assistant],[class*=assistant-message-main-content],.ds-markdown');"
+            + "let copy=buttons.some(b=>/copy|复制/i.test((b.getAttribute('aria-label')||'')+' '+(b.title||''))||[...b.querySelectorAll('svg path')].some(p=>(p.getAttribute('d')||'').startsWith('M6.14929 4.02032C7.11197')));"
+            + "return JSON.stringify({officialSite:location.origin==='https://chat.deepseek.com',loginVisible:login,composer:composer,sendControl:send,assistantCount:roots.length,copyControl:copy});"
+            + "}catch(e){return '{}';}})();";
     }
 
     @PluginMethod
@@ -347,7 +412,7 @@ public final class TianmingDeepSeekWebPlugin extends Plugin {
             + "let buttons=[...document.querySelectorAll('button,[role=button]')].filter(vis);"
             + "let busy=buttons.some(b=>/stop generating|stop generation|停止生成|停止回答/.test(((b.innerText||'')+' '+(b.getAttribute('aria-label')||'')+' '+(b.title||'')).toLowerCase()));"
             + "let complete=false;if(root) {let p=root;for(let i=0;p&&i<5;i++,p=p.parentElement){"
-            + "let nearby=[...p.querySelectorAll('button,[role=button]')].filter(vis);if(nearby.some(b=>/copy|复制/.test(((b.getAttribute('aria-label')||'')+' '+(b.title||'')).toLowerCase()))) {complete=true;break;}}}"
+            + "let nearby=[...p.querySelectorAll('button,[role=button]')].filter(vis);if(nearby.some(b=>{let v=((b.getAttribute('aria-label')||'')+' '+(b.title||'')).toLowerCase();let icon=[...b.querySelectorAll('svg path')].some(x=>(x.getAttribute('d')||'').startsWith('M6.14929 4.02032C7.11197'));let br=b.getBoundingClientRect(),rr=root.getBoundingClientRect();return (/copy|复制/.test(v)||icon)&&br.top>=rr.bottom-48&&br.top<=rr.bottom+240;})) {complete=true;break;}}}"
             + "return JSON.stringify({text:txt,busy:busy,complete:complete});"
             + "}catch(e){return JSON.stringify({text:'',busy:true,complete:false});}})();";
     }
