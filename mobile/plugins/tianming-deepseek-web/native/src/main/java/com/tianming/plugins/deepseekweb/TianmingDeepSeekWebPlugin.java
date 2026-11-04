@@ -299,6 +299,9 @@ public final class TianmingDeepSeekWebPlugin extends Plugin {
             return;
         }
         int end = Math.min(pendingPrompt.length(), offset + 8192);
+        if (end < pendingPrompt.length() && end > offset &&
+                Character.isHighSurrogate(pendingPrompt.charAt(end - 1)) &&
+                Character.isLowSurrogate(pendingPrompt.charAt(end))) end--;
         String chunk = pendingPrompt.substring(offset, end);
         String js = "(function(){window.__tmGamePrompt=(window.__tmGamePrompt||'')+" + JSONObject.quote(chunk) + ";return true;})()";
         eval(js, result -> {
