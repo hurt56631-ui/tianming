@@ -205,6 +205,7 @@ public final class TianmingDeepSeekWebPlugin extends Plugin {
                 if (!generation || activeCall == null) return;
                 if (!url.startsWith("https://chat.deepseek.com/")) { fail("网页离开了 DeepSeek 官方地址", "WEB_NAVIGATION"); return; }
                 int doc = ++documentGeneration;
+                injecting = false;
                 schedule(() -> attemptFill(doc), 800);
             }
             @Override public void onReceivedSslError(WebView v, SslErrorHandler handler, android.net.http.SslError e) {
