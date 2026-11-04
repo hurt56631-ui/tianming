@@ -187,6 +187,23 @@
       try { await requirePlugin().openLogin(); if (status) status.textContent = '登录窗口已关闭。是否成功请用下方「测试连接」验证。'; }
       catch (e) { if (status) status.textContent = e.message || String(e); }
     });
+    add('检查网页结构', async function() {
+      try {
+        var native = requirePlugin();
+        if (typeof native.inspectPage !== 'function') throw new Error('APK 尚未包含网页结构检查插件，请安装新包');
+        if (status) status.textContent = '正在打开 DeepSeek 官方网页并检查当前登录环境……';
+        var result = await native.inspectPage();
+        var ready = result.officialSite && !result.loginVisible && result.composer && result.sendControl;
+        if (status) status.textContent = '页面检查：'
+          + (result.officialSite ? '官网✓ ' : '网址异常× ')
+          + (result.loginVisible ? '需要登录 ' : '未检测到登录表单 ')
+          + (result.composer ? '输入框✓ ' : '输入框× ')
+          + (result.sendControl ? '发送按钮✓ ' : '发送按钮× ')
+          + '历史回复节点 ' + (result.assistantCount || 0)
+          + (result.copyControl ? ' 复制图标✓' : ' 复制图标未发现')
+          + (ready ? '。具备自动发送前置条件，但完成态仍需测试。' : '。本设备网页结构暂不能保证自动发送。');
+      } catch (e) { if (status) status.textContent = '网页检查失败：' + (e.message || String(e)); }
+    });
     add('用作主 AI', function() { choose('primary'); });
     add('测试网页生成', async function() {
       try {
