@@ -4,7 +4,7 @@
   'use strict';
   var ORIGIN = 'https://tm-deepseek-web.invalid';
   var BASE = ORIGIN + '/v1';
-  var MAX_PROMPT_BYTES = 850000;
+  var MAX_PROMPT_BYTES = 230000;
   var work = Promise.resolve();
   var quarantined = new Map();
   var realFetch = global.fetch.bind(global);
@@ -54,7 +54,7 @@
       prompt += '\n最终必须输出合法 JSON 对象，不要 Markdown 代码块。';
     }
     if (new TextEncoder().encode(prompt).length > MAX_PROMPT_BYTES) {
-      throw errorWithCode('DeepSeek 网页提示词超过 850KB；本次未发送。请减小游戏 AI 上下文或记忆档位。', 'WEB_PROMPT_TOO_LONG');
+      throw errorWithCode('DeepSeek 网页提示词超过 230KB；本次未发送。请减小游戏 AI 上下文或记忆档位。', 'WEB_PROMPT_TOO_LONG');
     }
     return prompt;
   }
@@ -170,6 +170,15 @@
       catch (e) { if (status) status.textContent = e.message || String(e); }
     });
     add('用作主 AI', function() { choose('primary'); });
+    add('测试网页生成', async function() {
+      try {
+        var response = await send(BASE + '/chat/completions', { method:'POST', body: JSON.stringify({ model:'deepseek-web', messages:[{role:'user', content:'只输出这个 JSON 对象：{"ok":true}'}], response_format:{type:'json_object'} }) });
+        var data = await response.json();
+        var answer = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        if (!answer || !JSON.parse(answer).ok) throw new Error('生成结果不符合 JSON 格式');
+        if (status) status.textContent = '网页生成测试通过；完整游戏回合仍需单独测试。';
+      } catch(e) { if (status) status.textContent = '网页测试失败：' + (e.message || String(e)); }
+    });
     add('主次 AI 都使用', function() { choose('primary'); choose('secondary'); });
     add('解锁失败任务', function() {
       quarantined.clear();
