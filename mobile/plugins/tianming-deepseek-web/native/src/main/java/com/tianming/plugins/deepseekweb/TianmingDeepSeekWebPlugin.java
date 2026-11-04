@@ -34,7 +34,7 @@ import java.util.UUID;
 public final class TianmingDeepSeekWebPlugin extends Plugin {
     private static final String CHAT_URL = "https://chat.deepseek.com/";
     private static final long POLL_MS = 750L;
-    private static final int MAX_PROMPT_BYTES = 230_000;
+    private static final int MAX_PROMPT_BYTES = 950_000;
     private static final String[] ANSWER_SELECTORS = {
             ".ds-assistant-message-main-content",
             "[data-message-author-role='assistant']",
@@ -46,6 +46,9 @@ public final class TianmingDeepSeekWebPlugin extends Plugin {
     private PluginCall activeCall;
     private String activeId;
     private String pendingPrompt;
+    private String bufferedRequestId;
+    private StringBuilder bufferedPrompt;
+    private boolean injecting;
     private long deadline;
     private int documentGeneration;
     private boolean started, sending, polling, cancelled;
@@ -70,34 +73,91 @@ public final class TianmingDeepSeekWebPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void beginPrompt(PluginCall call) {
+        String id = call.getString("requestId");
+        if (id == null || id.isEmpty()) { call.reject("缺少请求编号", "WEB_BAD_REQUEST"); return; }
+        ui.post(() -> {
+            if (activeCall != null || dialog != null || bufferedRequestId != null) {
+                call.reject("DeepSeek 正在处理其他请求", "WEB_BUSY");
+                return;
+            }
+            bufferedRequestId = id;
+            bufferedPrompt = new StringBuilder();
+            JSObject response = new JSObject();
+            response.put("started", true);
+            call.resolve(response);
+        });
+    }
+
+    @PluginMethod
+    public void appendPrompt(PluginCall call) {
+        String id = call.getString("requestId");
+        String chunk = call.getString("chunk");
+        ui.post(() -> {
+            if (id == null || !id.equals(bufferedRequestId) || bufferedPrompt == null || chunk == null) {
+                call.reject("分块请求编号不匹配", "WEB_CHUNK_ID");
+                return;
+            }
+            if ((bufferedPrompt.length() + chunk.length()) * 3L > 3L * MAX_PROMPT_BYTES) {
+                bufferedRequestId = null;
+                bufferedPrompt = null;
+                call.reject("DeepSeek 网页提示词过长", "WEB_PROMPT_TOO_LONG");
+                return;
+            }
+            bufferedPrompt.append(chunk);
+            JSObject reply = new JSObject();
+            reply.put("length", bufferedPrompt.length());
+            call.resolve(reply);
+        });
+    }
+
+    @PluginMethod
+    public void generateBuffered(PluginCall call) {
+        String id = call.getString("requestId");
+        ui.post(() -> {
+            if (id == null || !id.equals(bufferedRequestId) || bufferedPrompt == null) {
+                call.reject("尚无完整分块提示词", "WEB_CHUNK_ID");
+                return;
+            }
+            String prompt = bufferedPrompt.toString();
+            bufferedRequestId = null;
+            bufferedPrompt = null;
+            launch(call, prompt, id);
+        });
+    }
+
+    @PluginMethod
     public void generate(PluginCall call) {
         String text = call.getString("prompt");
         String id = call.getString("requestId");
+        ui.post(() -> launch(call, text, id));
+    }
+
+    private void launch(PluginCall call, String text, String id) {
         if (text == null || text.trim().isEmpty() || id == null || id.trim().isEmpty()) {
             call.reject("缺少提示词或请求编号", "WEB_BAD_REQUEST");
             return;
         }
         if (text.getBytes(StandardCharsets.UTF_8).length > MAX_PROMPT_BYTES) {
-            call.reject("网页模式单次提示词不能超过 230KB（防止 Android WebView 跨进程数据过大）", "WEB_PROMPT_TOO_LONG");
+            call.reject("网页模式单次提示词超过 950KB，请调低游戏上下文长度", "WEB_PROMPT_TOO_LONG");
             return;
         }
-        ui.post(() -> {
-            if (activeCall != null || dialog != null) { call.reject("DeepSeek 正在处理其他请求", "WEB_BUSY"); return; }
-            activeCall = call;
-            activeId = id;
-            pendingPrompt = text;
-            started = false; sending = false; polling = false; cancelled = false;
-            submitAttempts = 0; emptyPolls = 0; lastAnswer = ""; stablePolls = 0;
-            int wait = call.getInt("timeoutMs", 600000);
-            deadline = android.os.SystemClock.uptimeMillis() + Math.max(30000, Math.min(wait, 900000));
-            createWindow("DeepSeek 网页推演 · 自动执行中", true);
-            page.loadUrl(CHAT_URL);
-            schedule(() -> {
-                if (activeCall == call && android.os.SystemClock.uptimeMillis() >= deadline) {
-                    fail("DeepSeek 网页等待超时；无法确认是否已完成，不会继续结算", "WEB_TIMEOUT");
-                }
-            }, Math.max(30000, Math.min(wait, 900000)));
-        });
+        if (activeCall != null || dialog != null) { call.reject("DeepSeek 正在处理其他请求", "WEB_BUSY"); return; }
+        activeCall = call;
+        activeId = id;
+        pendingPrompt = text;
+        started = false; sending = false; polling = false; cancelled = false; injecting = false;
+        submitAttempts = 0; emptyPolls = 0; lastAnswer = ""; stablePolls = 0;
+        int wait = call.getInt("timeoutMs", 600000);
+        deadline = android.os.SystemClock.uptimeMillis() + Math.max(30000, Math.min(wait, 900000));
+        createWindow("DeepSeek 网页推演 · 自动执行中", true);
+        if (page == null) { fail("无法启动网页窗口", "WEB_NO_ACTIVITY"); return; }
+        page.loadUrl(CHAT_URL);
+        schedule(() -> {
+            if (activeCall == call && android.os.SystemClock.uptimeMillis() >= deadline) {
+                fail("DeepSeek 网页等待超时；无法确认是否已完成，不会继续结算", "WEB_TIMEOUT");
+            }
+        }, Math.max(30000, Math.min(wait, 900000)));
     }
 
     @PluginMethod
@@ -106,6 +166,7 @@ public final class TianmingDeepSeekWebPlugin extends Plugin {
         ui.post(() -> {
             boolean matching = activeCall != null && activeId != null && activeId.equals(id);
             if (matching) fail("用户已取消网页生成", "WEB_CANCELLED");
+            if (bufferedRequestId != null && bufferedRequestId.equals(id)) { bufferedRequestId = null; bufferedPrompt = null; }
             JSObject o = new JSObject(); o.put("cancelled", matching); call.resolve(o);
         });
     }
@@ -198,7 +259,7 @@ public final class TianmingDeepSeekWebPlugin extends Plugin {
             + "function visible(e){if(!e)return false;const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden';}"
             + "const els=[...document.querySelectorAll('textarea[name=search],textarea[placeholder*=DeepSeek],textarea,[contenteditable=true],[role=textbox]')].filter(visible);"
             + "const e=els.length?els[els.length-1]:null;if(!e||e.disabled)return 'waiting';"
-            + "const t=" + JSONObject.quote(pendingPrompt) + ";e.focus();"
+            + "const t=window.__tmGamePrompt||'';e.focus();"
             + "if(e.tagName==='TEXTAREA'){let setter=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value');if(setter&&setter.set)setter.set.call(e,t);else e.value=t;}else e.textContent=t;"
             + "try{e.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:t}));}catch(_){e.dispatchEvent(new Event('input',{bubbles:true}));}"
             + "e.dispatchEvent(new Event('change',{bubbles:true}));return 'filled';"
@@ -214,14 +275,36 @@ public final class TianmingDeepSeekWebPlugin extends Plugin {
                     else fail("请先在 DeepSeek 网页完成登录或验证", "WEB_LOGIN_REQUIRED");
                     return;
                 }
-                eval(fillJs(), state -> {
-                    if ("filled".equals(state)) {
-                        sending = true;
-                        schedule(() -> attemptSubmit(doc), 500);
-                    } else if (submitAttempts++ < 40) schedule(() -> attemptFill(doc), 1000);
-                    else fail("未能找到 DeepSeek 网页输入框", "WEB_COMPOSER_NOT_FOUND");
-                });
+                if (injecting) return;
+                injecting = true;
+                eval("(function(){window.__tmGamePrompt='';return true;})()", ready -> injectChunks(doc, 0));
             });
+    }
+
+    /** JS evaluation crosses Android WebView IPC. Assemble in short chunks, not one 1MB script. */
+    private void injectChunks(int doc, int offset) {
+        if (activeCall == null || doc != documentGeneration || !injecting || pendingPrompt == null) return;
+        if (offset >= pendingPrompt.length()) {
+            eval(fillJs(), state -> {
+                injecting = false;
+                if ("filled".equals(state)) {
+                    sending = true;
+                    // Clear the temporary JavaScript variable once React has accepted the input.
+                    eval("(function(){window.__tmGamePrompt='';return true;})()", ignored -> {});
+                    schedule(() -> attemptSubmit(doc), 500);
+                } else if (submitAttempts++ < 40) {
+                    schedule(() -> attemptFill(doc), 1000);
+                } else fail("未能找到 DeepSeek 网页输入框", "WEB_COMPOSER_NOT_FOUND");
+            });
+            return;
+        }
+        int end = Math.min(pendingPrompt.length(), offset + 8192);
+        String chunk = pendingPrompt.substring(offset, end);
+        String js = "(function(){window.__tmGamePrompt=(window.__tmGamePrompt||'')+" + JSONObject.quote(chunk) + ";return true;})()";
+        eval(js, result -> {
+            if (!"true".equals(result)) { fail("向 WebView 传输提示词失败", "WEB_CHUNK_SEND"); return; }
+            injectChunks(doc, end);
+        });
     }
 
     private String submitJs() {
@@ -305,6 +388,7 @@ public final class TianmingDeepSeekWebPlugin extends Plugin {
 
     private void finish() {
         activeCall = null; activeId = null; pendingPrompt = null;
+        bufferedRequestId = null; bufferedPrompt = null; injecting = false;
         cancelled = true; started = false; sending = false; polling = false;
         destroyWindow();
     }
