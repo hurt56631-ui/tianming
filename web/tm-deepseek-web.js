@@ -4,7 +4,7 @@
   'use strict';
   var ORIGIN = 'https://tm-deepseek-web.invalid';
   var BASE = ORIGIN + '/v1';
-  var MAX_PROMPT_BYTES = 230000;
+  var MAX_PROMPT_BYTES = 900000;
   var work = Promise.resolve();
   var quarantined = new Map();
   var realFetch = global.fetch.bind(global);
@@ -54,7 +54,7 @@
       prompt += '\n最终必须输出合法 JSON 对象，不要 Markdown 代码块。';
     }
     if (new TextEncoder().encode(prompt).length > MAX_PROMPT_BYTES) {
-      throw errorWithCode('DeepSeek 网页提示词超过 230KB；本次未发送。请减小游戏 AI 上下文或记忆档位。', 'WEB_PROMPT_TOO_LONG');
+      throw errorWithCode('DeepSeek 网页提示词超过 900KB；本次未发送。请减小游戏 AI 上下文或记忆档位。', 'WEB_PROMPT_TOO_LONG');
     }
     return prompt;
   }
@@ -108,7 +108,21 @@
         // cannot be auto-retried: it might have been accepted by the website.
         quarantined.set(key, Date.now());
         if (quarantined.size > 32) quarantined.delete(quarantined.keys().next().value);
-        var reply = await native.generate({ prompt: prompt, requestId: requestId, timeoutMs: 600000 });
+        var reply;
+        if (prompt.length > 24000) {
+          if (typeof native.beginPrompt !== 'function' || typeof native.appendPrompt !== 'function'
+              || typeof native.generateBuffered !== 'function') {
+            throw errorWithCode('旧版 APK 缺少 DeepSeek 长提示词分块插件，请更新安装包', 'WEB_NATIVE_UPGRADE');
+          }
+          await native.beginPrompt({ requestId: requestId });
+          for (var offset = 0; offset < prompt.length; offset += 12000) {
+            if (signal && signal.aborted) throw abortError();
+            await native.appendPrompt({ requestId: requestId, chunk: prompt.slice(offset, offset + 12000) });
+          }
+          reply = await native.generateBuffered({ requestId: requestId, timeoutMs: 600000 });
+        } else {
+          reply = await native.generate({ prompt: prompt, requestId: requestId, timeoutMs: 600000 });
+        }
         if (signal && signal.aborted) throw abortError();
         var result = completion(reply && reply.text, body.model);
         quarantined.delete(key);
