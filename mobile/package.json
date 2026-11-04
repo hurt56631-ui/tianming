@@ -21,7 +21,8 @@
     "@capacitor/filesystem": "^6.0.1",
     "@capacitor/preferences": "^6.0.2",
     "@capgo/capacitor-updater": "^6.45.10",
-    "@tianming/capacitor-file-export": "file:plugins/tianming-file-export"
+    "@tianming/capacitor-file-export": "file:plugins/tianming-file-export",
+    "@tianming/capacitor-deepseek-web": "file:plugins/tianming-deepseek-web"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
