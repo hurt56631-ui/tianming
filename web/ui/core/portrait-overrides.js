@@ -60,3 +60,21 @@ export async function savePortrait(name, file) {
     URL.revokeObjectURL(blobUrl);
   }
 }
+
+export function choosePortrait(name) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/jpeg,image/png,image/webp';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  const cleanup = () => { if (input.isConnected) input.remove(); };
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    cleanup();
+    if (!file) return;
+    try { await savePortrait(name, file); }
+    catch (err) { bus.emit('kernel:toast', { text: String(err && err.message || err) }); }
+  }, { once: true });
+  input.addEventListener('cancel', cleanup, { once: true });
+  input.click();
+}
