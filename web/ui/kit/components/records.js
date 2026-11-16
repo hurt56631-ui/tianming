@@ -2,6 +2,7 @@
 import { h, replaceChildren } from '../../core/dom.js';
 import { num, delta, grade, gradeIndex } from '../../core/numerals.js';
 import { tiao } from './tiao.js';
+import { portraitFor } from '../../core/portrait-overrides.js';
 
 // 账：zhang('帑廪', [{ k: '银', v: 1230000, d: -820000, unit: '两' }, …])
 export function zhang(label, rows) {
@@ -29,11 +30,12 @@ export function pin(label, value, { text, note } = {}) {
 export function faceDot(cls, c, onPerson) {
   const attrs = onPerson ? { dataset: { person: c.name }, onclick: (e) => { e.stopPropagation(); onPerson(c.name); } } : {};
   const box = h('span.' + cls, attrs, [...(c.name || '？')][0]);
-  if (c.portrait) {
+  const portrait = portraitFor(c.name, c.portrait);
+  if (portrait) {
     const img = new Image();
     img.alt = '';
     img.onload = () => replaceChildren(box, img);
-    img.src = c.portrait;
+    img.src = portrait;
     if (img.complete && img.naturalWidth) replaceChildren(box, img);
   }
   return box;
@@ -43,8 +45,9 @@ export function faceDot(cls, c, onPerson) {
 export function zhou({ name, src, dead = false, onclick, title }) {
   const initial = () => h('div.face', { style: { display: 'grid', placeItems: 'center', font: '400 2rem var(--f-title)', color: 'rgba(40,24,14,.6)' } }, [...(name || '？')][0]);
   let face = initial();
-  if (src) {
-    face = h('img', { src, alt: name, loading: 'lazy', decoding: 'async' });
+  const image = portraitFor(name, src);
+  if (image) {
+    face = h('img', { src: image, alt: name, loading: 'lazy', decoding: 'async' });
     face.addEventListener('error', () => face.replaceWith(initial()), { once: true });   // 立像缺失：以名字首字作像
   }
   // data-person：右键即出此人的「可为」单（screens/desk.js 统一接）
