@@ -20,6 +20,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: android-newui-demo-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   debug-apk:
     runs-on: ubuntu-latest
