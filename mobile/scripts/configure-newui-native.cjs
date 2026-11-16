@@ -20,10 +20,15 @@ const sdk = /compileSdkVersion\s*=\s*34\b/;
 if ((settings.match(new RegExp(sdk.source, 'g')) || []).length !== 1)
   throw new Error('unexpected compileSdk in generated variables.gradle');
 settings = settings.replace(sdk, 'compileSdkVersion = 35');
+// Recent Google Play Services requires minSdk 23; leave production at 22.
+const minSdk = /minSdkVersion\s*=\s*22\b/;
+if ((settings.match(new RegExp(minSdk.source, 'g')) || []).length !== 1)
+  throw new Error('unexpected minSdk in generated variables.gradle');
+settings = settings.replace(minSdk, 'minSdkVersion = 23');
 fs.writeFileSync(variables, settings);
 const properties = path.resolve(__dirname, '../android/gradle.properties');
 let flags = fs.readFileSync(properties, 'utf8');
 if (!flags.includes('android.suppressUnsupportedCompileSdk=35'))
   flags += '\nandroid.suppressUnsupportedCompileSdk=35\n';
 fs.writeFileSync(properties, flags);
-console.log('[newui-android] orientation=sensorLandscape, compileSdk=35 (demo only)');
+console.log('[newui-android] orientation=sensorLandscape, compileSdk=35, minSdk=23 (demo only)');
