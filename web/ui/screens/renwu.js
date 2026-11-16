@@ -141,9 +141,9 @@ export function createRenwu({ root, game, viewer, can, onAudience, onLetter, onO
     // 同一人重画（翻页签、过回合）不换图，免得闪；没有立像写粉本（一幅只勾了轮廓的绢）
     const portrait = portraitFor(b.name, b.portrait);
     pic.title = portrait ? '看全像' : '';
-    const picKey = `${b.name}|${portrait}`;
-    if (pic.dataset.key !== picKey) {
-      pic.dataset.key = picKey;
+    if (pic.dataset.person !== b.name || pic._portraitSource !== portrait) {
+      pic.dataset.person = b.name;
+      pic._portraitSource = portrait;
       const blank = () => h('i', [...b.name][0]);
       replaceChildren(pic, portrait ? [h('img.bg', { src: portrait, alt: '', 'aria-hidden': 'true', decoding: 'async' }),
         h('img.fg', { src: portrait, alt: b.name, decoding: 'async', onerror: () => replaceChildren(pic, blank()) })] : blank());
