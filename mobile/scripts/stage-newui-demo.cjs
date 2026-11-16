@@ -35,7 +35,7 @@ function demoIndex(contents) {
   const count = contents.split(needle).length - 1;
   assert(count === 1, 'new-UI bootstrap changed; refuse to build an APK with the old UI');
   return contents.replace(needle,
-    "  try { on = true; /* isolated Android Demo always opens the new UI */ } catch (_e) { on = true; }");
+    "  try { on = !new URLSearchParams(location.search).has('tm_legacy'); /* isolated Android Demo: opt-out for recovery */ } catch (_e) { on = true; }");
 }
 function sourceRows(config) {
   const tree = release.walkTree(WEB, config);
