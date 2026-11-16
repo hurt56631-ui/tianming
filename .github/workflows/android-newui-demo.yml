@@ -54,6 +54,8 @@ jobs:
             throw new Error('production release exclusion list unexpectedly changed');
           }
           NODE
+      - name: Audit new UI binary assets
+        run: node mobile/scripts/audit-newui-assets.cjs
       - name: Stage new UI and verify all assets
         run: node mobile/scripts/stage-newui-demo.cjs
       - name: Install Android dependencies
