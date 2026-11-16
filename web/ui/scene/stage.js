@@ -67,7 +67,8 @@ export function createStage(container, { preserve = false } = {}) {
   let running = true, frozen = false, frames = 0;
   const frameWaiters = [];
   function fatal(reason, error) {
-    if (!running || frozen) return;
+    if (!running || renderer.domElement.dataset.tmFatal === '1') return;
+    renderer.domElement.dataset.tmFatal = '1';
     frozen = true;
     console.error('[newui] 图形舞台中断', reason, error);
     window.dispatchEvent(new CustomEvent('tm-newui-fatal', {
