@@ -1,0 +1,135 @@
+name: Android New UI Demo APK
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-newui-demo.yml'
+      - 'mobile/**'
+      - 'web/**'
+      - 'scripts/**'
+  push:
+    branches: [feature/android-newui-demo-20261116]
+    paths:
+      - '.github/workflows/android-newui-demo.yml'
+      - 'mobile/scripts/stage-newui-demo.cjs'
+      - 'mobile/scripts/configure-newui-demo.cjs'
+      - 'mobile/scripts/configure-newui-native.cjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-newui-demo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  debug-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Use preinstalled Android SDK and install platform
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"; fi
+          "$SDKMANAGER" --version
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+      - name: Stage official scenarios
+        run: node web/scripts/sync-official-scenarios.js
+      - name: Check original release rules remain unchanged
+        run: |
+          node - <<'NODE'
+          const c = require('./scripts/release-excludes.json');
+          if (!c.globs.includes('ui/**') || !c.globs.includes('vendor/three/**')) {
+            throw new Error('production release exclusion list unexpectedly changed');
+          }
+          NODE
+      - name: Restore permitted older artwork, audio and original font files
+        shell: bash
+        run: |
+          # Official source's pages branch still has 133 reduced portraits, five music tracks,
+          # and original OFL font files. These assets are not copied into production Git history.
+          git clone --depth 1 --filter=blob:none --sparse --branch pages \
+            https://github.com/misfit-user/tianming.git "$RUNNER_TEMP/tianming-pages"
+          git -C "$RUNNER_TEMP/tianming-pages" sparse-checkout set \
+            assets/portraits assets/audio/bgm assets/fonts
+          mkdir -p web/assets/portraits web/assets/audio/bgm web/assets/fonts
+          cp -a "$RUNNER_TEMP/tianming-pages/assets/portraits/." web/assets/portraits/
+          cp -a "$RUNNER_TEMP/tianming-pages/assets/audio/bgm/." web/assets/audio/bgm/
+          cp -a "$RUNNER_TEMP/tianming-pages/assets/fonts/." web/assets/fonts/
+          echo "Recovered portraits: $(find web/assets/portraits -name '*.png' | wc -l)"
+          echo "Recovered audio: $(find web/assets/audio/bgm -name '*.mp3' | wc -l)"
+          test "$(find web/assets/portraits -name '*.png' | wc -l)" -ge 133
+          test "$(find web/assets/audio/bgm -name '*.mp3' | wc -l)" -ge 5
+      - name: Install reproducible new UI art dependencies
+        shell: bash
+        run: |
+          python3 -m pip install --disable-pip-version-check numpy Pillow "fonttools[woff]"
+          sudo apt-get update -qq
+          sudo apt-get install -y libxrender1 libxi6 libxkbcommon0 libxxf86vm1 libglu1-mesa
+          # Blender 4.5 LTS binary supports the build_room.py / build_props.py material APIs.
+          curl --fail --location --retry 3 --retry-delay 5 \
+            https://download.blender.org/release/Blender4.5/blender-4.5.4-linux-x64.tar.xz \
+            --output "$RUNNER_TEMP/blender.tar.xz"
+          mkdir -p "$RUNNER_TEMP/blender"
+          tar -xf "$RUNNER_TEMP/blender.tar.xz" -C "$RUNNER_TEMP/blender" --strip-components=1
+          echo "$RUNNER_TEMP/blender" >> "$GITHUB_PATH"
+      - name: Build real DEM from open terrain tiles and preview room artwork
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/tianming-dem/tiles/6" web/ui/assets/study/tex
+          export TM_DEM_TILES="$RUNNER_TEMP/tianming-dem/tiles/6"
+          python3 tools/ui-art/map/build_dem.py 6 4200
+          python3 mobile/scripts/generate-newui-preview-textures.py
+          python3 mobile/scripts/generate-newui-demo-fonts.py
+          blender --background --factory-startup --python-exit-code 1 \
+            --python tools/ui-art/blender/build_room.py -- "$PWD/web/ui/assets/study"
+          blender --background --factory-startup --python-exit-code 1 \
+            --python tools/ui-art/blender/build_props.py -- "$PWD/web/ui/assets/study"
+          # The standalone HDR lightmap is optional in the source runtime: it falls
+          # back to realtime lighting when the expensive baked HDR is unavailable.
+          node tools/ui-art/manifest.cjs build
+          node tools/ui-art/manifest.cjs check
+      - name: Enforce complete reconstructed demo runtime assets
+        run: |
+          node mobile/scripts/verify-newui-demo-resources.cjs
+          node mobile/scripts/audit-newui-assets.cjs --strict --hash
+      - name: Stage new UI and verify all assets
+        run: node mobile/scripts/stage-newui-demo.cjs
+      - name: Install Android dependencies
+        working-directory: mobile
+        run: npm ci
+      - name: Configure isolated demo app
+        run: node mobile/scripts/configure-newui-demo.cjs
+      - name: Generate native Android project
+        working-directory: mobile
+        run: npx cap add android
+      - name: Lock landscape and sync WebView assets
+        run: |
+          node mobile/scripts/configure-newui-native.cjs
+          cd mobile
+          npx cap sync android
+      - name: Verify APK assets after Capacitor sync
+        run: node mobile/scripts/stage-newui-demo.cjs --verify --native --target mobile/android/app/src/main/assets/public
+      - name: Assemble debug APK
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+      - name: Publish independent test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: tianming-android-newui-demo-debug
+          path: mobile/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14

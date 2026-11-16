@@ -1,0 +1,72 @@
+name: Publish Android New UI Demo APK to Releases
+on:
+  push:
+    branches: [feature/android-newui-demo-20261116]
+    paths: ['.github/workflows/publish-newui-demo-release.yml']
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Successful Android New UI Demo APK workflow run
+        required: false
+        default: '43885533197'
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: publish-android-newui-demo-prerelease
+  cancel-in-progress: false
+jobs:
+  prerelease:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download previously verified Android test artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run_id || '43885533197' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" \
+            --name tianming-android-newui-demo-debug --dir artifact
+          mapfile -t apks < <(find artifact -type f -name '*.apk' | sort)
+          test "${#apks[@]}" -eq 1
+          mkdir -p dist
+          cp "${apks[0]}" dist/tianming-newui-demo-20261116-debug.apk
+          test "$(stat -c%s dist/tianming-newui-demo-20261116-debug.apk)" -gt 100000000
+          file dist/tianming-newui-demo-20261116-debug.apk
+          unzip -tq dist/tianming-newui-demo-20261116-debug.apk > /dev/null
+          sha256sum dist/tianming-newui-demo-20261116-debug.apk \
+            > dist/SHA256SUMS.txt
+          ls -lh dist/
+      - name: Publish separate test prerelease (never production)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="android-newui-demo-20261116"
+          cat > /tmp/newui-release-notes.md <<'NOTES'
+          Android isolated new-UI preview. NOT the official full game installer.
+          
+          - APK package: com.tianming.history.newuidemo (installs alongside the official app)
+          - Official archived 133 compressed portraits and 5 BGM tracks included
+          - DEM elevation, room.glb and props.glb generated from public source
+          - Procedural replacement room textures and 7 temporary OFL font aliases
+          - No original baked HDR lightmap; realtime lighting fallback
+          - Asset validation passed in CI; tablet startup and GPU compatibility not yet verified
+          - Preview package may lack components of the 1.5GB official full APK, including offline models
+          
+          This is a separate prerelease. Do not use as an update to the original app.
+          NOTES
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" \
+              dist/tianming-newui-demo-20261116-debug.apk dist/SHA256SUMS.txt --clobber
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "天命 Android 新界面测试 APK（2026-11-16）" \
+              --notes-file /tmp/newui-release-notes.md \
+              dist/tianming-newui-demo-20261116-debug.apk dist/SHA256SUMS.txt
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,assets

@@ -8,6 +8,7 @@
 import { h, replaceChildren } from '../core/dom.js';
 import { homeMode } from '../core/settings.js';
 import { bus } from '../core/bus.js';
+import { portraitFor } from '../core/portrait-overrides.js';
 import { num, yearNum, grade, gradeIndex } from '../core/numerals.js';
 import { pinned, pinnedFirst, togglePin } from '../core/pins.js';
 import { juan, qianzi, wadang, pai, sealButton, zhang, pin, zhou, keben, btn, clock, qiPanel, tag, tiao, kaiguan, kewei, closeSideScrolls } from '../kit/index.js';
@@ -283,7 +284,7 @@ export function createDesk({ root, stage, study, map, game, labels, clouds }) {
     wherePin.classList.toggle('off', !whereAt);
     if (!whereAt) return;
     const initial = () => h('i', [...c.name][0]);
-    replaceChildren(wherePin.firstChild, c.portrait ? h('img', { src: c.portrait, alt: '', decoding: 'async', onerror: (e) => e.target.replaceWith(initial()) }) : initial());
+    replaceChildren(wherePin.firstChild, portraitFor(c.name, c.portrait) ? h('img', { src: portraitFor(c.name, c.portrait), alt: '', decoding: 'async', onerror: (e) => e.target.replaceWith(initial()) }) : initial());
     wherePin.lastChild.textContent = c.name;
     wherePin.dataset.person = c.name;
     wherePin.classList.remove('land');
@@ -786,9 +787,10 @@ export function createDesk({ root, stage, study, map, game, labels, clouds }) {
   // 舆图为家：立像（本人）、印（元首是国号，余者是姓）、职衔、精力；圆钮上记待批之数、来函之数；左上待办
   function paintHome({ me, en, docket, fresh, open, due }) {
     const initial = () => h('i', [...(per.name || '？')][0]);
-    if (selfFace.dataset.src !== String((me && me.portrait) || '')) {
-      selfFace.dataset.src = String((me && me.portrait) || '');
-      replaceChildren(selfFace, me && me.portrait ? h('img', { src: me.portrait, alt: per.name, decoding: 'async', onerror: () => replaceChildren(selfFace, initial()) }) : initial());
+    const portrait = portraitFor(per.name, me && me.portrait);
+    if (selfFace._portraitSource !== portrait) {
+      selfFace._portraitSource = portrait;
+      replaceChildren(selfFace, portrait ? h('img', { src: portrait, alt: per.name, decoding: 'async', onerror: () => replaceChildren(selfFace, initial()) }) : initial());
     }
     selfSeal.textContent = dyn.textContent;
     selfName.textContent = per.name || '';
@@ -841,7 +843,7 @@ export function createDesk({ root, stage, study, map, game, labels, clouds }) {
   }
   // 提纲：三段，空段不列；人可右键出可为单
   function paintOutline() {
-    const face = (c) => h('i.hm-oface', c.portrait ? h('img', { src: c.portrait, alt: '', decoding: 'async', onerror: (e) => e.target.remove() }) : null, [...(c.name || '？')][0]);
+    const face = (c) => h('i.hm-oface', portraitFor(c.name, c.portrait) ? h('img', { src: portraitFor(c.name, c.portrait), alt: '', decoding: 'async', onerror: (e) => e.target.remove() }) : null, [...(c.name || '？')][0]);
     const people = game.select.characters().filter((c) => pinned(c)).slice(0, 8).map((c) =>
       h('button.hm-row', { type: 'button', dataset: { person: c.name }, title: [c.name, c.title, c.location].filter(Boolean).join(' · '), onclick: () => renwu.show(c.name) },
         face(c), h('b', c.name), h('small', c.title || c.location || '')));
@@ -1025,7 +1027,8 @@ export function createDesk({ root, stage, study, map, game, labels, clouds }) {
     const p = tipPeople.get(name);
     if (!p) return { title: name, text: '名册里无此人' };
     const initial = () => h('i', [...p.name][0]);
-    const face = p.portrait ? h('img', { src: p.portrait, alt: '', decoding: 'async', onerror: (e) => e.target.replaceWith(initial()) }) : initial();
+    const url = portraitFor(p.name, p.portrait);
+    const face = url ? h('img', { src: url, alt: '', decoding: 'async', onerror: (e) => e.target.replaceWith(initial()) }) : initial();
     const self = p.name === per.name;
     const rel = per.tier !== 'sovereign' && !self ? (p.relations || []).find((r) => r.name === per.name) : null;
     const tome = self ? '此即本人' : per.tier === 'sovereign' ? `忠诚 ${grade(p.loyalty)}` : rel ? `视我：${rel.tone === 'foe' ? '疏' : '亲'}` : '';
@@ -1427,6 +1430,7 @@ export function createDesk({ root, stage, study, map, game, labels, clouds }) {
         game.on('ui:pause', pause), game.on('ui:saves', () => { if (el.classList.contains('on')) openSaves({ game, inGame: true }); }),
         game.on('ui:help', () => { if (el.classList.contains('on')) helpPage.show(); }),
         bus.on('pins:changed', refresh),
+        bus.on('portraits:changed', refresh),
         bus.on('settings:changed', ({ key }) => { if (key === 'home') { arrange(); refresh(); } }),
         game.on('game:entered', () => loadWorld().then(refresh)));
       gaizhiPage.inheritance();                      // 开局幕里就断下的新朝承前，落座后展

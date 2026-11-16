@@ -66,6 +66,19 @@ export function createStage(container, { preserve = false } = {}) {
   const clock = new THREE.Clock();
   let running = true, frozen = false, frames = 0;
   const frameWaiters = [];
+  function fatal(reason, error) {
+    if (!running || renderer.domElement.dataset.tmFatal === '1') return;
+    renderer.domElement.dataset.tmFatal = '1';
+    frozen = true;
+    console.error('[newui] 图形舞台中断', reason, error);
+    window.dispatchEvent(new CustomEvent('tm-newui-fatal', {
+      detail: { reason, message: String(error && error.message || error || '未知图形错误') }
+    }));
+  }
+  renderer.domElement.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    fatal('WebGL 上下文丢失', 'GPU 图形上下文被系统回收，请尝试低画质重试');
+  });
   function visible() {
     const out = [];
     if (mix.a && (mix.k < 1 || !mix.b)) out.push(views.get(mix.a));
@@ -76,6 +89,7 @@ export function createStage(container, { preserve = false } = {}) {
     if (!running) return;
     requestAnimationFrame(tick);
     if (frozen) return;
+    try {
     const dt = Math.min(clock.getDelta(), 0.1);
     const t = clock.elapsedTime;
     const live = visible();
@@ -95,6 +109,9 @@ export function createStage(container, { preserve = false } = {}) {
     for (const fn of hooks) fn(t, dt);
     frames++;
     while (frameWaiters.length && frameWaiters[0].at <= frames) frameWaiters.shift().resolve();
+    } catch (error) {
+      fatal('图形帧绘制异常', error);
+    }
   }
   requestAnimationFrame(tick);
 

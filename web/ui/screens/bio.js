@@ -9,6 +9,7 @@ import { num, turnTag } from '../core/numerals.js';
 import { pinned, togglePin } from '../core/pins.js';
 import { zhou, juan } from '../kit/index.js';
 import { plainError } from '../core/plain.js';
+import { customPortrait, choosePortrait, resetPortrait } from '../core/portrait-overrides.js';
 
 const toast = (text) => bus.emit('kernel:toast', { text });
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -112,6 +113,8 @@ export function createBio({ root, game, profile, onAudience, onLetter, onOffices
     }
     if (!isSelf(p) && p.alive) list.push(btn(pinned(p) ? '去钉' : '钉选', () => { const on = togglePin(p); toast(on ? `${p.name}已钉选：提纲、寻人与召对名单列在前头` : `${p.name}已去钉`); renderLeft(); }, '钉选之人在书案人物图志与召对名单里排在前头'));
     if (onAtlas) list.push(btn('寻人', () => { hide(); onAtlas(p.name); }, '右边展开寻人'));
+    list.push(btn('换立绘', () => choosePortrait(p.name), '从手机相册选择图片'));
+    if (customPortrait(p.name)) list.push(btn('还原立绘', () => resetPortrait(p.name), '恢复剧本原始立绘'));
     list.push(btn('导出', exportBio, '存成一份列传文本'));
     replaceChildren(acts, list);
   }
@@ -350,5 +353,6 @@ export function createBio({ root, game, profile, onAudience, onLetter, onOffices
     if (e.key === 'Escape') { e.stopPropagation(); hide(); }
   }, true);
   game.on('game:changed', () => { if (opened && cur) { try { cur = B.person(cur.name); renderLeft(); if (vol !== 'sources') renderRight(); } catch (_e) { hide(); } } });
+  bus.on('portraits:changed', () => { if (opened && cur) renderLeft(); });
   return { show, hide, get opened() { return opened; } };
 }

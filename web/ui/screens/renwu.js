@@ -12,6 +12,7 @@ import { num, numText } from '../core/numerals.js';
 import { bus } from '../core/bus.js';
 import { pinned, togglePin } from '../core/pins.js';
 import { pin, tiao } from '../kit/index.js';
+import { portraitFor, customPortrait, choosePortrait, resetPortrait } from '../core/portrait-overrides.js';
 
 const SKILL_NAMES = { 智: '智略', 武: '武勇', 军: '军略', 政: '政务', 管: '理财', 交: '交际', 魅: '魅力', 仁: '仁德' };
 const SPOUSE_RE = /妻|夫$|丈夫|配|妃|嫔|妾|后$|夫人/;
@@ -107,7 +108,7 @@ export function createRenwu({ root, game, viewer, can, onAudience, onLetter, onO
   };
   const face = (n, src, cls = '') => {
     const row = n ? peopleRow(n) : null;
-    const url = src || (row && row.portrait) || '';
+    const url = portraitFor(n, src || (row && row.portrait) || '');
     const initial = h('i', [...(n || '？')][0]);
     if (!url) return h('span.rw-face' + cls, initial);
     const img = h('img', { src: url, alt: n, loading: 'lazy', decoding: 'async' });
@@ -138,13 +139,14 @@ export function createRenwu({ root, game, viewer, can, onAudience, onLetter, onO
 
     // 卷首
     // 同一人重画（翻页签、过回合）不换图，免得闪；没有立像写粉本（一幅只勾了轮廓的绢）
-    pic.title = b.portrait ? '看全像' : '';
-    const picKey = `${b.name}|${b.portrait || ''}`;
-    if (pic.dataset.key !== picKey) {
-      pic.dataset.key = picKey;
+    const portrait = portraitFor(b.name, b.portrait);
+    pic.title = portrait ? '看全像' : '';
+    if (pic.dataset.person !== b.name || pic._portraitSource !== portrait) {
+      pic.dataset.person = b.name;
+      pic._portraitSource = portrait;
       const blank = () => h('i', [...b.name][0]);
-      replaceChildren(pic, b.portrait ? [h('img.bg', { src: b.portrait, alt: '', 'aria-hidden': 'true', decoding: 'async' }),
-        h('img.fg', { src: b.portrait, alt: b.name, decoding: 'async', onerror: () => replaceChildren(pic, blank()) })] : blank());
+      replaceChildren(pic, portrait ? [h('img.bg', { src: portrait, alt: '', 'aria-hidden': 'true', decoding: 'async' }),
+        h('img.fg', { src: portrait, alt: b.name, decoding: 'async', onerror: () => replaceChildren(pic, blank()) })] : blank());
     }
     el.classList.toggle('dead', !b.alive);
     replaceChildren(seal, b.banner ? tiao(h('b', b.banner.glyph), () => ({ title: b.banner.title, text: b.banner.note || '' })) : null);
@@ -158,6 +160,8 @@ export function createRenwu({ root, game, viewer, can, onAudience, onLetter, onO
     }
     if (!self && b.alive) list.push(act(pinned(row.id ? row : b) ? '撤钉' : '钉选', pinned(row.id ? row : b) ? '' : '排在提纲、寻人之首', '', () => { togglePin(row.id ? row : b); render(); }, pinned(row.id ? row : b)));
     if (compare) list.push(act('对参', compare.has(b.name) ? '已在对参，再点移出' : '放进对参，至多三人并看', '', () => { compare.toggle(b.name); render(); }, compare.has(b.name)));
+    list.push(act('换立绘', '从本机相册选择 JPEG、PNG、WebP', '', () => choosePortrait(b.name)));
+    if (customPortrait(b.name)) list.push(act('还原立绘', '恢复剧本原始人物图片', '', () => resetPortrait(b.name)));
     replaceChildren(acts, list);
     // 配偶与子嗣：各取一位在世者（剧本名册里有的），小像压在卷首右下
     const blood = kinOf(b);
@@ -326,6 +330,7 @@ export function createRenwu({ root, game, viewer, can, onAudience, onLetter, onO
   // 回合过后、钉选变了：开着就重画
   bus.on('game:advanced', () => { if (el.classList.contains('on')) { peopleCache = null; render(); } });
   bus.on('pins:changed', () => { if (el.classList.contains('on')) render(); });
+  bus.on('portraits:changed', () => { if (el.classList.contains('on')) { peopleCache = null; render(); } });
 
   return { show, hide, get open() { return el.classList.contains('on'); }, get current() { return el.classList.contains('on') ? cur : null }, refresh: () => { if (el.classList.contains('on')) render(); } };
 }
