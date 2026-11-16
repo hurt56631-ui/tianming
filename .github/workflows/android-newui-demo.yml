@@ -1,0 +1,77 @@
+name: Android New UI Demo APK
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-newui-demo.yml'
+      - 'mobile/**'
+      - 'web/**'
+      - 'scripts/**'
+  push:
+    branches: [feature/android-newui-demo-20261116]
+    paths:
+      - '.github/workflows/android-newui-demo.yml'
+      - 'mobile/scripts/stage-newui-demo.cjs'
+      - 'mobile/scripts/configure-newui-demo.cjs'
+      - 'mobile/scripts/configure-newui-native.cjs'
+
+permissions:
+  contents: read
+
+jobs:
+  debug-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK platform
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+      - name: Stage official scenarios
+        run: node web/scripts/sync-official-scenarios.js
+      - name: Check original release rules remain unchanged
+        run: |
+          node - <<'NODE'
+          const c = require('./scripts/release-excludes.json');
+          if (!c.globs.includes('ui/**') || !c.globs.includes('vendor/three/**')) {
+            throw new Error('production release exclusion list unexpectedly changed');
+          }
+          NODE
+      - name: Stage new UI and verify all assets
+        run: node mobile/scripts/stage-newui-demo.cjs
+      - name: Install Android dependencies
+        working-directory: mobile
+        run: npm ci
+      - name: Configure isolated demo app
+        run: node mobile/scripts/configure-newui-demo.cjs
+      - name: Generate native Android project
+        working-directory: mobile
+        run: npx cap add android
+      - name: Lock landscape and sync WebView assets
+        run: |
+          node mobile/scripts/configure-newui-native.cjs
+          cd mobile
+          npx cap sync android
+      - name: Verify APK assets after Capacitor sync
+        run: node mobile/scripts/stage-newui-demo.cjs --verify --native --target mobile/android/app/src/main/assets/public
+      - name: Assemble debug APK
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug
+      - name: Publish independent test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: tianming-android-newui-demo-debug
+          path: mobile/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
