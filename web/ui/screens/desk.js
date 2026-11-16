@@ -788,8 +788,8 @@ export function createDesk({ root, stage, study, map, game, labels, clouds }) {
   function paintHome({ me, en, docket, fresh, open, due }) {
     const initial = () => h('i', [...(per.name || '？')][0]);
     const portrait = portraitFor(per.name, me && me.portrait);
-    if (selfFace.dataset.src !== String(portrait)) {
-      selfFace.dataset.src = String(portrait);
+    if (selfFace._portraitSource !== portrait) {
+      selfFace._portraitSource = portrait;
       replaceChildren(selfFace, portrait ? h('img', { src: portrait, alt: per.name, decoding: 'async', onerror: () => replaceChildren(selfFace, initial()) }) : initial());
     }
     selfSeal.textContent = dyn.textContent;
