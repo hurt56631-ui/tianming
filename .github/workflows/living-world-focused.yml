@@ -1,0 +1,28 @@
+name: Living World Focused Simulation QA
+on:
+  push:
+    branches:
+      - codex/modular-living-world-20261027
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  living-world:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test living-world deterministic mutations
+        run: |
+          node web/scripts/smoke-living-world.js
+          node --check web/tm-living-core.js
+          node --check web/tm-living-memory.js
+          node --check web/tm-living-dynasty.js
+          node --check web/tm-living-marriage.js
+          node --check web/tm-living-diplomacy.js
+          node --check web/tm-living-intrigue.js
+          node --check web/tm-living-legions.js
+          node --check web/tm-living-world.js
