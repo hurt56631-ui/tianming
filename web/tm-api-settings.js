@@ -11,6 +11,7 @@
   }
   function mount() {
     close(); ['primary', 'secondary'].forEach(mountOne);
+    if (global.TM && TM.DeepSeekWeb) TM.DeepSeekWeb.mountSettings();
   }
   function mountOne(tier) {
     var prefix = tier === 'secondary' ? 's-sec-' : 's-';
